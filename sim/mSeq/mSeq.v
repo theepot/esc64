@@ -4,7 +4,7 @@
 module mSeq(clock, reset, opcode, carry, zero, control);
 	parameter OPCODE_WIDTH = 7;
 	parameter ADDR_WIDTH = 8;
-	parameter CONTROL_WIDTH = 3;
+	parameter CONTROL_WIDTH = 16;
 	parameter INITIAL_ADDRESS = 0;
 	parameter ROM_FILENAME="urom.lst";
 	//`define ROM_WIDTH = (CONTROL_WIDTH + ADDR_WIDTH + 1)
