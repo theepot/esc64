@@ -1,3 +1,6 @@
+`ifndef _ROM_INCLUDED_
+`define _ROM_INCLUDED_
+
 module rom(addr, data);
 	parameter MEMFILE = "rom.lst";
 	parameter DATA_WIDTH = 8;
@@ -18,3 +21,6 @@ module rom(addr, data);
 	end
 
 endmodule
+
+`endif
+

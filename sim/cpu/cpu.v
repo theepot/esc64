@@ -3,12 +3,12 @@
 `include "../register/register.v"
 `include "../regsel/regsel.v"
 `include "../mSeq/mSeq.v"
+`include "../sram/sram.v"
+`include "../ir/ir.v"
 
 module cpu();
-	parameter DATA_BUS_WIDTH = 16;
-
 	//misc
-	wire [DATA_BUS_WIDTH-1:0] dataBus;
+	wire [15:0] dataBus;
 	wire clock;
 	wire reset;
 
@@ -26,7 +26,6 @@ module cpu();
 	wire [7:0] regselRegLoads; //regsel <> r0..r7
 
 	regSel _regsel(regselOE, regselLoad, regselOESourceSel, regselLoadSourceSel, regselUSeqRegSelOE, regselUSeqRegSelLoad, regselOp0, regselOp1, regselOp2, regselRegOEs, regselRegLoads);
-
 
 	//registers
 	wire r0OE; //r0 <> regsel
@@ -79,6 +78,24 @@ module cpu();
 	register sp(clock, reset, r6OE, r6Load, dataBus, dataBus);
 	program_counter pc(clock, reset/*TODO <- is active low*/, pcLoad/*TODO <- is active low*/, pcOE, pcInc, dataBus, dataBus);
 
+	//status
+	wire statusOE; //status <> useq
+	wire statusLoad; //status <> useq
+	wire [15:0] statusIn; //status <> statusCIn, statusZIn
+	wire [15:0] statusOut; //status <> statusCOut, statusZOut;
+
+	wire statusCIn; //status <> alu
+	wire statusCOut; //status <>  alu, useq
+	assign statusIn[0] = statusCIn;
+	assign statusOut[0] = statusCOut;
+	
+	wire statusZIn; //status <> alu
+	wire statusZOut; //status <> alu, useq
+	assign statusIn[1] = statusZIn;
+	assign statusOut[1] = statusZOut;
+	
+	register status(clock, reset, statusOE, statusLoad, statusIn, statusOut);
+
 	//ALU
 	wire[15:0] aluB; //alu <> aluBReg
 	wire aluBRegOE; //aluBReg <> useq
@@ -95,13 +112,29 @@ module cpu();
 	wire aluCSel; //alu <> useq
 	wire aluUCIn; //alu <> useq
 	wire aluFCin; //alu <> useq
-	wire aluCout; //alu <> TODO:statusC
-	wire aluZout; //alu <> TODO:statusZ
-	alu _alu(dataBus, aluB, aluY, aluF, aluFSel, aluCSel, aluUCIn, aluFCin, aluCout, aluZout);
+	alu _alu(dataBus, aluB, aluY, aluF, aluFSel, aluCSel, aluUCIn, aluFCin, statusCOut, aluZOut);
+		
+	//ram
+	wire addrRegOE; //addrReg <> useq
+	wire addrRegLoad; //addrReg <> useq
+	wire [15:0] addrRegOut; //addrReg <> ram
+	register addrReg(clock, reset, addrRegOE, addrRegLoad, dataBus, addrRegOut);
 	
+	wire memNotOE; //mem <> useq
+	wire memNotWE; //mem <> useq
+	wire memNotCS; //mem <> useq
+	sram ram(addrRegOut, dataBus, memNotOE, memNotWE, memNotCS);
+		
+	//instruction register
+	wire irOE; //ir <> useq
+	wire irLoad; //ir <> useq
+	wire [6:0] irOpcode; //ir <> useq
+	
+	instructionRegister ir(clock, irOE, irLoad, dataBus, irOpcode, regselOp0, regselOp1, regselOp2);
+		
 	//micro sequencer
-	wire [15:0] control;
-	mSeq _mSeq(clock, reset, /*TODO: opcode, carry, zero,*/ control);
+	wire [20:0] control;
+	mSeq _mSeq(clock, reset, irOpcode, statusCOut, statusZOut, control);
 	
 	assign control[0] = regselOE;
 	assign control[1] = regselLoad;
@@ -119,5 +152,14 @@ module cpu();
 	assign control[13] = aluCSel;
 	assign control[14] = aluUCIn;
 	assign control[15] = aluFCin;
+	assign control[16] = memNotOE;
+	assign control[17] = memNotWE;
+	assign control[18] = memNotCS;
+	assign control[19] = irOE;
+	assign control[20] = irLoad;
+
+	initial begin
+		$finish;
+	end
 
 endmodule

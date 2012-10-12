@@ -1,3 +1,6 @@
+`ifndef _PC_INCLUDED_
+`define _PC_INCLUDED_
+
 module program_counter(clk, notClr, notWrite, read, inc, in, out);
 	parameter DATA_WIDTH = 16;
 
@@ -39,3 +42,6 @@ module program_counter(clk, notClr, notWrite, read, inc, in, out);
 	end
 	
 endmodule
+
+`endif
+
