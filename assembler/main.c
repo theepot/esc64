@@ -29,29 +29,7 @@ static int TestScanner(int argc, char** argv)
 	Scanner scanner;
 	ScannerInit(&scanner, scannerInput);
 
-	const int maxScans = 200;
-	int scans = 0;
-	unsigned int curLine = 1;
-
-	printf("line 001:");
-	Token token;
-	while(ScannerNext(&scanner, &token))
-	{
-		putchar(' ');
-		ScannerDumpToken(stdout, &token);
-		
-		if(curLine != scanner.line)
-		{
-			curLine = scanner.line;
-			printf("\nline %03d:", curLine);
-		}
-		
-		if(++scans > maxScans)
-		{
-			fprintf(stderr, "max scans reached\n");
-			break;
-		}
-	}
+	ScannerDumpPretty(stdout, &scanner);
 
 	return 0;
 }
