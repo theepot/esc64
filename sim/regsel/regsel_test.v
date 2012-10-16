@@ -1,4 +1,4 @@
-`include "regSel.v"
+`include "regsel.v"
 module regSel_test();
 	wire [7:0] regOes, regLoads;
 	reg oe, load;
