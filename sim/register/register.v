@@ -1,3 +1,6 @@
+`ifndef _REGISTER_INCLUDED_
+`define _REGISTER_INCLUDED_
+
 module register(clock, reset, output_enable, load, data_in, data_out);
 	parameter DATA_WIDTH = 16;
 	input clock, reset, output_enable, load;
@@ -25,3 +28,5 @@ module register(clock, reset, output_enable, load, data_in, data_out);
 	end
 	
 endmodule
+
+`endif

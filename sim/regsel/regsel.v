@@ -1,3 +1,6 @@
+`ifndef _REGSEL_INCLUDED_
+`define _REGSEL_INCLUDED_
+
 module regSel(oe, load, oeSourceSel, loadSourceSel, useqRegSelOe, useqRegSelLoad, op0, op1, op2, regOes, regLoads);
 	input oe, load;
 	input [1:0] oeSourceSel;
@@ -36,3 +39,6 @@ module regSel(oe, load, oeSourceSel, loadSourceSel, useqRegSelOe, useqRegSelLoad
 	end
 
 endmodule
+
+`endif
+

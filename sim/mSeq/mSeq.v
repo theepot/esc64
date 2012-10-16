@@ -1,10 +1,13 @@
+`ifndef _MSEQ_INCLUDED_
+`define _MSEQ_INCLUDED_
+
 `include "../rom/rom.v"
 `include "../register/register.v"
 
 module mSeq(clock, reset, opcode, carry, zero, control);
 	parameter OPCODE_WIDTH = 7;
 	parameter ADDR_WIDTH = 8;
-	parameter CONTROL_WIDTH = 3;
+	parameter CONTROL_WIDTH = 21;
 	parameter INITIAL_ADDRESS = 0;
 	parameter ROM_FILENAME="urom.lst";
 	//`define ROM_WIDTH = (CONTROL_WIDTH + ADDR_WIDTH + 1)
@@ -31,3 +34,6 @@ module mSeq(clock, reset, opcode, carry, zero, control);
 	
 	register #(.DATA_WIDTH(ADDR_WIDTH)) addres_register(clock, 0, 1, 1, addres_register_input, addres_register_output);
 endmodule
+
+`endif
+
