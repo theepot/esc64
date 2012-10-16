@@ -1,3 +1,6 @@
+`ifndef _ALU_INCLUDED_
+`define _ALU_INCLUDED_
+
 `define ALU_F_A				5'b00000
 `define ALU_F_SUB			5'b01100
 `define ALU_F_ADD			5'b10010
@@ -62,3 +65,6 @@ module alu(a, b, y, f, fsel, csel, ucin, fcin, cout, zout);
 		zout = y === 16'H0000 ? 1 : 0;
 	end
 endmodule
+
+`endif
+
