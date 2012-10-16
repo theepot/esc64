@@ -9,8 +9,8 @@
 module cpu();
 	//misc
 	wire [15:0] dataBus;
-	wire clock;
-	wire notReset;
+	reg clock;
+	reg notReset;
 
 	//register selection
 	wire regselOE; //regsel <> useq
@@ -136,36 +136,44 @@ module cpu();
 	wire [33:0] control;
 	mSeq _mSeq(clock, reset, irOpcode, statusCOut, statusZOut, control);
 	
-	assign control[0] = regselOE;
-	assign control[1] = regselLoad;
-	assign control[2] = regselOESourceSel; //2
-	assign control[4] = regselLoadSourceSel;
-	assign control[5] = regselUSeqRegSelOE; //3
-	assign control[8] = regselUSeqRegSelLoad; //3
-	assign control[11] = pcInc;
-	assign control[12] = statusOE;
-	assign control[13] = statusNotLoad;
-	assign control[14] = aluBRegOE;
-	assign control[15] = aluBRegNotLoad;
-	assign control[16] = aluYRegOE;
-	assign control[17] = aluYRegNotLoad;
-	assign control[18] = aluF; //5
-	assign control[23] = aluFSel;
-	assign control[24] = aluCSel;
-	assign control[25] = aluUCIn;
-	assign control[26] = aluFCin;
-	assign control[27] = addrRegOE;
-	assign control[28] = addrRegNotLoad;
-	assign control[29] = memNotOE;
-	assign control[30] = memNotWE;
-	assign control[31] = memNotCS;
-	assign control[32] = irOE;
-	assign control[33] = irNotLoad;
+	assign control[33] = regselOE; //1,H
+	assign control[32] = regselLoad; //1,H
+	assign control[31:30] = regselOESourceSel; //2,H
+	assign control[29] = regselLoadSourceSel; //1,H
+	assign control[28:26] = regselUSeqRegSelOE; //3,H
+	assign control[25:23] = regselUSeqRegSelLoad; //3,H
+	assign control[22] = pcInc; //1,H
+	assign control[21] = statusOE; //1,H
+	assign control[20] = statusNotLoad; //1,L
+	assign control[19] = aluBRegOE; //1,H
+	assign control[18] = aluBRegNotLoad; //1,L
+	assign control[17] = aluYRegOE; //1,H
+	assign control[16] = aluYRegNotLoad; //1,L
+	assign control[15:11] = aluF; //5,H
+	assign control[10] = aluFSel; //1,H
+	assign control[9] = aluCSel; //1,H
+	assign control[8] = aluUCIn; //1,H
+	assign control[7] = aluFCin; //1,H
+	assign control[6] = addrRegOE; //1,H
+	assign control[5] = addrRegNotLoad; //1,L
+	assign control[4] = memNotOE; //1,L
+	assign control[3] = memNotWE; //1,L
+	assign control[2] = memNotCS; //1,L
+	assign control[1] = irOE; //1,H
+	assign control[0] = irNotLoad; //1,L
 
 	initial begin
+		$dumpfile("wave.vcd");
+		$dumpvars(0, dataBus, clock, notReset, regselOE, regselLoad, regselOESourceSel, regselLoadSourceSel, regselUSeqRegSelOE, regselUSeqRegSelLoad, regselOp0, regselOp1, regselOp2, regselRegOEs, regselRegNotLoads, r0OE, r0Load, r1OE, r1NotLoad, r2OE, r2NotLoad, r3OE, r3NotLoad, r4OE, r4NotLoad, lrOE, lrNotLoad, spOE, spNotLoad, pcOE, pcNotLoad, pcInc, statusOE, statusNotLoad, statusIn, statusOut, statusCIn, statusCOut, statusZIn, statusZOut, aluB, aluBRegOE, aluBRegNotLoad, aluY, aluYRegOE, aluYRegNotLoad, aluF, aluFSel, aluCSel, aluUCIn, aluFCin, addrRegOE, addrRegLoad, addrRegOut, memNotOE, memNotWE, memNotCS, irOE, irNotLoad, irOpcode, control);
 		
+		notReset = 0;
+		#30 notReset = 1;
 		
-		$finish;
+		#500 $finish;
+	end
+
+	always begin
+		#5 clock = ~clock;
 	end
 
 endmodule
