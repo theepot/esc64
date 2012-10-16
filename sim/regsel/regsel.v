@@ -1,18 +1,18 @@
 `ifndef _REGSEL_INCLUDED_
 `define _REGSEL_INCLUDED_
 
-module regSel(oe, load, oeSourceSel, loadSourceSel, useqRegSelOe, useqRegSelLoad, op0, op1, op2, regOes, regLoads);
+module regSel(oe, load, oeSourceSel, loadSourceSel, useqRegSelOe, useqRegSelLoad, op0, op1, op2, regOes, regNotLoads);
 	input oe, load;
 	input [1:0] oeSourceSel;
 	input loadSourceSel;
 	input [2:0] useqRegSelOe, useqRegSelLoad, op0, op1, op2;
-	output [7:0] regOes, regLoads;
+	output [7:0] regOes, regNotLoads;
 	
 	wire oe, load;
 	wire [1:0] oeSourceSel;
 	wire loadSourceSel;
 	wire [2:0] useqRegSelOe, useqRegSelLoad, op0, op1, op2;
-	reg [7:0] regOes, regLoads;
+	reg [7:0] regOes, regNotLoads;
 	
 	always @( * ) begin
 		if(oe) begin
@@ -29,12 +29,12 @@ module regSel(oe, load, oeSourceSel, loadSourceSel, useqRegSelOe, useqRegSelLoad
 		
 		if(load) begin
 			case(loadSourceSel)
-				1'b0: regLoads = 1 << (useqRegSelLoad);
-				1'b1: regLoads = 1 << (op0);
+				1'b0: regNotLoads = ~(1 << (useqRegSelLoad));
+				1'b1: regNotLoads = ~(1 << (op0));
 			endcase
 		end
 		else begin
-			regLoads = 8'H00;
+			regNotLoads = 8'HFF;
 		end
 	end
 
