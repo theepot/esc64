@@ -7,10 +7,9 @@ typedef enum TokenClass_
 	TOKEN_CLASS_OPCODE,
 	TOKEN_CLASS_PSEUDO_OPCODE,
 	TOKEN_CLASS_LABEL_DECL,
-	TOKEN_CLASS_LABEL_REF,
+	TOKEN_CLASS_LVALUE,
 	TOKEN_CLASS_NUMBER,
-	TOKEN_CLASS_PUNCTUATION,
-	TOKEN_CLASS_REGISTER_REF
+	TOKEN_CLASS_PUNCTUATION
 } TokenClass;
 
 typedef enum TokenValueType_
@@ -53,6 +52,11 @@ extern const TokenDescr TOKEN_DESCR_OPCODE_STR_LIT;
 extern const TokenDescr TOKEN_DESCR_OPCODE_CALL;
 
 extern const TokenDescr TOKEN_DESCR_DIR_WORD;
+extern const TokenDescr TOKEN_DESCR_DIR_ALIGN;
+extern const TokenDescr TOKEN_DESCR_DIR_ASCII;
+extern const TokenDescr TOKEN_DESCR_DIR_BYTE;
+extern const TokenDescr TOKEN_DESCR_DIR_GLOBAL;
+extern const TokenDescr TOKEN_DESCR_DIR_ORG;
 
 extern const TokenDescr TOKEN_DESCR_EOL;
 

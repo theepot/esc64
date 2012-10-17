@@ -33,6 +33,7 @@ static void GetLabelDecl(Scanner* scanner, Token* token);
 static void GetLabelRef(Scanner* scanner, Token* token);
 static int GetDirective(Scanner* scanner, Token* token);
 static int GetRegisterRef(Scanner* scanner, Token* token);
+static int GetRegisterNumeric(Scanner* scanner, Token* token);
 static int GetOpcode(Scanner* scanner, Token* token);
 
 static int GetReservedChar(Scanner* scanner, Token* token);
@@ -297,14 +298,13 @@ static int BufferSymbol(Scanner* scanner)
 
 static void GetLabelDecl(Scanner* scanner, Token* token)
 {
-	//TODO maybe check if the label is a reserved word?
+	//TODO check that the label is not a reserved word
 	token->descr = &TOKEN_DESCR_LABEL_DECL;
 	token->strValue = scanner->buf;
 }
 
 static void GetLabelRef(Scanner* scanner, Token* token)
 {
-	//TODO maybe check if the label is a reserved word?
 	token->descr = &TOKEN_DESCR_LABEL_REF;
 	token->strValue = scanner->buf;
 }
@@ -314,12 +314,12 @@ static int GetDirective(Scanner* scanner, Token* token)
 	//TODO all directive are .word now...
 	static const TokenDescrTable table[] =
 	{
-		{ "align", &TOKEN_DESCR_DIR_WORD },
-		{ "ascii", &TOKEN_DESCR_DIR_WORD },
-		{ "byte", &TOKEN_DESCR_DIR_WORD },
+		{ "align", &TOKEN_DESCR_DIR_ALIGN },
+		{ "ascii", &TOKEN_DESCR_DIR_ASCII },
+		{ "byte", &TOKEN_DESCR_DIR_BYTE },
 		{ "word", &TOKEN_DESCR_DIR_WORD },
-		{ "global", &TOKEN_DESCR_DIR_WORD },
-		{ "org", &TOKEN_DESCR_DIR_WORD }
+		{ "global", &TOKEN_DESCR_DIR_GLOBAL },
+		{ "org", &TOKEN_DESCR_DIR_ORG }
 	};
 
 	return DescrTableFind(table, sizeof(table) / sizeof(TokenDescrTable), scanner->buf, token);
@@ -352,13 +352,45 @@ static int GetRegisterRef(Scanner* scanner, Token* token)
 		token->intValue = 7; //TODO remove magic number
 		return 1;
 	}
-	else
+
+	return GetRegisterNumeric(scanner, token);
+}
+
+//TODO take notice: only supports Rn where n is a single digit
+static int GetRegisterNumeric(Scanner* scanner, Token* token)
+{
+	const size_t sz = scanner->bufIndex - 1; //don't include null-terminator
+	if(sz < 2)
 	{
-		//TODO get r0..r7
 		return 0;
 	}
 
-	return 0;
+	if(scanner->buf[0] != 'r' && scanner->buf[0] != 'R')
+	{
+		return 0;
+	}
+
+	int num = 0;
+	size_t i;
+	for(i = 1; i < sz; ++i)
+	{
+		int c = scanner->buf[i];
+		if(!isdigit(c))
+		{
+			return 0;
+		}
+		num = num * 10 + c - '0';
+	}
+
+	if(num > 7)
+	{
+		return 0; //TODO remove magic number
+	}
+
+	token->descr = &TOKEN_DESCR_REGISTER_REF;
+	token->intValue = num;
+
+	return 1;
 }
 
 static int GetOpcode(Scanner* scanner, Token* token)
