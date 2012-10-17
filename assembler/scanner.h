@@ -1,6 +1,13 @@
 #ifndef SCANNER_INCLUDED
 #define SCANNER_INCLUDED
 
+/*
+
+TODO for scanner:
+	- use hash maps to look up reserved words
+
+*/
+
 #include <stdio.h>
 #include "tokendescr.h"
 
