@@ -1,19 +1,19 @@
 `ifndef _PC_INCLUDED_
 `define _PC_INCLUDED_
 
-module program_counter(clk, notClr, notWrite, read, inc, in, out);
+module program_counter(clock, notReset, notLoad, OE, inc, in, out);
 	parameter DATA_WIDTH = 16;
 
-	input clk;
-	input notClr;
-	input notWrite;
-	input read;
+	input clock;
+	input notReset;
+	input notLoad;
+	input OE;
 	input inc;
 	input [DATA_WIDTH-1:0] in;
-	wire clk;
-	wire notClr;
-	wire notWrite;
-	wire read;
+	wire clock;
+	wire notReset;
+	wire notLoad;
+	wire OE;
 	wire inc;
 	wire [DATA_WIDTH-1:0] in;
 	
@@ -22,18 +22,18 @@ module program_counter(clk, notClr, notWrite, read, inc, in, out);
 	
 	reg [DATA_WIDTH-1:0] data;
 
-	assign out = read ? data : 32'bzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz;
+	assign out = OE ? data : 32'bzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz;
 	
-	always @ (posedge clk) begin
-		/*if(~(~notClr ^ ~notWrite ^ read ^ inc)) begin
+	always @ (posedge clock) begin
+		/*if(~(~notReset ^ ~notLoad ^ OE ^ inc)) begin
 			$display("OH SHI...");
 			$finish;
 		end*/
 	
-		if(!notClr) begin
+		if(!notReset) begin
 			data = 0;
 		end
-		else if(!notWrite) begin
+		else if(!notLoad) begin
 			data = in;
 		end
 		else if(inc) begin
