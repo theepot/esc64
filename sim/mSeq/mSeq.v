@@ -7,7 +7,7 @@
 module mSeq(clock, reset, opcode, carry, zero, control);
 	parameter OPCODE_WIDTH = 7;
 	parameter ADDR_WIDTH = 8;
-	parameter CONTROL_WIDTH = 21;
+	parameter CONTROL_WIDTH = 34;
 	parameter INITIAL_ADDRESS = 0;
 	parameter ROM_FILENAME="urom.lst";
 	//`define ROM_WIDTH = (CONTROL_WIDTH + ADDR_WIDTH + 1)
@@ -28,7 +28,7 @@ module mSeq(clock, reset, opcode, carry, zero, control);
 	assign control = rom_data[CONTROL_WIDTH + ADDR_WIDTH:ADDR_WIDTH + 1];
 	
 	wire [ADDR_WIDTH-1:0] addres_register_output, addres_register_input;
-	assign addres_register_input = reset ? INITIAL_ADDRESS : rom_data_sel ? rom_data_next : (opcode | (zero << OPCODE_WIDTH) | (carry << (OPCODE_WIDTH + 1)));
+	assign addres_register_input = reset ? INITIAL_ADDRESS : rom_data_sel ? (opcode | (zero << OPCODE_WIDTH) | (carry << (OPCODE_WIDTH + 1))) : rom_data_next;
 	
 	rom #(.MEMFILE(ROM_FILENAME), .DATA_WIDTH((CONTROL_WIDTH + ADDR_WIDTH + 1)), .ADDR_WIDTH(ADDR_WIDTH)) mem(addres_register_output, rom_data);
 	
