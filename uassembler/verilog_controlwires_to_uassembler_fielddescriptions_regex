@@ -1,0 +1,5 @@
+assign control\[([0-9]+):([0-9]+)\] = (.+); //([0-9]),(.)
+{.name = "\3", .index = (\1 + 1 + ADDR_WIDTH), .width = (\1-\2+1), .active = \5},
+	
+assign control\[([0-9]+)\] = (.+); //([0-9]),(.)
+{.name = "\2", .index = (\1 + 1 + ADDR_WIDTH), .width = 1, .active = \4},

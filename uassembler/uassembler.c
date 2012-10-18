@@ -3,10 +3,11 @@
 #include "string.h"
 #include "stdlib.h"
 #include "assert.h"
+#include "ctype.h"
 
-#define ADDR_WIDTH 5
-#define DATA_WIDTH 16
-#define OPCODE_WIDTH 2
+#define ADDR_WIDTH 13
+#define DATA_WIDTH 48
+#define OPCODE_WIDTH 7
 
 #define NEXT_SEL_OPCODE 1
 #define NEXT_SEL_UCODE 0
@@ -21,12 +22,44 @@ typedef struct {
 	int active;
 } field_description;
 
+#define L 0
+#define H 1
+
 field_description field_descriptions[] = {
 	{.name = "nextsel", .index = 0, .width = 1, .active = 1},
-	{.name = "next", .index = 0, .width = ADDR_WIDTH, .active = 1},
-	{.name = "newop", .index = 0, .width = 1, .active = 1},
-	{.name = "rest", .index = 0, .width = 9, .active = 1}
+	{.name = "next", .index = 1, .width = ADDR_WIDTH, .active = 1},
+	{.name = "regselOE", .index = (33 + 1 + ADDR_WIDTH), .width = 1, .active = H},
+	{.name = "regselLoad", .index = (32 + 1 + ADDR_WIDTH), .width = 1, .active = H},
+	{.name = "regselOESourceSel", .index = (30 + 1 + ADDR_WIDTH), .width = (31-30+1), .active = H},
+	{.name = "regselLoadSourceSel", .index = (29 + 1 + ADDR_WIDTH), .width = 1, .active = H},
+	{.name = "regselUSeqRegSelOE", .index = (26 + 1 + ADDR_WIDTH), .width = (28-26+1), .active = H},
+	{.name = "regselUSeqRegSelLoad", .index = (23 + 1 + ADDR_WIDTH), .width = (25-23+1), .active = H},
+	{.name = "pcInc", .index = (22 + 1 + ADDR_WIDTH), .width = 1, .active = H},
+	{.name = "statusOE", .index = (21 + 1 + ADDR_WIDTH), .width = 1, .active = H},
+	{.name = "statusNotLoad", .index = (20 + 1 + ADDR_WIDTH), .width = 1, .active = L},
+	{.name = "aluBRegOE", .index = (19 + 1 + ADDR_WIDTH), .width = 1, .active = H},
+	{.name = "aluBRegNotLoad", .index = (18 + 1 + ADDR_WIDTH), .width = 1, .active = L},
+	{.name = "aluYRegOE", .index = (17 + 1 + ADDR_WIDTH), .width = 1, .active = H},
+	{.name = "aluYRegNotLoad", .index = (16 + 1 + ADDR_WIDTH), .width = 1, .active = L},
+	{.name = "aluF", .index = (11 + 1 + ADDR_WIDTH), .width = (15-11+1), .active = H},
+	{.name = "aluFSel", .index = (10 + 1 + ADDR_WIDTH), .width = 1, .active = H},
+	{.name = "aluCSel", .index = (9 + 1 + ADDR_WIDTH), .width = 1, .active = H},
+	{.name = "aluUCIn", .index = (8 + 1 + ADDR_WIDTH), .width = 1, .active = H},
+	{.name = "aluFCin", .index = (7 + 1 + ADDR_WIDTH), .width = 1, .active = H},
+	{.name = "addrRegOE", .index = (6 + 1 + ADDR_WIDTH), .width = 1, .active = H},
+	{.name = "addrRegNotLoad", .index = (5 + 1 + ADDR_WIDTH), .width = 1, .active = L},
+	{.name = "memNotOE", .index = (4 + 1 + ADDR_WIDTH), .width = 1, .active = L},
+	{.name = "memNotWE", .index = (3 + 1 + ADDR_WIDTH), .width = 1, .active = L},
+	{.name = "memNotCS", .index = (2 + 1 + ADDR_WIDTH), .width = 1, .active = L},
+	{.name = "irOE", .index = (1 + 1 + ADDR_WIDTH), .width = 1, .active = H},
+	{.name = "irNotLoad", .index = (0 + 1 + ADDR_WIDTH), .width = 1, .active = L}
 };
+
+int compare_field_descriptions(const void* a , const void* b)
+{
+	return ((field_description*)a)->index - ((field_description*)b)->index;
+}
+
 const int fields_amount = sizeof(field_descriptions) / sizeof(field_description);
 const int data_width = DATA_WIDTH;
 const int opcode_width = OPCODE_WIDTH;
@@ -36,13 +69,17 @@ int mem_size;
 int fetch_index;
 int next_uop_index;
 
-void initialise_field_descriptions()
+void initialise_field_descriptions(const int auto_index)
 {
+	//if(!auto_index)
+		qsort(field_descriptions, fields_amount, sizeof(field_description), compare_field_descriptions);
+
 	int i;
 	int index = 0;
 	for(i = 0; i < fields_amount; i++)
 	{
-		field_descriptions[i].index = index;
+		if(auto_index)
+			field_descriptions[i].index = index;
 		index += field_descriptions[i].width;
 	}
 	
@@ -154,21 +191,24 @@ void change_field(const int field_number, const int value, char* const mem, cons
 	}
 }
 
-void turn_all_fields_unactive(char* const mem, const int uopn)
+void turn_all_fields_inactive(char* const mem, const int uopn)
 {
 	int i;
 	for(i = 0; i < fields_amount; i++)
 	{
 		if(field_descriptions[i].active)
-			change_field(i, ~((1 << field_descriptions[i].width) - 1), mem, uopn);
+			change_field(i, 0, mem, uopn);
 		else
 			change_field(i, ((1 << field_descriptions[i].width) - 1), mem, uopn);
 	}
 }
 
-int change_fields_by_string(const char* const fieldvalues, char* const mem, const int uopn)
+void change_fields_by_string(const char* const fieldvalues, char* const mem, const int uopn)
 {
 	const int len = strlen(fieldvalues);
+	if(len == 0)
+		return;
+	
 	const char* start;
 	const char* end = fieldvalues;
 	const char* sign = 0;
@@ -248,7 +288,7 @@ typedef enum flag_condition{
 
 void set_uop(const char* const fieldvalues, int next, int nextsel, char* const mem, int uopn)
 {
-		turn_all_fields_unactive(mem, uopn);
+		turn_all_fields_inactive(mem, uopn);
 		change_fields_by_string(fieldvalues, mem, uopn);
 		change_field(find_field_by_name("next"), next, mem, uopn);
 		change_field(find_field_by_name("nextsel"), nextsel, mem, uopn);
@@ -301,7 +341,7 @@ void put_uop(const char* const fieldvalues, const next_sel nxt, char* mem)
 int main(int argc, char** argv)
 {
 	//init
-	initialise_field_descriptions();
+	initialise_field_descriptions(0);
 	mem_size = pow(2, ADDR_WIDTH) * data_width;
 	mem = malloc(mem_size);
 	memset(mem, 2, mem_size);
@@ -309,28 +349,17 @@ int main(int argc, char** argv)
 	next_uop_index = fetch_index;
 	
 	//ucode
+	//init
+	put_op_entry("", 0, dontcare, dontcare, mem);
+	
 	//fetch
-	put_uop("rest=0", next, mem);
-	put_uop("rest=1", next, mem);
-	put_uop("rest=2", op_entry, mem);
+	put_uop("regselOE, regselOESourceSel=0, regselUSeqRegSelOE=7, addrRegNotLoad, memNotCS", next, mem);
+	put_uop("memNotCS, memNotOE, irNotLoad, pcInc, addrRegOE", op_entry, mem);
 	
 	//opcode 0
-	put_op_entry("rest=4", 0, dontcare, dontcare, mem);
-	put_uop("rest=5", next, mem);
-	put_uop("rest=6, newop", next, mem);
-	put_uop("rest=7", fetch, mem);
+	//put_op_entry("rest=4", 0, dontcare, dontcare, mem);
 
-	//opcode 1
-	put_op_entry("rest=8", 1, dontcare, dontcare, mem);
-	put_uop("rest=9", next, mem);
-	put_uop("rest=10, newop", next, mem);
-	put_uop("rest=11", fetch, mem);
-	
-	//opcode 2
-	put_op_entry("rest=32", 2, dontcare, dontcare, mem);
-	put_uop("rest=33", next, mem);
-	put_uop("rest=34, newop", next, mem);
-	put_uop("rest=35", fetch, mem);
+	//change_field(find_field_by_name("aluF"), 10, mem, 0);
 	
 	//print
 	print_mem_verilog_bin(mem, mem_size, 1);

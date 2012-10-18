@@ -1,0 +1,8 @@
+#!/bin/bash
+cd uassembler
+make
+./uassembler > ../sim/cpu/rom.lst
+cd ../sim/cpu
+iverilog -Wall cpu.v
+./a.out
+

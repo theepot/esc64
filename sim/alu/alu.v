@@ -34,6 +34,10 @@ module alu(a, b, y, f, fsel, csel, ucin, fcin, cout, zout);
 	
 	assign  cin = csel ? fcin : ucin;
 	
+	initial begin
+		cout = 0;
+	end
+	
 	always @ ( * )
 	begin
 		if(fsel) begin
@@ -59,7 +63,7 @@ module alu(a, b, y, f, fsel, csel, ucin, fcin, cout, zout);
 				`ALU_F_XOR:y = a ^ b;
 				`ALU_F_AND:y = a & b;
 				`ALU_F_OR:y = a | b;
-				default:$display("Error in ALU. Unknown code at f");
+				default:$display("Warning in ALU. Unknown code at f");
 			endcase
 		end
 		zout = y === 16'H0000 ? 1 : 0;
