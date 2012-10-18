@@ -4,6 +4,7 @@
 module sram(addr, data, notOE, notWE, notCS);
 	parameter ADDR_WIDTH = 16;
 	parameter DATA_WIDTH = 16;
+	parameter MEMFILE = "";
 	
 	input [ADDR_WIDTH-1:0] addr;
 	wire [ADDR_WIDTH-1:0] addr;
@@ -16,7 +17,17 @@ module sram(addr, data, notOE, notWE, notCS);
 	
 	reg [DATA_WIDTH-1:0] mem[0:((1<<ADDR_WIDTH)-1)];
 
-	assign data = !notCS && !notOE ? mem[addr] : 16'bzzzzzzzzzzzzzzzz;
+	assign data = (!notCS && !notOE) ? mem[addr] : 16'bzzzzzzzzzzzzzzzz;
+	
+	initial begin
+		if(MEMFILE != "") begin
+			$readmemb(MEMFILE, mem);
+		end
+		else begin
+			$display("warning: sram: no memory file defined");
+		end
+		
+	end
 
 	always @ (posedge notWE) begin
 		if(!notCS && notOE) begin

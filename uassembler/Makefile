@@ -1,2 +1,2 @@
 all:
-	gcc -lm -o uassembler uassembler.c
+	gcc -g -Wall -lm -o uassembler uassembler.c

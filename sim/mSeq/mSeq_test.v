@@ -1,22 +1,22 @@
 `include "mSeq.v"
 
 module mSeq_test();
-	reg clock, reset, carry, zero;
+	reg clock, notReset, carry, zero;
 	reg [1:0] opcode;
 	wire [9:0] control;
 	
 	initial begin
 		$dumpfile("wave.vcd");
-		$dumpvars(0, clock, reset, carry, zero, opcode, control, microsequencer.addres_register_output, microsequencer.rom_data, microsequencer.rom_data_sel, microsequencer.rom_data_next);
+		$dumpvars(0, clock, notReset, carry, zero, opcode, control, microsequencer.address_register_output, microsequencer.rom_data, microsequencer.rom_data_sel, microsequencer.rom_data_next);
 	
 		clock = 0;
-		reset = 0;
+		notReset = 1;
 		carry = 0;
 		zero = 0;
 		opcode = 0;
 		
-		#10 reset = 1;
-		#20 reset = 0;
+		#10 notReset = 0;
+		#20 notReset = 1;
 		
 		#800 $display("warning: finished by timeout timer");
 		$finish;
@@ -33,6 +33,6 @@ module mSeq_test();
 		#10 clock = ~clock;
 	end
 	
-	mSeq #(.OPCODE_WIDTH(2), .ADDR_WIDTH(5), .CONTROL_WIDTH(10), .INITIAL_ADDRESS(16), .ROM_FILENAME("urom.lst")) microsequencer(clock, reset, opcode, carry, zero, control);
+	mSeq #(.OPCODE_WIDTH(2), .ADDR_WIDTH(5), .CONTROL_WIDTH(10), .INITIAL_ADDRESS(16), .ROM_FILENAME("urom.lst")) microsequencer(clock, notReset, opcode, carry, zero, control);
 
 endmodule
