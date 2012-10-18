@@ -132,7 +132,7 @@ module cpu();
 	//micro sequencer
 	wire [33:0] control;
 //	mSeq _mSeq(clock, reset, irOpcode, statusCOut, statusZOut, control);
-	mSeq #(.ROM_FILENAME("rom.lst")) _mSeq(clock, notReset, irOpcode, statusCOut, statusZOut, control);
+	mSeq #(.ROM_FILENAME("urom.lst")) _mSeq(clock, notReset, irOpcode, statusCOut, statusZOut, control);
 	
 	/*assign control[33] = regselOE; //1,H
 	assign control[32] = regselLoad; //1,H
@@ -185,7 +185,7 @@ module cpu();
 	assign memNotCS = control[2]; //1,L
 	assign irNotLoad = control[0]; //1,L
 	initial begin
-		$dumpfile("wave.vcd");
+		$dumpfile("cpu.vcd");
 		$dumpvars(0);
 		//$dumpvars(0, dataBus, clock, notReset, regselOE, regselLoad, regselOESourceSel, regselLoadSourceSel, regselUSeqRegSelOE, regselUSeqRegSelLoad, regselOp0, regselOp1, regselOp2, regselRegOEs, regselRegNotLoads, r0OE, r0NotLoad, r1OE, r1NotLoad, r2OE, r2NotLoad, r3OE, r3NotLoad, r4OE, r4NotLoad, lrOE, lrNotLoad, spOE, spNotLoad, pcOE, pcNotLoad, pcInc, statusOE, statusNotLoad, statusIn, statusOut, statusCIn, statusCOut, statusZIn, statusZOut, aluB, aluBRegOE, aluBRegNotLoad, aluY, aluYRegOE, aluYRegNotLoad, aluF, aluFSel, aluCSel, aluUCIn, aluFCin, addrRegOE, addrRegNotLoad, addrRegOut, memNotOE, memNotWE, memNotCS, irOE, irNotLoad, irOpcode, control);
 		//$dumpvars(0, clock, notcontrol
