@@ -5,7 +5,7 @@ module alu_test();
 	reg		[15:0]  b;
 	wire	[15:0]  y;
 	reg		[4:0]   f;
-	reg		fsel, csel, ucin, fcin;
+	reg		fsel, csel, ucin, fcin, fyoe;
 	wire	cout, zout;
 	
 	initial begin
@@ -13,7 +13,7 @@ module alu_test();
 			$time, a, b, y, f, fsel, csel, ucin, fcin, cout, zout);
 		
 		$dumpfile("wave.vcd");
-		$dumpvars(0, a, b, y, f, fsel, csel, ucin, fcin, cout, zout);
+		$dumpvars(0);
 		
 		a = 0;
 		b = 0;
@@ -21,6 +21,7 @@ module alu_test();
 		csel = `ALU_CSEL_FCIN;
 		ucin = 0;
 		fcin = 0;
+		fyoe = 1;
 		f = `ALU_F_A;
 		
 		//pass through
@@ -78,9 +79,12 @@ module alu_test();
 		a = 16'HF00F;
 		b = 16'H000F;
 		
+		//no output
+		#10 fyoe = 0;
+		
 		#20 $finish;
 	end
 		
-		alu piraat(a, b, y, f, fsel, csel, ucin, fcin, cout, zout);
+		alu piraat(a, b, y, f, fsel, csel, ucin, fcin, cout, zout, fyoe);
 
 endmodule

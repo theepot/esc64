@@ -16,23 +16,25 @@
 `define ALU_CSEL_UCIN		0
 `define ALU_CSEL_FCIN		1
 
-module alu(a, b, y, f, fsel, csel, ucin, fcin, cout, zout);
+module alu(a, b, yout, f, fsel, csel, ucin, fcin, cout, zout, yoe);
 	input   [15:0] a;
 	input   [15:0] b;
-	output  [15:0] y;
+	output  [15:0] yout;
 	input   [4:0]  f;
-	input   fsel, csel, ucin, fcin;
+	input   fsel, csel, ucin, fcin, yoe;
 	output	cout, zout;
 	
 	wire	[15:0] a;
 	wire	[15:0] b;
+	wire	[15:0] yout;
 	reg		[15:0] y;
 	wire	[4:0]  f;
 	wire	fsel, csel, ucin, fcin;
 	reg		cout, zout;
 	wire	cin;
 	
-	assign  cin = csel ? fcin : ucin;
+	assign cin = csel ? fcin : ucin;
+	assign yout = yoe ? y : 16'bzzzzzzzzzzzzzzzz;
 	
 	initial begin
 		cout = 0;

@@ -9,7 +9,7 @@ gen_urom_image: gen_urom_image.c ../../uassembler/uassembler.h
 cpu: cpu.v ../*/*.v
 	iverilog -Wall cpu.v -o cpu
 
-cpu.vcd: cpu urom.lst
+cpu.vcd: cpu urom.lst ram.lst
 	./cpu
 	
 gen_ram_image: gen_ram_image.c

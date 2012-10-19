@@ -258,25 +258,36 @@ void set_uop(const char* const fieldvalues, int next, int nextsel, char* const m
 		change_field(find_field_by_name("nextsel"), nextsel, mem, uopn);
 }
 
-void put_op_entry(const char* const fieldvalues, int opcode, flag_condition c, flag_condition z, char* mem)
+void put_op_entry(const char* const fieldvalues, int opcode, flag_condition c, flag_condition z, const next_sel nxt, char* mem)
 {
 
-	
+	int nxt_addr = 0;
+	int nxt_sel = NEXT_SEL_UCODE;
+	switch(nxt)
+	{
+		case fetch: nxt_addr = fetch_index; break;
+		case next: nxt_addr = next_uop_index; break;
+		case op_entry: nxt_sel = NEXT_SEL_OPCODE; break;
+		default:
+			fprintf(stderr, "error: unkown next_sel\n");
+			exit(1);
+		break;
+	}
 	//notzero notcarry
 	if((c == dontcare || c == false) && (z == dontcare || z == false))
-		set_uop(fieldvalues, next_uop_index, NEXT_SEL_UCODE, mem, opcode);
+		set_uop(fieldvalues, nxt_addr, nxt_sel, mem, opcode);
 	
 	//notzero carry
 	if((c == dontcare || c == true) && (z == dontcare || z == false))
-		set_uop(fieldvalues, next_uop_index, NEXT_SEL_UCODE, mem, opcode | (1 << opcode_width));
+		set_uop(fieldvalues, nxt_addr, nxt_sel, mem, opcode | (1 << opcode_width));
 
 	//zero notcarry
 	if((c == dontcare || c == false) && (z == dontcare || z == true))
-		set_uop(fieldvalues, next_uop_index, NEXT_SEL_UCODE, mem, opcode | (2 << opcode_width));
+		set_uop(fieldvalues, nxt_addr, nxt_sel, mem, opcode | (2 << opcode_width));
 	
 	//zero carry
 	if((c == dontcare || c == true) && (z == dontcare || z == true))
-		set_uop(fieldvalues, next_uop_index, NEXT_SEL_UCODE, mem, opcode | (3 << opcode_width));
+		set_uop(fieldvalues, nxt_addr, nxt_sel, mem, opcode | (3 << opcode_width));
 	
 }
 
