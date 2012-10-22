@@ -25,18 +25,19 @@ module program_counter(clock, notReset, notLoad, OE, inc, in, out);
 	assign out = OE ? data : 32'bzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz;
 	
 	always @ (posedge clock) begin
-		/*if(~(~notReset ^ ~notLoad ^ OE ^ inc)) begin
-			$display("OH SHI...");
-			$finish;
-		end*/
-	
-		if(!notReset) begin
-			data = 0;
+		if(!notReset && !notLoad) begin
+			data = 32'bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx;
 		end
-		else if(!notLoad) begin
-			data = in;
+		else begin
+			if(!notReset) begin
+				data = 0;
+			end
+			else if(!notLoad) begin
+				data = in;
+			end
 		end
-		else if(inc) begin
+		
+		if(inc) begin
 			data = data + 1;
 		end
 	end

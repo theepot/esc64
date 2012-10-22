@@ -1,12 +1,13 @@
 `include "ir.v"
 
-//module instructionRegister(clock, notReset, notLoad, in, outOpcode, outOp0, outOp1, outOp2);
-
 module ir_test();
 	reg [15:0] data;
 	reg dataE;
+	wire [15:0] data_bus;
+	
 	wire [6:0] opcode;
 	wire [2:0] op0, op1, op2;
+	
 	reg clock, notReset, notLoad;
 	
 	assign data_bus = dataE ? data : 16'bzzzzzzzzzzzzzzzz;
@@ -15,23 +16,40 @@ module ir_test();
 		$dumpfile("wave.vcd");
 		$dumpvars(0, data, opcode, op0, op1, op2, clock, notReset, notLoad);
 	
+		data = 0;
 		dataE = 0;
+		
 		clock = 0;
 		notReset = 1;
 		notLoad = 1;
-		data = 0;
 		
-		#20 data = 16'HF0F0;
-		#20	dataE = 1;
-		#20 notLoad = 0;
-		#20 notLoad = 1;
-		#20	dataE = 0;
+		#100	data = 16'b1010111_101_110_011;
+		#100	dataE = 1;
+		#100	notLoad = 0;
+		#100	notLoad = 1;
+		#100	dataE = 0;
 		
-		#50 $finish;
+		if(opcode !== 7'b1010111) begin
+			$display("ERROR: opcode=%d (should be 0b1010111)\n", opcode);
+		end
+		
+		if(op0 !== 3'b101) begin
+			$display("ERROR: ir: op0=%d (should be 0b101)\n", opcode);
+		end
+		
+		if(op1 !== 3'b110) begin
+			$display("ERROR: ir: op1=%d (should be 0b110)\n", opcode);
+		end
+		
+		if(op2 !== 3'b011) begin
+			$display("ERROR: ir: op2=%d (should be 0b011)\n", opcode);
+		end
+		
+		#100	$finish;
 	end
 	
 	always begin
-		#5 clock = ~clock;
+		#20	clock = ~clock;
 	end
 	
 	instructionRegister ir(clock, notReset, notLoad, data, opcode, op0, op1, op2);
