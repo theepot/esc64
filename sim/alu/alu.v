@@ -2,6 +2,7 @@
 `define _ALU_INCLUDED_
 
 `define ALU_F_A				5'b00000
+`define ALU_F_B				5'b10101
 `define ALU_F_SUB			5'b01100
 `define ALU_F_ADD			5'b10010
 `define ALU_F_NOT			5'b00001
@@ -43,24 +44,28 @@ module alu(a, b, yout, f, fsel, csel, ucin, fcin, cout, zout, yoe);
 	always @ ( * )
 	begin
 		if(fsel) begin
-			if(f[0]) begin
-				y = a << (b & 16'H000F);
+			if(f[0] === 1'b1) begin
+				y = a << 1;
 			end
 			else begin
-				y = a >> (b & 16'H000F);
+				y = a >> 1;
 			end
 		end
 		else begin
 			case(f)
-				`ALU_F_A:y = a;
+				`ALU_F_A: begin
+					y = a + cin;
+					cout = y < a ? 1'b1 : 1'b0;
+				end
+				`ALU_F_B:y = b;
 				`ALU_F_SUB:begin
-							y = a - b - 1 + cin;
-							cout = y > a || y > b ? 0 : 1;
-						 end
+					y = a - b - 1 + cin;
+					cout = y > a || y > b ? 1'b0 : 1'b1;
+				end
 				`ALU_F_ADD:begin
-							y = a + b + cin;
-							cout = y < a || y < b ? 1 : 0;
-						 end
+					y = a + b + cin;
+					cout = y < a || y < b ? 1'b1 : 1'b0;
+				end
 				`ALU_F_NOT:y = ~a;
 				`ALU_F_XOR:y = a ^ b;
 				`ALU_F_AND:y = a & b;
@@ -68,7 +73,7 @@ module alu(a, b, yout, f, fsel, csel, ucin, fcin, cout, zout, yoe);
 				default:$display("Warning in ALU. Unknown code at f");
 			endcase
 		end
-		zout = y === 16'H0000 ? 1 : 0;
+		zout = y === 16'H0000 ? 1'b1 : 1'b0;
 	end
 endmodule
 
