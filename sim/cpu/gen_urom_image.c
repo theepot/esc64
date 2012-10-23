@@ -81,17 +81,37 @@ int main(int argc, char** argv)
 	put_uop("regselOE, regselOESourceSel="RGS_OESRC_USEQ", regselUSeqRegSelOE="RGS_PC", memNotCS, memNotOE, irNotLoad, pcInc", next, mem);
 	put_uop("", op_entry, mem);
 	
-	//mov
-	#define MOV(o,c,z) put_op_entry("regselOE, regselOESourceSel="RGS_OESRC_OP1", regselLoad, regselLoadSourceSel="RGS_LOADSRC_OP0", aluYOE, aluFSel="ALU_FSEL_74181", aluF="ALU_F_A", statusNotLoad", (o), (c), (z), fetch, mem)
+	//mov's
+#define MOV(o,c,z) put_op_entry("regselOE, regselOESourceSel="RGS_OESRC_OP1", regselLoad, regselLoadSourceSel="RGS_LOADSRC_OP0", aluYOE, aluFSel="ALU_FSEL_74181", aluF="ALU_F_A", statusNotLoad", (o), (c), (z), fetch, mem)
+#define NOP(o) put_op_entry("", (o), dontcare, dontcare, fetch, mem)
+
 	MOV(mov, dontcare, dontcare);
+	
+	NOP(mov_on_equal);
 	MOV(mov_on_equal, dontcare, true);
+	
+	NOP(mov_on_not_equal);
+	MOV(mov_on_not_equal, dontcare, false);
+	
+	NOP(mov_on_less_then);
+	MOV(mov_on_less_then, true, false);
+	
+	NOP(mov_on_less_then_or_equal);
+	MOV(mov_on_less_then_or_equal, true, dontcare);
 	
 	//mov immediate
 	put_op_entry("pcInc, regselLoad, regselLoadSourceSel="RGS_LOADSRC_OP0", regselOE, regselOESourceSel="RGS_OESRC_USEQ", regselUSeqRegSelOE="RGS_PC", memNotCS, memNotOE", mov_big_literal, dontcare, dontcare, fetch, mem);
 	
-	//add
-	put_op_entry("regselOE, regselOESourceSel="RGS_OESRC_OP2", aluBRegNotLoad", add, dontcare, dontcare, next, mem);
-	put_uop("regselOE, regselOESourceSel="RGS_OESRC_OP1", regselLoad, regselLoadSourceSel="RGS_LOADSRC_OP0", aluYOE, statusNotLoad, aluFSel="ALU_FSEL_74181", aluF="ALU_F_ADD", aluCSel="ALU_CSEL_UCIN, fetch, mem);
+	//ALU functions
+#define FN(op, fsel, f) \
+	put_op_entry("regselOE, regselOESourceSel="RGS_OESRC_OP2", aluBRegNotLoad", (op), dontcare, dontcare, next, mem); \
+	put_uop("regselOE, regselOESourceSel="RGS_OESRC_OP1", regselLoad, regselLoadSourceSel="RGS_LOADSRC_OP0", aluYOE, statusNotLoad, aluFSel=" fsel ", aluF="  f ", aluCSel="ALU_CSEL_UCIN, fetch, mem)
+	FN(add, ALU_FSEL_74181, ALU_F_ADD);
+	FN(or, ALU_FSEL_74181, ALU_F_OR);
+	FN(xor, ALU_FSEL_74181, ALU_F_XOR);
+	FN(and, ALU_FSEL_74181, ALU_F_AND);
+	/*sub*/put_op_entry("regselOE, regselOESourceSel="RGS_OESRC_OP2", aluBRegNotLoad", sub, dontcare, dontcare, next, mem); \
+	put_uop("regselOE, regselOESourceSel="RGS_OESRC_OP1", regselLoad, regselLoadSourceSel="RGS_LOADSRC_OP0", aluYOE, statusNotLoad, aluFSel="ALU_FSEL_74181", aluF="ALU_F_SUB", aluCSel="ALU_CSEL_UCIN", aluUCIn", fetch, mem);
 	
 	//load
 	put_op_entry("regselOE, regselOESourceSel="RGS_OESRC_OP1", regselLoad, regselLoadSourceSel="RGS_LOADSRC_OP0", memNotCS, memNotOE", load, dontcare, dontcare, fetch, mem);
@@ -100,6 +120,14 @@ int main(int argc, char** argv)
 	put_op_entry("regselOE, regselOESourceSel="RGS_OESRC_OP2", aluBRegNotLoad, aluF="ALU_F_B", aluFSel="ALU_FSEL_74181, store, dontcare, dontcare, next, mem);
 	put_uop("aluYOE, memNotWE, memNotCS, regselOE, regselOESourceSel="RGS_OESRC_OP1", aluF="ALU_F_B", aluFSel="ALU_FSEL_74181, next, mem);
 	put_uop("aluYOE, memNotCS, regselOE, regselOESourceSel="RGS_OESRC_OP1", aluF="ALU_F_B", aluFSel="ALU_FSEL_74181, fetch, mem);
+	
+	//comp
+	put_op_entry("regselOE, regselOESourceSel="RGS_OESRC_OP2", aluBRegNotLoad", sub, dontcare, dontcare, next, mem); \
+	put_uop("regselOE, regselOESourceSel="RGS_OESRC_OP1", statusNotLoad, aluFSel="ALU_FSEL_74181", aluF="ALU_F_SUB", aluCSel="ALU_CSEL_UCIN", aluUCIn", fetch, mem);
+	
+	//call
+	put_op_entry("regselLoad, regselLoadSourceSel="RGS_LOADSRC_USEQ", regselUSeqRegSelLoad="RGS_LR", regselOE, regselOESourceSel="RGS_OESRC_USEQ", regselUSeqRegSelOE="RGS_PC, call, dontcare, dontcare, next, mem);
+	put_uop("regselOE, regselOESourceSel="RGS_OESRC_OP1", regselLoad, regselLoadSourceSel="RGS_LOADSRC_USEQ", regselUSeqRegSelLoad="RGS_PC, fetch, mem);
 	
 	//print
 	print_mem_verilog_bin(mem, mem_size, 1);

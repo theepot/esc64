@@ -11,6 +11,22 @@
 #define NEXT_SEL_UCODE 0
 #define NEXT_SEL_OPCODE 1
 
+static int pow_(int n, int exp)
+{
+	if(exp == 0) return 1;
+	
+	int x = n;
+	int i;
+	for(i = 1; i < exp; ++i)
+	{
+		x *= n;
+	}
+	
+	return x;
+}
+
+#define pow pow_
+
 typedef struct {
 	char* name;
 	int index;
