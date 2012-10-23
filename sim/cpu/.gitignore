@@ -2,3 +2,5 @@ cpu
 gen_urom_image
 dump.lst
 mini_assembler
+urom.lst
+ram.lst
