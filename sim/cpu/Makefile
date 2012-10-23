@@ -12,6 +12,8 @@ cpu: cpu.v ../*/*.v
 cpu.vcd: cpu urom.lst ram.lst
 	./cpu
 	
-gen_ram_image: gen_ram_image.c
-	gcc -Wall -o gen_ram_image gen_ram_image.c
+ram.lst: gen_program_ram
+	./gen_program_ram > ram.lst
 
+gen_program_ram: mini_assembler.c
+	gcc -lm -Wall mini_assembler.c -o gen_program_ram

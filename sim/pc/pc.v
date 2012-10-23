@@ -25,6 +25,10 @@ module program_counter(clock, notReset, notLoad, OE, inc, in, out);
 	assign out = OE ? data : 32'bzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz;
 	
 	always @ (posedge clock) begin
+		if(inc) begin
+			data = data + 1;
+		end
+		
 		if(!notReset && !notLoad) begin
 			data = 32'bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx;
 		end
@@ -37,9 +41,7 @@ module program_counter(clock, notReset, notLoad, OE, inc, in, out);
 			end
 		end
 		
-		if(inc) begin
-			data = data + 1;
-		end
+		
 	end
 	
 endmodule

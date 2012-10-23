@@ -1,4 +1,4 @@
 cpu
 gen_urom_image
-gen_ram_image
 dump.lst
+mini_assembler
