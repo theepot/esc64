@@ -17,35 +17,35 @@ module regSel_test();
 
 	task test;
 	begin
-			if(oe) begin
-				case(oeSourceSel)
-					2'b00: expected_regOes = 1 << (useqRegSelOe);
-					2'b01: expected_regOes = 1 << (op0);
-					2'b10: expected_regOes = 1 << (op1);
-					2'b11: expected_regOes = 1 << (op2);
-				endcase
-			end
-			else begin
-				expected_regOes = 8'H00;
-			end
+		if(oe) begin
+			case(oeSourceSel)
+				2'b00: expected_regOes = 1 << (useqRegSelOe);
+				2'b01: expected_regOes = 1 << (op0);
+				2'b10: expected_regOes = 1 << (op1);
+				2'b11: expected_regOes = 1 << (op2);
+			endcase
+		end
+		else begin
+			expected_regOes = 8'H00;
+		end
+	
+		if(load) begin
+			case(loadSourceSel)
+				1'b0: expected_regNotLoads = ~(1 << (useqRegSelLoad));
+				1'b1: expected_regNotLoads = ~(1 << (op0));
+			endcase
+		end
+		else begin
+			expected_regNotLoads = 8'HFF;
+		end
 		
-			if(load) begin
-				case(loadSourceSel)
-					1'b0: expected_regNotLoads = ~(1 << (useqRegSelLoad));
-					1'b1: expected_regNotLoads = ~(1 << (op0));
-				endcase
-			end
-			else begin
-				expected_regNotLoads = 8'HFF;
-			end
-			
-			if(expected_regOes !== regOes) begin
-				$display("ERROR: regsel: regOes=%X (expected %X)", regOes, expected_regOes);
-			end
-			
-			if(expected_regNotLoads !== regNotLoads) begin
-				$display("ERROR: regsel: regNotLoads=%X (expected %X)", regNotLoads, expected_regNotLoads);
-			end
+		if(expected_regOes !== regOes) begin
+			$display("ERROR: regsel: regOes=%X (expected %X)", regOes, expected_regOes);
+		end
+		
+		if(expected_regNotLoads !== regNotLoads) begin
+			$display("ERROR: regsel: regNotLoads=%X (expected %X)", regNotLoads, expected_regNotLoads);
+		end
 	end
 	endtask
 
