@@ -1,4 +1,5 @@
 `include "ir.v"
+`include "../globals.v"
 
 module ir_test();
 	reg [15:0] data;

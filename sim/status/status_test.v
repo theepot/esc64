@@ -1,4 +1,5 @@
 `include "status.v"
+`include "../globals.v"
 
 module status_test();
 	reg clock, cIn, zIn, notLoad;

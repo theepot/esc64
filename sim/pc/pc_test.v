@@ -1,4 +1,5 @@
 `include "pc.v"
+`include "../globals.v"
 
 module pc_test();
 	wire [15:0] data_bus;
