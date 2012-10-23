@@ -149,7 +149,8 @@ module cpu();
 	always begin
 		#5 clock = ~clock;
 		if(ir.ir.data == 16'b1111111_000_000_000) begin
-			#5 $finish;
+			#5 $writememb("dump.lst", ram.mem, 0, 64);
+			$finish;
 		end
 	end
 
