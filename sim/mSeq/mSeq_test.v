@@ -1,4 +1,5 @@
 `include "mSeq.v"
+`include "../globals.v"
 
 module mSeq_test();
 	reg clock, notReset, carry, zero;

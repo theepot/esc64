@@ -30,7 +30,7 @@ module sram(addr, data, notOE, notWE, notCS);
 	end
 
 	always @ (posedge notWE) begin
-		if(!notCS && notOE) begin
+		if(!notCS) begin
 			mem[addr] = data;
 		end
 	end

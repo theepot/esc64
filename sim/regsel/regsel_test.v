@@ -1,4 +1,8 @@
 `include "regsel.v"
+<<<<<<< Updated upstream
+=======
+`include "../globals.v"
+>>>>>>> Stashed changes
 
 module regSel_test();
 	wire [7:0] regOes, regNotLoads;

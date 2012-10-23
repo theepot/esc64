@@ -1,4 +1,5 @@
 `include "sram.v"
+`include "../globals.v"
 
 module sram_test();
 	reg [3:0] addr;

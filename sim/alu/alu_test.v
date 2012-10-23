@@ -1,5 +1,5 @@
-`include "../globals.v"
 `include "alu.v"
+`include "../globals.v"
 
 module alu_test();
 	reg		[15:0]  a;
