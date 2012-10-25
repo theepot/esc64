@@ -1,4 +1,6 @@
 `include "rom.v"
+`include "../globals.v"
+
 module rom_test();
 	reg [3:0] address;
 	wire [3:0] data;

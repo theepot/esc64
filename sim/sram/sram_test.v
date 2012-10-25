@@ -1,4 +1,5 @@
 `include "sram.v"
+`include "../globals.v"
 
 module sram_test();
 	reg [3:0] addr;
@@ -24,33 +25,50 @@ module sram_test();
 		notOE = 1;
 		notWE = 1;
 		notCS = 1;
+		#1 notCS = 0;
 		
-		for (i = 4'H0; i <= 4'HF; i = i + 4'H1) begin
-			#10	addr = i;
-				dataReg = i;
-				dataBusOE = 1;
+		for (i = 4'H3; i <= 4'HA; i = i + 4'H1) begin
+			#100	addr = i;
+					dataReg = i;
+					dataBusOE = 1;
 			
-			#5	notCS = 0;
-			#5	notWE = 0;
-			#5	notWE = 1;
-			#5	notCS = 1;
+			#100	notWE = 0;
+			#100	notWE = 1;
 				
-			#5	dataBusOE = 0;
+			#100	dataBusOE = 0;
 		end
 		
-		for(i = 4'H0; i <= 4'HF; i = i + 4'H1) begin
-			#10	addr = i;
+		#100	addr = 4'H0;
+		
+		#100	notOE = 0;
+		#100	if(dataBus !== 4'HF) begin
+			$display("ERROR: sram: addr=%X; data=%X; (data should be %X)", addr, dataBus, 4'HF);
+		end
+		#100	notOE = 1;
+		
+		#100	addr = 4'H1;
+		
+		#100	notOE = 0;
+		#100	if(dataBus !== 4'HE) begin
+			$display("ERROR: sram: addr=%X; data=%X; (data should be %X)", addr, dataBus, 4'HE);
+		end
+		#100	notOE = 1;
+		
+		for(i = 4'H3; i <= 4'HA; i = i + 4'H1) begin
+			#100	addr = i;
 			
-			#5	notCS = 0;
-				notOE = 0;
-				
-			#5	notCS = 1;
-				notOE = 1;
+			#100	notOE = 0;
+			
+			#100	if(dataBus !== i) begin
+				$display("ERROR: sram: addr=%X; data=%X; (data should be %X)", addr, dataBus, i);
+			end
+			
+			#100	notOE = 1;
 		end
 		
-		#30 $finish;
+		#100	$finish;
 	end
 	
-	sram #(.DATA_WIDTH(4), .ADDR_WIDTH(4)) ram(addr, dataBus, notOE, notWE, notCS);
+	sram #(.DATA_WIDTH(4), .ADDR_WIDTH(4), .MEMFILE("mem.lst")) ram(addr, dataBus, notOE, notWE, notCS);
 
 endmodule

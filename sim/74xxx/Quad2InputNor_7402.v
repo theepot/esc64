@@ -3,6 +3,7 @@
 //author:               kasper
 //version:              1
 //comment:
+//TODO:					included guards, delay, 1 assignment
 
 module ic7402(a, b, y);
     input   [3:0] a;

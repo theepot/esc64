@@ -3,16 +3,29 @@
 #include "string.h"
 #include "stdlib.h"
 #include "assert.h"
+#include "ctype.h"
 
-#define ADDR_WIDTH 5
-#define DATA_WIDTH 16
-#define OPCODE_WIDTH 2
+#define L 0
+#define H 1
 
-#define NEXT_SEL_OPCODE 1
 #define NEXT_SEL_UCODE 0
+#define NEXT_SEL_OPCODE 1
 
-#define NEXT_SEL 0
-#define NEXT_ADDR 1
+static int pow_(int n, int exp)
+{
+	if(exp == 0) return 1;
+	
+	int x = n;
+	int i;
+	for(i = 1; i < exp; ++i)
+	{
+		x *= n;
+	}
+	
+	return x;
+}
+
+#define pow pow_
 
 typedef struct {
 	char* name;
@@ -21,34 +34,50 @@ typedef struct {
 	int active;
 } field_description;
 
-field_description field_descriptions[] = {
-	{.name = "nextsel", .index = 0, .width = 1, .active = 1},
-	{.name = "next", .index = 0, .width = ADDR_WIDTH, .active = 1},
-	{.name = "newop", .index = 0, .width = 1, .active = 1},
-	{.name = "rest", .index = 0, .width = 9, .active = 1}
-};
-const int fields_amount = sizeof(field_descriptions) / sizeof(field_description);
-const int data_width = DATA_WIDTH;
-const int opcode_width = OPCODE_WIDTH;
-
-char* mem;
-int mem_size;
-int fetch_index;
-int next_uop_index;
-
-void initialise_field_descriptions()
+int compare_field_descriptions(const void* a, const void* b)
 {
+	return ((field_description*)a)->index - ((field_description*)b)->index;
+}
+
+typedef enum next_sel{
+	fetch,
+	next,
+	op_entry
+} next_sel;
+
+typedef enum flag_condition{
+	false,
+	true,
+	dontcare
+} flag_condition;
+
+field_description* field_descriptions;
+int fields_amount = 0;
+int addr_width = 0;
+int data_width = 0;
+int opcode_width = 0;
+char* mem = 0;
+int mem_size = 0;
+int fetch_index = 0;
+int next_uop_index = 0;
+
+void initialise_field_descriptions(const int auto_index)
+{
+	//if(!auto_index)
+		qsort(field_descriptions, fields_amount, sizeof(field_description), compare_field_descriptions);
+
 	int i;
 	int index = 0;
 	for(i = 0; i < fields_amount; i++)
 	{
-		field_descriptions[i].index = index;
+		if(auto_index)
+			field_descriptions[i].index = index;
 		index += field_descriptions[i].width;
 	}
 	
 	if(index != data_width)
 	{
-		puts("error: sum of field width's does not equal data_width");
+		fprintf(stderr, "error: sum of field width's does not equal data_width");
 		exit(1);
 	}
 }
@@ -79,7 +108,7 @@ void print_mem_verilog_bin(const char* const m, const int size, const int commen
 			case 0: putchar('0'); break;
 			case 1: putchar('1'); break;
 			case 2: putchar('x'); break;
-			default: printf("error: encountered unkown bit code while printing. At uop number %d\n", i % data_width); exit(1); break;
+			default: fprintf(stderr, "error: encountered unkown bit code while printing. At uop number %d\n", i % data_width); exit(1); break;
 		}
 		
 		bit++;
@@ -140,12 +169,12 @@ void change_field(const int field_number, const int value, char* const mem, cons
 {
 	if(field_number >= fields_amount)
 	{
-		printf("error in function change_field: field wiht number %d does not exist. At uop number %d\n", field_number, uopn);
+		fprintf(stderr, "error in function change_field: field wiht number %d does not exist. At uop number %d\n", field_number, uopn);
 		exit(1);
 	}
 	if(pow(2, field_descriptions[field_number].width) - 1 < value)
 	{
-		printf("warning: putting value %d in a field with width %d. Truncating bits. At uop number %d\n", value, field_descriptions[field_number].width, uopn);
+		fprintf(stderr, "warning: putting value %d in a field with width %d. Truncating bits. At uop number %d\n", value, field_descriptions[field_number].width, uopn);
 	}
 	int i;
 	for(i = 0; i < field_descriptions[field_number].width; i++)
@@ -154,21 +183,24 @@ void change_field(const int field_number, const int value, char* const mem, cons
 	}
 }
 
-void turn_all_fields_unactive(char* const mem, const int uopn)
+void turn_all_fields_inactive(char* const mem, const int uopn)
 {
 	int i;
 	for(i = 0; i < fields_amount; i++)
 	{
 		if(field_descriptions[i].active)
-			change_field(i, ~((1 << field_descriptions[i].width) - 1), mem, uopn);
+			change_field(i, 0, mem, uopn);
 		else
 			change_field(i, ((1 << field_descriptions[i].width) - 1), mem, uopn);
 	}
 }
 
-int change_fields_by_string(const char* const fieldvalues, char* const mem, const int uopn)
+void change_fields_by_string(const char* const fieldvalues, char* const mem, const int uopn)
 {
 	const int len = strlen(fieldvalues);
+	if(len == 0)
+		return;
+	
 	const char* start;
 	const char* end = fieldvalues;
 	const char* sign = 0;
@@ -192,12 +224,12 @@ int change_fields_by_string(const char* const fieldvalues, char* const mem, cons
 			int field_number = find_field_by_name(tmp2);
 			if(field_number == -1)
 			{
-				printf("error: unkown field name %s at uop number %d\n", tmp, uopn);
+				fprintf(stderr, "error: unkown field name %s at uop number %d\n", tmp, uopn);
 				exit(1);
 			}
 			if(field_descriptions[field_number].width != 1)
 			{
-				printf("error: specified multibit value without explicit assignment. At uop number %d\n", uopn);
+				fprintf(stderr, "error: specified multibit value without explicit assignment. At uop number %d\n", uopn);
 			}
 			change_field(field_number, field_descriptions[field_number].active, mem, uopn);
 		}
@@ -210,7 +242,7 @@ int change_fields_by_string(const char* const fieldvalues, char* const mem, cons
 			int field_number = find_field_by_name(tmp2);
 			if(field_number == -1)
 			{
-				printf("error: unkown field name %s at uop number %d\n", tmp, uopn);
+				fprintf(stderr, "error: unkown field name %s at uop number %d\n", tmp, uopn);
 				exit(1);
 			}
 			char tmp3[end-sign];
@@ -234,45 +266,44 @@ int change_fields_by_string(const char* const fieldvalues, char* const mem, cons
 	
 }
 
-typedef enum next_sel{
-	fetch,
-	next,
-	op_entry
-} next_sel;
-
-typedef enum flag_condition{
-	false,
-	true,
-	dontcare
-} flag_condition;
-
 void set_uop(const char* const fieldvalues, int next, int nextsel, char* const mem, int uopn)
 {
-		turn_all_fields_unactive(mem, uopn);
+		turn_all_fields_inactive(mem, uopn);
 		change_fields_by_string(fieldvalues, mem, uopn);
 		change_field(find_field_by_name("next"), next, mem, uopn);
 		change_field(find_field_by_name("nextsel"), nextsel, mem, uopn);
 }
 
-void put_op_entry(const char* const fieldvalues, int opcode, flag_condition c, flag_condition z, char* mem)
+void put_op_entry(const char* const fieldvalues, int opcode, flag_condition c, flag_condition z, const next_sel nxt, char* mem)
 {
 
-	
+	int nxt_addr = 0;
+	int nxt_sel = NEXT_SEL_UCODE;
+	switch(nxt)
+	{
+		case fetch: nxt_addr = fetch_index; break;
+		case next: nxt_addr = next_uop_index; break;
+		case op_entry: nxt_sel = NEXT_SEL_OPCODE; break;
+		default:
+			fprintf(stderr, "error: unkown next_sel\n");
+			exit(1);
+		break;
+	}
 	//notzero notcarry
 	if((c == dontcare || c == false) && (z == dontcare || z == false))
-		set_uop(fieldvalues, next_uop_index, NEXT_SEL_UCODE, mem, opcode);
+		set_uop(fieldvalues, nxt_addr, nxt_sel, mem, opcode << 2);
 	
 	//notzero carry
 	if((c == dontcare || c == true) && (z == dontcare || z == false))
-		set_uop(fieldvalues, next_uop_index, NEXT_SEL_UCODE, mem, opcode | (1 << opcode_width));
+		set_uop(fieldvalues, nxt_addr, nxt_sel, mem, (opcode << 2) | 2);
 
 	//zero notcarry
 	if((c == dontcare || c == false) && (z == dontcare || z == true))
-		set_uop(fieldvalues, next_uop_index, NEXT_SEL_UCODE, mem, opcode | (2 << opcode_width));
+		set_uop(fieldvalues, nxt_addr, nxt_sel, mem, (opcode << 2) | 1);
 	
 	//zero carry
 	if((c == dontcare || c == true) && (z == dontcare || z == true))
-		set_uop(fieldvalues, next_uop_index, NEXT_SEL_UCODE, mem, opcode | (3 << opcode_width));
+		set_uop(fieldvalues, nxt_addr, nxt_sel, mem, (opcode << 2) | 3);
 	
 }
 
@@ -290,7 +321,7 @@ void put_uop(const char* const fieldvalues, const next_sel nxt, char* mem)
 			set_uop(fieldvalues, 0, NEXT_SEL_OPCODE, mem, next_uop_index);
 		break;
 		default:
-			printf("error: unkown next_sel\n");
+			fprintf(stderr, "error: unkown next_sel\n");
 			exit(1);
 		break;
 	}
@@ -298,41 +329,11 @@ void put_uop(const char* const fieldvalues, const next_sel nxt, char* mem)
 	next_uop_index++;
 }
 
-int main(int argc, char** argv)
+void init()
 {
 	//init
-	initialise_field_descriptions();
-	mem_size = pow(2, ADDR_WIDTH) * data_width;
+	initialise_field_descriptions(0);
+	mem_size = pow(2, addr_width) * data_width;
 	mem = malloc(mem_size);
 	memset(mem, 2, mem_size);
-	fetch_index = pow(2, opcode_width + 2);
-	next_uop_index = fetch_index;
-	
-	//ucode
-	//fetch
-	put_uop("rest=0", next, mem);
-	put_uop("rest=1", next, mem);
-	put_uop("rest=2", op_entry, mem);
-	
-	//opcode 0
-	put_op_entry("rest=4", 0, dontcare, dontcare, mem);
-	put_uop("rest=5", next, mem);
-	put_uop("rest=6, newop", next, mem);
-	put_uop("rest=7", fetch, mem);
-
-	//opcode 1
-	put_op_entry("rest=8", 1, dontcare, dontcare, mem);
-	put_uop("rest=9", next, mem);
-	put_uop("rest=10, newop", next, mem);
-	put_uop("rest=11", fetch, mem);
-	
-	//opcode 2
-	put_op_entry("rest=32", 2, dontcare, dontcare, mem);
-	put_uop("rest=33", next, mem);
-	put_uop("rest=34, newop", next, mem);
-	put_uop("rest=35", fetch, mem);
-	
-	//print
-	print_mem_verilog_bin(mem, mem_size, 1);
-	return 0;
 }

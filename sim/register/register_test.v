@@ -1,4 +1,6 @@
 `include "register.v"
+`include "../globals.v"
+
 module register_test();
 	wire [15:0] data_bus;
 	reg [15:0] data;
@@ -8,7 +10,7 @@ module register_test();
 	assign data_bus = oe ? data : 16'bzzzzzzzzzzzzzzzz;
 	
 	initial begin
-		$dumpfile("wave.vcd");
+		$dumpfile("test.vcd");
 		$dumpvars(0, data_bus, data, clock, notReset, notLoad, regOE, oe);
 	
 		clock = 0;
@@ -18,26 +20,43 @@ module register_test();
 		data = 0;
 		oe = 0;
 		
-		#20 notReset = 0;
-		#20 notReset = 1;
-		#5 regOE = 1;
-
-		#20 regOE = 0;
+		# `TEST_DELAY notReset = 0;
+		# `TEST_DELAY notReset = 1;
 		
-		#10 data = 16'HF0F0;
-		oe = 1;
-		#10 notLoad = 0;
-		#20 notLoad = 1;
+		# `TEST_DELAY if(data_bus !== 16'bzzzzzzzzzzzzzzzz) begin
+			$display("ERROR:register. Got %X on outputs. Expected 0xZZZZ.", data_bus);
+		end
+		
+		# `TEST_DELAY regOE = 1;
+		# `TEST_DELAY if(data_bus !== 16'H0000) begin
+			$display("ERROR:register. Got %X on outputs. Expected 0x0000.", data_bus);
+		end
+		
+		# `TEST_DELAY oe = 1;
+		data = 16'HBEEF;
+		regOE = 0;
+		notLoad = 0;
+		
+		# `TEST_DELAY notLoad = 1;
+		regOE = 1;
 		oe = 0;
-		#10 regOE = 1;
 		
-		#8 notReset = 0;
+		# `TEST_DELAY if(data_bus !== 16'HBEEF) begin
+			$display("ERROR:register. Got %X on outputs. Expected 0xBEEF.", data_bus);
+		end
+		
+		# `TEST_DELAY notReset = 0;
+		# `TEST_DELAY notReset = 1;
+		
+		# `TEST_DELAY if(data_bus !== 16'H0000) begin
+			$display("ERROR:register. Got %X on outputs. Expected 0x0000.", data_bus);
+		end
 		
 		#10 $finish;
 	end
 	
 	always begin
-		#5 clock = ~clock;
+		# `TEST_CLOCK clock = ~clock;
 	end
 	
 	//register(clock, notReset, notLoad, OE, in, out);

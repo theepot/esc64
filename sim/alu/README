@@ -11,6 +11,7 @@ ucin    in      1           carry in from microsequencer
 fcin    in      1           carry in from carry flag
 cout    out     1           carry out
 zout    out     1           zero out
+yoe		in		1			y output enable
 
 f meaning:
 fsel 4 3 2 1 0

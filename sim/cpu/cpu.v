@@ -5,10 +5,18 @@
 `include "../mSeq/mSeq.v"
 `include "../sram/sram.v"
 `include "../ir/ir.v"
+`include "../status/status.v"
+
+`ifdef GPREGISTER_STRUCT
+`include "../GPRegister/GPRegister_s.v"
+`else
+`include "../GPRegister/GPRegister.v"
+`endif
 
 module cpu();
 	//misc
-	wire [15:0] dataBus;
+	wire [15:0] aBus;
+	wire [15:0] yBus;
 	reg clock;
 	reg notReset;
 
@@ -28,183 +36,129 @@ module cpu();
 	regSel _regsel(regselOE, regselLoad, regselOESourceSel, regselLoadSourceSel, regselUSeqRegSelOE, regselUSeqRegSelLoad, regselOp0, regselOp1, regselOp2, regselRegOEs, regselRegNotLoads);
 
 	//registers
-	wire r0OE; //r0 <> regsel
-	wire r0Load; //r0 <> regsel
-	assign r0OE = regselRegOEs[0];
-	assign r0Load = regselRegNotLoads[0];
+	wire r0NotOE; //r0 <> regsel
+	wire r0NotLoad; //r0 <> regsel
+	assign r0NotOE = regselRegOEs[0];
+	assign r0NotLoad = regselRegNotLoads[0];
 	
-	wire r1OE; //r1 <> regsel
+	wire r1NotOE; //r1 <> regsel
 	wire r1NotLoad; //r1 <> regsel
-	assign r1OE = regselRegOEs[1];
+	assign r1NotOE = regselRegOEs[1];
 	assign r1NotLoad = regselRegNotLoads[1];
 		
-	wire r2OE; //r2 <> regsel
+	wire r2NotOE; //r2 <> regsel
 	wire r2NotLoad; //r2 <> regsel
-	assign r2OE = regselRegOEs[2];
+	assign r2NotOE = regselRegOEs[2];
 	assign r2NotLoad = regselRegNotLoads[2];
 	
-	wire r3OE; //r3 <> regsel
+	wire r3NotOE; //r3 <> regsel
 	wire r3NotLoad; //r3 <> regsel
-	assign r3OE = regselRegOEs[3];
+	assign r3NotOE = regselRegOEs[3];
 	assign r3NotLoad = regselRegNotLoads[3];
 	
-	wire r4OE; //r4 <> regsel
+	wire r4NotOE; //r4 <> regsel
 	wire r4NotLoad; //r4 <> regsel
-	assign r4OE = regselRegOEs[4];
+	assign r4NotOE = regselRegOEs[4];
 	assign r4NotLoad = regselRegNotLoads[4];
 	
-	wire lrOE; //lr <> regsel
+	wire r5NotOE; //r5 <> regsel
+	wire r5NotLoad; //r5 <> regsel
+	assign r5NotOE = regselRegOEs[5];
+	assign r5NotLoad = regselRegNotLoads[5];
+	
+	wire lrNotOE; //lr <> regsel
 	wire lrNotLoad; //lr <> regsel
-	assign lrOE = regselRegOEs[5];
-	assign lrNotLoad = regselRegNotLoads[5];
+	assign lrNotOE = regselRegOEs[6];
+	assign lrNotLoad = regselRegNotLoads[6];
 	
-	wire spOE; //sp <> regsel
-	wire spNotLoad; //sp <> regsel
-	assign spOE = regselRegOEs[6];
-	assign spNotLoad = regselRegNotLoads[6];
-	
-	wire pcOE; //pc <> regsel
+	wire pcNotOE; //pc <> regsel
 	wire pcNotLoad; //pc <> regsel
-	assign pcOE = regselRegOEs[7];
+	assign pcNotOE = regselRegOEs[7];
 	assign pcNotLoad = regselRegNotLoads[7];
 	wire pcInc; //pc <> useq
 	
-	register r0(clock, notReset, r0NotLoad, r0OE, dataBus, dataBus);
-	register r1(clock, notReset, r1NotLoad, r1OE, dataBus, dataBus);
-	register r2(clock, notReset, r2NotLoad, r2OE, dataBus, dataBus);
-	register r3(clock, notReset, r3NotLoad, r3OE, dataBus, dataBus);
-	register r4(clock, notReset, r4NotLoad, r4OE, dataBus, dataBus);
-	register lr(clock, notReset, r5NotLoad, r5OE, dataBus, dataBus);
-	register sp(clock, notReset, r6NotLoad, r6OE, dataBus, dataBus);
-	program_counter pc(clock, notReset, pcNotLoad, pcOE, pcInc, dataBus, dataBus);
+	GPRegister r0(clock, r0NotLoad, r0NotOE, yBus, aBus);
+	GPRegister r1(clock, r1NotLoad, r1NotOE, yBus, aBus);
+	GPRegister r2(clock, r2NotLoad, r2NotOE, yBus, aBus);
+	GPRegister r3(clock, r3NotLoad, r3NotOE, yBus, aBus);
+	GPRegister r4(clock, r4NotLoad, r4NotOE, yBus, aBus);
+	GPRegister r5(clock, r5NotLoad, r5NotOE, yBus, aBus);
+	GPRegister lr(clock, lrNotLoad, lrNotOE, yBus, aBus);
+	program_counter pc(clock, notReset, pcNotLoad, pcNotOE, pcInc, yBus, aBus);
 
 	//status
-	wire statusOE; //status <> useq
-	wire statusNotLoad; //status <> useq
-	wire [15:0] statusIn; //status <> statusCIn, statusZIn
-	wire [15:0] statusOut; //status <> statusCOut, statusZOut;
-
-	wire statusCIn; //status <> alu
-	wire statusCOut; //status <>  alu, useq
-	assign statusIn[0] = statusCIn;
-	assign statusOut[0] = statusCOut;
-	
-	wire statusZIn; //status <> alu
-	wire statusZOut; //status <> alu, useq
-	assign statusIn[1] = statusZIn;
-	assign statusOut[1] = statusZOut;
-	
-	register status(clock, notReset, statusNotLoad, statusOE, statusIn, statusOut);
+	wire statusCIn; //status < alu
+	wire statusCOut; //status >  alu, useq
+	wire statusZIn; //status < alu
+	wire statusZOut; //status > alu, useq
+	wire statusNotLoad; //status < useq
+	statusRegister status(clock, statusNotLoad, statusCIn, statusCOut, statusZIn, statusZOut);
 
 	//ALU
-	wire[15:0] aluB; //alu <> aluBReg
-	wire aluBRegOE; //aluBReg <> useq
-	wire aluBRegNotLoad; //aluBReg <> useq
-	register aluBReg(clock, notReset, aluBRegNotLoad, aluBRgegOE, dataBus, aluB);
-
-	wire[15:0] aluY; //aluYReg <> alu
-	wire aluYRegOE; //aluYRegOE <> useq
-	wire aluYRegNotLoad; //aluYRegLoad <> useq
-	register aluYReg(clock, notReset, aluYRegNotLoad ,aluYRegOE, aluY, dataBus);
+	wire[15:0] aluB; //alu < aluBReg
+	wire aluBRegNotLoad; //aluBReg < useq
+	wire aluYOE; //alu < useq
+	register aluBReg(clock, notReset, aluBRegNotLoad, 1, aBus, aluB);
 	
 	wire [4:0] aluF; //alu <> useq
 	wire aluFSel; //alu <> useq
 	wire aluCSel; //alu <> useq
 	wire aluUCIn; //alu <> useq
-	wire aluFCin; //alu <> useq
-	alu _alu(dataBus, aluB, aluY, aluF, aluFSel, aluCSel, aluUCIn, aluFCin, statusCOut, aluZOut);
-		
-	//ram
-	wire addrRegOE; //addrReg <> useq
-	wire addrRegLoad; //addrReg <> useq
-	wire [15:0] addrRegOut; //addrReg <> ram
-	register addrReg(clock, notReset, addrRegNotLoad, addrRegOE, dataBus, addrRegOut);
+	alu _alu(aBus, aluB, yBus, aluF, aluFSel, aluCSel, aluUCIn, statusCOut, statusCIn, statusZIn, aluYOE);
 	
+	//ram
 	wire memNotOE; //mem <> useq
 	wire memNotWE; //mem <> useq
 	wire memNotCS; //mem <> useq
-	sram ram(addrRegOut, dataBus, memNotOE, memNotWE, memNotCS);
-		
+	sram #(.MEMFILE("ram.lst")) ram(aBus, yBus, memNotOE, memNotWE, memNotCS);
+	
 	//instruction register
-	wire irOE; //ir <> useq
 	wire irNotLoad; //ir <> useq
 	wire [6:0] irOpcode; //ir <> useq
 	
-	instructionRegister ir(clock, notReset, irNotLoad, irOE, dataBus, irOpcode, regselOp0, regselOp1, regselOp2);
+	instructionRegister ir(clock, notReset, irNotLoad, yBus, irOpcode, regselOp0, regselOp1, regselOp2);
 		
 	//micro sequencer
-	wire [33:0] control;
-	mSeq _mSeq(clock, reset, irOpcode, statusCOut, statusZOut, control);
+	wire [26:0] control;
+	mSeq #(.ROM_FILENAME("urom.lst")) _mSeq(clock, notReset, irOpcode, statusCOut, statusZOut, control);
 	
-	assign control[33] = regselOE; //1,H
-	assign control[32] = regselLoad; //1,H
-	assign control[31:30] = regselOESourceSel; //2,H
-	assign control[29] = regselLoadSourceSel; //1,H
-	assign control[28:26] = regselUSeqRegSelOE; //3,H
-	assign control[25:23] = regselUSeqRegSelLoad; //3,H
-	assign control[22] = pcInc; //1,H
-	assign control[21] = statusOE; //1,H
-	assign control[20] = statusNotLoad; //1,L
-	assign control[19] = aluBRegOE; //1,H
-	assign control[18] = aluBRegNotLoad; //1,L
-	assign control[17] = aluYRegOE; //1,H
-	assign control[16] = aluYRegNotLoad; //1,L
-	assign control[15:11] = aluF; //5,H
-	assign control[10] = aluFSel; //1,H
-	assign control[9] = aluCSel; //1,H
-	assign control[8] = aluUCIn; //1,H
-	assign control[7] = aluFCin; //1,H
-	assign control[6] = addrRegOE; //1,H
-	assign control[5] = addrRegNotLoad; //1,L
-	assign control[4] = memNotOE; //1,L
-	assign control[3] = memNotWE; //1,L
-	assign control[2] = memNotCS; //1,L
-	assign control[1] = irOE; //1,H
-	assign control[0] = irNotLoad; //1,L
-
+	assign statusNotLoad = control[26]; //1,L
+	assign regselOE = control[25]; //1,H
+	assign regselLoad = control[24]; //1,H
+	assign regselOESourceSel = control[23:22]; //2,H
+	assign regselLoadSourceSel = control[21]; //1,H
+	assign regselUSeqRegSelOE = control[20:18]; //3,H
+	assign regselUSeqRegSelLoad = control[17:15]; //3,H
+	assign pcInc = control[14]; //1,H
+	assign aluBRegNotLoad = control[13]; //1,L
+	assign aluYOE = control[12]; //1,H
+	assign aluF = control[11:7]; //5,H
+	assign aluFSel = control[6]; //1,H
+	assign aluCSel = control[5]; //1,H
+	assign aluUCIn = control[4]; //1,H
+	assign memNotOE = control[3]; //1,L
+	assign memNotWE = control[2]; //1,L
+	assign memNotCS = control[1]; //1,L
+	assign irNotLoad = control[0]; //1,L
+	
 	initial begin
-		$dumpfile("wave.vcd");
-		$dumpvars(0, dataBus, clock, notReset, regselOE, regselLoad, regselOESourceSel, regselLoadSourceSel, regselUSeqRegSelOE, regselUSeqRegSelLoad, regselOp0, regselOp1, regselOp2, regselRegOEs, regselRegNotLoads, r0OE, r0Load, r1OE, r1NotLoad, r2OE, r2NotLoad, r3OE, r3NotLoad, r4OE, r4NotLoad, lrOE, lrNotLoad, spOE, spNotLoad, pcOE, pcNotLoad, pcInc, statusOE, statusNotLoad, statusIn, statusOut, statusCIn, statusCOut, statusZIn, statusZOut, aluB, aluBRegOE, aluBRegNotLoad, aluY, aluYRegOE, aluYRegNotLoad, aluF, aluFSel, aluCSel, aluUCIn, aluFCin, addrRegOE, addrRegLoad, addrRegOut, memNotOE, memNotWE, memNotCS, irOE, irNotLoad, irOpcode, control);
+		$dumpfile("cpu.vcd");
+		$dumpvars(0);
 		
 		notReset = 0;
-		#30 notReset = 1;
+		clock = 0;
+		#900 notReset = 1;
 		
-		#500 $finish;
+		#999999 $finish;
 	end
 
 	always begin
-		#5 clock = ~clock;
+		#800 clock = ~clock;
+		if(ir.ir.data == 16'b1111111_000_000_000) begin
+			#5 $writememb("dump0.lst", ram.mem, 0, 64);
+			$writememb("dump1.lst", ram.mem, (1<<16) - 100, (1<<16)-1);
+			$finish;
+		end
 	end
 
 endmodule
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
