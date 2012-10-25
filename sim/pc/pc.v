@@ -1,19 +1,19 @@
 `ifndef _PC_INCLUDED_
 `define _PC_INCLUDED_
 
-module program_counter(clock, notReset, notLoad, OE, inc, in, out);
+module program_counter(clock, notReset, notLoad, notOE, inc, in, out);
 	parameter DATA_WIDTH = 16;
 
 	input clock;
 	input notReset;
 	input notLoad;
-	input OE;
+	input notOE;
 	input inc;
 	input [DATA_WIDTH-1:0] in;
 	wire clock;
 	wire notReset;
 	wire notLoad;
-	wire OE;
+	wire notOE;
 	wire inc;
 	wire [DATA_WIDTH-1:0] in;
 	
@@ -22,7 +22,7 @@ module program_counter(clock, notReset, notLoad, OE, inc, in, out);
 	
 	reg [DATA_WIDTH-1:0] data;
 
-	assign out = OE ? data : 32'bzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz;
+	assign #45 out = ~notOE ? data : 32'bzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz;
 	
 	always @ (posedge clock) begin
 		if(inc) begin

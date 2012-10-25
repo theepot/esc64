@@ -7,6 +7,12 @@
 `include "../ir/ir.v"
 `include "../status/status.v"
 
+`ifdef GPREGISTER_STRUCT
+`include "../GPRegister/GPRegister_s.v"
+`else
+`include "../GPRegister/GPRegister.v"
+`endif
+
 module cpu();
 	//misc
 	wire [15:0] aBus;
@@ -30,55 +36,55 @@ module cpu();
 	regSel _regsel(regselOE, regselLoad, regselOESourceSel, regselLoadSourceSel, regselUSeqRegSelOE, regselUSeqRegSelLoad, regselOp0, regselOp1, regselOp2, regselRegOEs, regselRegNotLoads);
 
 	//registers
-	wire r0OE; //r0 <> regsel
+	wire r0NotOE; //r0 <> regsel
 	wire r0NotLoad; //r0 <> regsel
-	assign r0OE = regselRegOEs[0];
+	assign r0NotOE = regselRegOEs[0];
 	assign r0NotLoad = regselRegNotLoads[0];
 	
-	wire r1OE; //r1 <> regsel
+	wire r1NotOE; //r1 <> regsel
 	wire r1NotLoad; //r1 <> regsel
-	assign r1OE = regselRegOEs[1];
+	assign r1NotOE = regselRegOEs[1];
 	assign r1NotLoad = regselRegNotLoads[1];
 		
-	wire r2OE; //r2 <> regsel
+	wire r2NotOE; //r2 <> regsel
 	wire r2NotLoad; //r2 <> regsel
-	assign r2OE = regselRegOEs[2];
+	assign r2NotOE = regselRegOEs[2];
 	assign r2NotLoad = regselRegNotLoads[2];
 	
-	wire r3OE; //r3 <> regsel
+	wire r3NotOE; //r3 <> regsel
 	wire r3NotLoad; //r3 <> regsel
-	assign r3OE = regselRegOEs[3];
+	assign r3NotOE = regselRegOEs[3];
 	assign r3NotLoad = regselRegNotLoads[3];
 	
-	wire r4OE; //r4 <> regsel
+	wire r4NotOE; //r4 <> regsel
 	wire r4NotLoad; //r4 <> regsel
-	assign r4OE = regselRegOEs[4];
+	assign r4NotOE = regselRegOEs[4];
 	assign r4NotLoad = regselRegNotLoads[4];
 	
-	wire lrOE; //lr <> regsel
+	wire r5NotOE; //r5 <> regsel
+	wire r5NotLoad; //r5 <> regsel
+	assign r5NotOE = regselRegOEs[5];
+	assign r5NotLoad = regselRegNotLoads[5];
+	
+	wire lrNotOE; //lr <> regsel
 	wire lrNotLoad; //lr <> regsel
-	assign lrOE = regselRegOEs[5];
-	assign lrNotLoad = regselRegNotLoads[5];
+	assign lrNotOE = regselRegOEs[6];
+	assign lrNotLoad = regselRegNotLoads[6];
 	
-	wire spOE; //sp <> regsel
-	wire spNotLoad; //sp <> regsel
-	assign spOE = regselRegOEs[6];
-	assign spNotLoad = regselRegNotLoads[6];
-	
-	wire pcOE; //pc <> regsel
+	wire pcNotOE; //pc <> regsel
 	wire pcNotLoad; //pc <> regsel
-	assign pcOE = regselRegOEs[7];
+	assign pcNotOE = regselRegOEs[7];
 	assign pcNotLoad = regselRegNotLoads[7];
 	wire pcInc; //pc <> useq
 	
-	register r0(clock, notReset, r0NotLoad, r0OE, yBus, aBus);
-	register r1(clock, notReset, r1NotLoad, r1OE, yBus, aBus);
-	register r2(clock, notReset, r2NotLoad, r2OE, yBus, aBus);
-	register r3(clock, notReset, r3NotLoad, r3OE, yBus, aBus);
-	register r4(clock, notReset, r4NotLoad, r4OE, yBus, aBus);
-	register lr(clock, notReset, lrNotLoad, lrOE, yBus, aBus);
-	register sp(clock, notReset, spNotLoad, spOE, yBus, aBus);
-	program_counter pc(clock, notReset, pcNotLoad, pcOE, pcInc, yBus, aBus);
+	GPRegister r0(clock, r0NotLoad, r0NotOE, yBus, aBus);
+	GPRegister r1(clock, r1NotLoad, r1NotOE, yBus, aBus);
+	GPRegister r2(clock, r2NotLoad, r2NotOE, yBus, aBus);
+	GPRegister r3(clock, r3NotLoad, r3NotOE, yBus, aBus);
+	GPRegister r4(clock, r4NotLoad, r4NotOE, yBus, aBus);
+	GPRegister r5(clock, r5NotLoad, r5NotOE, yBus, aBus);
+	GPRegister lr(clock, lrNotLoad, lrNotOE, yBus, aBus);
+	program_counter pc(clock, notReset, pcNotLoad, pcNotOE, pcInc, yBus, aBus);
 
 	//status
 	wire statusCIn; //status < alu
@@ -141,15 +147,16 @@ module cpu();
 		
 		notReset = 0;
 		clock = 0;
-		#7 notReset = 1;
+		#900 notReset = 1;
 		
-		#99999 $finish;
+		#999999 $finish;
 	end
 
 	always begin
-		#5 clock = ~clock;
+		#800 clock = ~clock;
 		if(ir.ir.data == 16'b1111111_000_000_000) begin
-			#5 $writememb("dump.lst", ram.mem, 0, 64);
+			#5 $writememb("dump0.lst", ram.mem, 0, 64);
+			$writememb("dump1.lst", ram.mem, (1<<16) - 100, (1<<16)-1);
 			$finish;
 		end
 	end

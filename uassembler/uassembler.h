@@ -291,19 +291,19 @@ void put_op_entry(const char* const fieldvalues, int opcode, flag_condition c, f
 	}
 	//notzero notcarry
 	if((c == dontcare || c == false) && (z == dontcare || z == false))
-		set_uop(fieldvalues, nxt_addr, nxt_sel, mem, opcode);
+		set_uop(fieldvalues, nxt_addr, nxt_sel, mem, opcode << 2);
 	
 	//notzero carry
 	if((c == dontcare || c == true) && (z == dontcare || z == false))
-		set_uop(fieldvalues, nxt_addr, nxt_sel, mem, opcode | (1 << opcode_width));
+		set_uop(fieldvalues, nxt_addr, nxt_sel, mem, (opcode << 2) | 2);
 
 	//zero notcarry
 	if((c == dontcare || c == false) && (z == dontcare || z == true))
-		set_uop(fieldvalues, nxt_addr, nxt_sel, mem, opcode | (2 << opcode_width));
+		set_uop(fieldvalues, nxt_addr, nxt_sel, mem, (opcode << 2) | 1);
 	
 	//zero carry
 	if((c == dontcare || c == true) && (z == dontcare || z == true))
-		set_uop(fieldvalues, nxt_addr, nxt_sel, mem, opcode | (3 << opcode_width));
+		set_uop(fieldvalues, nxt_addr, nxt_sel, mem, (opcode << 2) | 3);
 	
 }
 

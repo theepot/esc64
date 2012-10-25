@@ -22,7 +22,7 @@ module pc_test();
 		clk = 0;
 		notClr = 1;
 		notWrite = 1;
-		read = 0;
+		read = 1;
 		inc = 0;
 		
 		data = 0;
@@ -33,24 +33,24 @@ module pc_test();
 				notWrite = 0;
 		#100	notWrite = 1;
 				dataE = 0;
-		#100	read = 1;
+		#100	read = 0;
 		
 		#100	if(data_bus !== 16'HDEAD) begin
 			$display("ERROR: pc: data_bus=%X (should be DEAD)", data_bus);
 		end
 		
-		#100	read = 0;
+		#100	read = 1;
 		
 		#100	inc = 1;
 		#20		inc = 0;
 		
-		#100	read = 1;
+		#100	read = 0;
 		
 		#100	if(data_bus !== 16'HDEAE) begin
 			$display("ERROR: pc: data_bus=%X (should be DEAE)", data_bus);
 		end
 		
-		#100	read = 0;
+		#100	read = 1;
 		
 		#100	$finish;
 	end

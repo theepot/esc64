@@ -60,7 +60,7 @@ module alu(a, b, yout, f, fsel, csel, ucin, fcin, cout, zout, yoe);
 				`ALU_F_B:y = b;
 				`ALU_F_SUB:begin
 					y = a - b - 1 + cin;
-					cout = y > a || y > b ? 1'b0 : 1'b1;
+					cout = (a - 1 + cin) < b ? 1'b0 : 1'b1;
 				end
 				`ALU_F_ADD:begin
 					y = a + b + cin;

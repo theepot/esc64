@@ -23,12 +23,12 @@ module mSeq(clock, notReset, opcode, carry, zero, control);
 	wire [(CONTROL_WIDTH + ADDR_WIDTH + 1)-1:0] rom_data;
 	wire rom_data_sel;
 	wire [ADDR_WIDTH-1:0] rom_data_next;
-	assign rom_data_sel = rom_data[0];
-	assign rom_data_next = rom_data[ADDR_WIDTH:1];
-	assign control = rom_data[CONTROL_WIDTH + ADDR_WIDTH:ADDR_WIDTH + 1];
+	assign #150 rom_data_sel = rom_data[0];
+	assign #150 rom_data_next = rom_data[ADDR_WIDTH:1];
+	assign #150 control = rom_data[CONTROL_WIDTH + ADDR_WIDTH:ADDR_WIDTH + 1];
 	
 	wire [ADDR_WIDTH-1:0] address_register_output, address_register_input;
-	assign address_register_input = !notReset ? INITIAL_ADDRESS : rom_data_sel ? (opcode | (zero << OPCODE_WIDTH) | (carry << (OPCODE_WIDTH + 1))) : rom_data_next;
+	assign address_register_input = !notReset ? INITIAL_ADDRESS : rom_data_sel ? ((opcode << 2) | (carry << 1) | zero) : rom_data_next;
 	
 	rom #(.MEMFILE(ROM_FILENAME), .DATA_WIDTH((CONTROL_WIDTH + ADDR_WIDTH + 1)), .ADDR_WIDTH(ADDR_WIDTH)) mem(address_register_output, rom_data);
 	

@@ -10,8 +10,8 @@
 #define RGS_GP2				"2"
 #define RGS_GP3				"3"
 #define RGS_GP4				"4"
-#define RGS_LR				"5"
-#define RGS_SP				"6"
+#define RGS_GP5				"5"
+#define RGS_LR				"6"
 #define RGS_PC				"7"
 
 #define RGS_LOADSRC_USEQ	"0"

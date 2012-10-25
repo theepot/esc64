@@ -49,7 +49,7 @@ module alu_test();
 				`ALU_F_B:expected_y = b;
 				`ALU_F_SUB:begin
 					expected_y = a - b - 1 + cin;
-					expected_cout = expected_y > a || expected_y > b ? 1'b0 : 1'b1;
+					expected_cout = (a - 1 + cin) < b ? 1'b0 : 1'b1;
 				end
 				`ALU_F_ADD:begin
 					expected_y = a + b + cin;

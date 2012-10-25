@@ -57,10 +57,11 @@ int main(int argc, char** argv)
 	MOV(op_mov_on_not_equal, dontcare, false);
 	
 	NOP(op_mov_on_less_than);
-	MOV(op_mov_on_less_than, true, false);
+	MOV(op_mov_on_less_than, false, false);
 	
 	NOP(op_mov_on_less_than_or_equal);
-	MOV(op_mov_on_less_than_or_equal, true, dontcare);
+	MOV(op_mov_on_less_than_or_equal, false, dontcare);
+	MOV(op_mov_on_less_than_or_equal, dontcare, true);
 	
 	//mov immediate
 	put_op_entry("pcInc, regselLoad, regselLoadSourceSel="RGS_LOADSRC_OP0", regselOE, regselOESourceSel="RGS_OESRC_USEQ", regselUSeqRegSelOE="RGS_PC", memNotCS, memNotOE", op_mov_big_literal, dontcare, dontcare, fetch, mem);
@@ -89,8 +90,8 @@ int main(int argc, char** argv)
 	put_uop("regselOE, regselOESourceSel="RGS_OESRC_OP1", statusNotLoad, aluFSel="ALU_FSEL_74181", aluF="ALU_F_SUB", aluCSel="ALU_CSEL_UCIN", aluUCIn", fetch, mem);
 	
 	//call
-	put_op_entry("regselLoad, regselLoadSourceSel="RGS_LOADSRC_USEQ", regselUSeqRegSelLoad="RGS_LR", regselOE, regselOESourceSel="RGS_OESRC_USEQ", regselUSeqRegSelOE="RGS_PC, op_call, dontcare, dontcare, next, mem);
-	put_uop("regselOE, regselOESourceSel="RGS_OESRC_OP1", regselLoad, regselLoadSourceSel="RGS_LOADSRC_USEQ", regselUSeqRegSelLoad="RGS_PC, fetch, mem);
+	put_op_entry("aluYOE, regselLoad, regselLoadSourceSel="RGS_LOADSRC_USEQ", regselUSeqRegSelLoad="RGS_LR", regselOE, regselOESourceSel="RGS_OESRC_USEQ", regselUSeqRegSelOE="RGS_PC, op_call, dontcare, dontcare, next, mem);
+	put_uop("aluYOE, regselOE, regselOESourceSel="RGS_OESRC_OP1", regselLoad, regselLoadSourceSel="RGS_LOADSRC_USEQ", regselUSeqRegSelLoad="RGS_PC, fetch, mem);
 	
 	//print
 	print_mem_verilog_bin(mem, mem_size, 1);

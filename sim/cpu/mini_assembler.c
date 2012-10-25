@@ -12,8 +12,8 @@
 #define GP2	2
 #define GP3 3
 #define GP4	4
-#define LR	5
-#define SP	6
+#define GP5	5
+#define LR	6
 #define PC	7
 
 typedef struct {
@@ -337,15 +337,118 @@ int main(int argc, char** argv)
 	init_mem();
 	
 	//begin program
-	mov_literal(0, 10);
-	mov_literal(1, 1);
-	mov_literal_labeled(2, "end");
-	lbl("loop0");
-	sub(0, 0, 1);
-	mov_on_equal(PC, 2);
-	jump("loop0");
-	lbl("end");
+	/*mov_literal(0, 10);
+	mov_literal(1, 5);
+	mov_literal_labeled(2, "sub0");
+	call(2);
+	call(2);
 	halt();
+	
+	lbl("sub0"); //start sub0
+	add(0, 0, 1);
+	mov(PC, LR); //return*/
+	
+		mov_literal(0, 10);	//r0 = 10
+		mov_literal(1, 1);	//r1 = 1
+		mov_literal(5, 1);	//r5 = 0
+		mov_literal_labeled(2, "end0");	//r2 = end0
+		
+	lbl("loop0");
+		sub(0, 0, 1);
+		mov_on_equal(PC, 2);
+		
+		sub(GP5, GP5, 1);
+		store(GP5, 0);
+		
+		jump("loop0");
+	lbl("end0");
+	
+		mov_literal(0, 10);	//r0 = 10
+		mov_literal_labeled(2, "end1");	//r2 = end1
+	
+	lbl("loop1");
+		sub(0, 0, 1);
+		mov_on_equal(PC, 2);
+		
+		load(3, GP5);
+		add(GP5, GP5, 1);
+		
+		jump("loop1");
+	lbl("end1");
+	
+		halt();
+	
+	/*mov_literal(0, 10);
+	mov_literal(1, 10);
+	mov_literal_labeled(2, "end");
+	cmp(0, 1);
+	//mov_on_less_than_or_equal(PC, 2);
+	mov_on_not_equal(PC, 2);
+	add(0, 0, 1);
+	lbl("end");
+	halt();*/
+	
+	
+	/*mov_literal(1, 4);
+	mov_literal_labeled(0, "fib");
+	call(0);
+	halt();
+
+	//0 = call target
+	//1 = n
+	//2 = 1
+	//3 = 2
+lbl("fib");
+	//constants
+	mov(2, 1);
+	mov(3, 2);
+
+lbl("fib_r");
+	//if n < 2 then return n
+	mov_literal_labeled(0, "retN");	//jump target for then
+	cmp(1, 2);		//if n <= 1
+	mov_on_less_than_or_equal(PC, 0);			//then goto retN
+	
+	
+	//a = fib(n - 1)
+	sub(SP, SP, 2);	//push return address
+	store(SP, LR);
+	sub(LR, LR, 2);	//push n
+	store(SP, 1);
+	
+	mov_literal_labeled(0, "fib_r");	//fib_r, call target
+	sub(1, 1, 2);	//n = n - 1
+	call(0);			//call fib(n - 1)
+	
+	sub(SP, SP, 2);	//push a
+	store(SP, 0);
+	
+	//b = fib(n - 2)
+	add(SP, SP, 2);	//peek n
+	load(1, SP);
+	sub(SP, SP, 2);
+	
+	sub(1, 1, 3);	//n = n - 2
+	
+	mov_literal_labeled(0, "fib_r");	//fib_r, call target
+	call(0);		//call fib(n - 2)
+	
+	load(1, SP);		//pop a from stack
+	add(SP, SP, 2);
+	
+	add(1, 0, 1);	//n = a + b
+	
+	//cleanup	
+	add(SP, SP, 2);	//pop n
+	mov(LR, SP);		//pop return address
+	add(SP, SP, 2);
+	
+	//fallthrough
+lbl("retN");
+	mov(0, 1);
+	mov(PC, LR);*/
+	
+	
 	
 	//end program
 	print_memory();

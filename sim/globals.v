@@ -1,2 +1,2 @@
-`define TEST_DELAY (100)
-`define TEST_CLOCK (10)
+`define TEST_DELAY (200)
+`define TEST_CLOCK (800)

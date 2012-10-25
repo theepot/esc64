@@ -3,28 +3,28 @@
 
 
 module regSel_test();
-	wire [7:0] regOes, regNotLoads;
+	wire [7:0] regNotOEs, regNotLoads;
 	reg oe, load;
 	reg [1:0] oeSourceSel;
 	reg loadSourceSel;
-	reg [2:0] useqRegSelOe, useqRegSelLoad, op0, op1, op2;
+	reg [2:0] useqRegSelOE, useqRegSelLoad, op0, op1, op2;
 	
 
-	reg[7:0] expected_regOes;
+	reg[7:0] expected_regNotOEs;
 	reg[7:0] expected_regNotLoads;
 
 	task test;
 	begin
 		if(oe) begin
 			case(oeSourceSel)
-				2'b00: expected_regOes = 1 << (useqRegSelOe);
-				2'b01: expected_regOes = 1 << (op0);
-				2'b10: expected_regOes = 1 << (op1);
-				2'b11: expected_regOes = 1 << (op2);
+				2'b00: expected_regNotOEs = ~(1 << (useqRegSelOE));
+				2'b01: expected_regNotOEs = ~(1 << (op0));
+				2'b10: expected_regNotOEs = ~(1 << (op1));
+				2'b11: expected_regNotOEs = ~(1 << (op2));
 			endcase
 		end
 		else begin
-			expected_regOes = 8'H00;
+			expected_regNotOEs = 8'HFF;
 		end
 	
 		if(load) begin
@@ -37,8 +37,8 @@ module regSel_test();
 			expected_regNotLoads = 8'HFF;
 		end
 		
-		if(expected_regOes !== regOes) begin
-			$display("ERROR: regsel: regOes=%X (expected %X)", regOes, expected_regOes);
+		if(expected_regNotOEs !== regNotOEs) begin
+			$display("ERROR: regsel: regNotOEs=%X (expected %X)", regNotOEs, expected_regNotOEs);
 		end
 		
 		if(expected_regNotLoads !== regNotLoads) begin
@@ -49,13 +49,13 @@ module regSel_test();
 
 	initial begin
 		$dumpfile("wave.vcd");
-		$dumpvars(0, regOes, regNotLoads, oe, load, oeSourceSel, loadSourceSel, useqRegSelOe, useqRegSelLoad, op0, op1, op2);
+		$dumpvars(0, regNotOEs, regNotLoads, oe, load, oeSourceSel, loadSourceSel, useqRegSelOE, useqRegSelLoad, op0, op1, op2);
 		
 		oe = 0;
 		load = 0;
 		oeSourceSel = 0;
 		loadSourceSel = 0;
-		useqRegSelOe = 0;
+		useqRegSelOE = 0;
 		useqRegSelLoad = 0;
 		op0 = 0;
 		op1 = 0;
@@ -67,7 +67,7 @@ module regSel_test();
 		op0 = 1;
 		op1 = 3;
 		op2 = 7;
-		useqRegSelOe = 2;
+		useqRegSelOE = 2;
 		#100 test();
 		
 		
@@ -91,6 +91,6 @@ module regSel_test();
 		#100 $finish;
 	end
 	
-	regSel register_selecter(oe, load, oeSourceSel,loadSourceSel,useqRegSelOe,useqRegSelLoad,op0,op1,op2, regOes, regNotLoads);
+	regSel register_selecter(oe, load, oeSourceSel,loadSourceSel,useqRegSelOE,useqRegSelLoad,op0,op1,op2, regNotOEs, regNotLoads);
 
 endmodule
