@@ -8,7 +8,7 @@ module OctThreeState_74541(notOE1, notOE2, in, out);
 	input[7:0] in;
 	wire[7:0] in;
 	
-	output[7:0] out
+	output[7:0] out;
 	wire[7:0] out;
 
 	assign #38 out = ~(notOE1 | notOE2) ? in : 8'bzzzzzzzz;
