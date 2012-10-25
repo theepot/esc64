@@ -51,7 +51,6 @@ typedef struct Scanner_
 	int curChar;
 	char buf[SCANNER_BUF_SIZE];
 	size_t bufIndex;
-	unsigned int line;
 } Scanner;
 
 typedef struct Token_
@@ -66,7 +65,7 @@ typedef struct Token_
 
 void ScannerInit(Scanner* scanner, FILE* stream);
 
-int ScannerNext(Scanner* scanner, Token*  token);
+void ScannerNext(Scanner* scanner, Token*  token);
 
 void ScannerDumpToken(FILE* stream, const Token* token);
 void ScannerDumpPretty(FILE* stream, Scanner* scanner);

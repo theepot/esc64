@@ -36,6 +36,8 @@ static int GetRegisterRef(Scanner* scanner, Token* token);
 static int GetRegisterNumeric(Scanner* scanner, Token* token);
 static int GetOpcode(Scanner* scanner, Token* token);
 
+static int GetComment(Scanner* scanner);
+
 static int GetReservedChar(Scanner* scanner, Token* token);
 
 static int GetEOL(Scanner* scanner, Token* token);
@@ -47,24 +49,23 @@ void ScannerInit(Scanner* scanner, FILE* stream)
 	scanner->stream = stream;
 	ClearBuf(scanner);
 	Read(scanner);
-	scanner->line = 1;
 }
 
-int ScannerNext(Scanner* scanner, Token*  token)
+void ScannerNext(Scanner* scanner, Token*  token)
 {
 	IgnoreWhitespaces(scanner);
-	if(Peek(scanner) == -1)
+	if(Peek(scanner) == EOF)
 	{
-		return 0;
+		token->descr = &TOKEN_DESCR_EOF;
 	}
-
-	if(GetNumber(scanner, token) || GetSymbol(scanner, token) || GetReservedChar(scanner, token) || GetEOL(scanner, token))
+	else if(GetComment(scanner))
 	{
-		return 1;
+		token->descr = &TOKEN_DESCR_EOL;
 	}
-	
-	ScannerError(scanner, "Invalid sequence of characters");
-	return 0; //to suppress warning
+	else if(!GetNumber(scanner, token) && !GetSymbol(scanner, token) && !GetReservedChar(scanner, token) && !GetEOL(scanner, token))
+	{
+		ScannerError(scanner, "Invalid sequence of characters");
+	}
 }
 
 void ScannerDumpToken(FILE* stream, const Token* token)
@@ -85,20 +86,22 @@ void ScannerDumpToken(FILE* stream, const Token* token)
 
 void ScannerDumpPretty(FILE* stream, Scanner* scanner)
 {
-	unsigned int line = 1;
+	int line = 1;
 	Token token;
-	printf("line %04d:", line);
-	while(ScannerNext(scanner, &token))
+	fprintf(stream, "line %04d:", line);
+	ScannerNext(scanner, &token);
+	while(token.descr != &TOKEN_DESCR_EOF)
 	{
-		putchar(' ');
-		ScannerDumpToken(stdout, &token);
-
-		if(line != scanner->line)
+		putc(' ', stream);
+		ScannerDumpToken(stream, &token);
+		if(token.descr == &TOKEN_DESCR_EOL)
 		{
-			line = scanner->line;
-			printf("\nline %04d:", line);
+			fprintf(stream, "\nline %04d:", ++line);
 		}
+		ScannerNext(scanner, &token);
 	}
+	putc(' ', stream);
+	ScannerDumpToken(stream, &token);
 }
 
 static int DescrTableFind(const TokenDescrTable* table, size_t size, const char* sym, Token* token)
@@ -416,6 +419,32 @@ static int GetOpcode(Scanner* scanner, Token* token)
 	return DescrTableFind(table, sizeof(table) / sizeof(TokenDescrTable), scanner->buf, token);
 }
 
+static int GetComment(Scanner* scanner)
+{
+	if(Peek(scanner) == ';')
+	{
+		for(;;)
+		{
+			switch(Read(scanner))
+			{
+				case '\r':
+					if(Read(scanner) == '\n')
+					{
+						Read(scanner);
+					}
+					return 1;
+				case '\n':
+					Read(scanner);
+					return 1;
+				default:
+					break;
+			}
+		}
+	}
+
+	return 0;
+}
+
 static int GetReservedChar(Scanner* scanner, Token* token)
 {
 	const TokenDescr* descr = NULL;
@@ -458,7 +487,6 @@ static int GetEOL(Scanner* scanner, Token* token)
 			return 0;
 	}
 	
-	++scanner->line;
 	token->descr = &TOKEN_DESCR_EOL;
 	return 1;
 }
@@ -469,12 +497,11 @@ __attribute__((noreturn)) static void ScannerError(Scanner* scanner, const char*
 			"=== error in scanner occurred ===\n"
 				"\tMessage: \"%s\"\n"
 				"\tScanner state dump:\n"
-					"\t\tline:     %d\n"
 					"\t\tcurChar:  '%c'(%X)\n"
 					"\t\tbuf:      \"%s\"\n"
 					"\t\tbufIndex: %d\n"
 			"=================================\n",
-			errMsg, scanner->line, scanner->curChar, scanner->curChar, scanner->buf, scanner->bufIndex);
+			errMsg, scanner->curChar, scanner->curChar, scanner->buf, scanner->bufIndex);
 	fflush(stderr);
 	exit(-1);
 }

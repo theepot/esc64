@@ -3,70 +3,58 @@
 #include <assert.h>
 #include <string.h>
 
-static const char* StrPoolInsert(SymTable* symTable, const char* str, size_t strSize);
+//TODO remove temp memory fix
+static char mem[SYM_TABLE_SET_SIZE * (sizeof(SymTableEntry) + sizeof(Hash_t))];
 
-void SymTableInit(SymTable* symTable)
+static int CompareEntry(const void* a, const void* b);
+static Hash_t HashEntry(const void* entry);
+
+void SymTableInit(SymTable* table)
 {
-	symTable->bucketsSize = 0;
-	symTable->strPoolSize = 0;
+	table->setCount = 1;
+	HashSet* set = &(table->sets[0]);
+	HashSetInit(set, mem, SYM_TABLE_SET_SIZE, sizeof(SymTableEntry), HashEntry, CompareEntry); //TODO remove temp memory fix
 }
 
-int SymTableInsert(SymTable* symTable, const char* sym, unsigned int addr)
+int SymTableInsert(SymTable* table, const char* sym, UWord_t addr)
 {
-	if(symTable->bucketsSize >= SYM_TABLE_SIZE)
-	{
-		return 0;
-	}
-
-	const char* nwSym = StrPoolInsert(symTable, sym, strlen(sym) + 1);
-
-	if(!nwSym)
-	{
-		return 0;
-	}
-	
-	SymBucket* bucket = &(symTable->buckets[symTable->bucketsSize++]);
-	bucket->sym = nwSym;
-	bucket->addr = addr;
-	
-	return 1;
+	//TODO
 }
 
-const SymBucket* SymTableFind(SymTable* symTable, const char* sym)
+UWord_t SymTableFind(SymTable* table, const char* sym)
 {
-	size_t i;
-	for(i = 0; i < symTable->bucketsSize; ++i)
-	{
-		if(!strcmp(symTable->buckets[i].sym, sym))
-		{
-			return &(symTable->buckets[i]);
-		}
-	}
-	
-	return NULL;
+	//TODO
 }
 
-void SymTableDump(FILE* stream, SymTable* symTable)
+static int CompareEntry(const void* a, const void* b)
 {
-	size_t i;
-	for(i = 0; i < symTable->bucketsSize; ++i)
-	{
-		fprintf(stream, "sym=\"%s\"\taddr=%d\n", symTable->buckets[i].sym, symTable->buckets[i].addr);
-	}
+	SymTableEntry* a_ = (SymTableEntry*)a;
+	SymTableEntry* b_ = (SymTableEntry*)b;
+
+	return !strcmp(a_->sym, b_->sym);
 }
 
-static const char* StrPoolInsert(SymTable* symTable, const char* str, size_t strSize)
+static Hash_t HashEntry(const void* entry)
 {
-	size_t nwSize = strSize + symTable->strPoolSize;
-	if(nwSize >= SYM_TABLE_STRING_POOL_SIZE)
+	SymTableEntry* entry_ = (SymTableEntry*)entry;
+	const char* sym = entry_->sym;
+	Hash_t hash = 0;
+
+	int c;
+	for(c = *sym; c; c = *++sym)
 	{
-		return NULL;
+		hash += c;
+		hash += hash << 10;
+		hash ^= hash >> 6;
 	}
-	
-	const char* nwStr = memcpy(&(symTable->strPool[symTable->strPoolSize]), str, strSize);
-	symTable->strPoolSize = nwSize;
-	
-	return nwStr;
+	hash += hash << 3;
+	hash ^= hash >> 11;
+	hash += hash << 15;
+
+	return hash;
 }
+
+
+
 
 

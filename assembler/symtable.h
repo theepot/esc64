@@ -4,28 +4,27 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define SYM_TABLE_SIZE 256
-#define SYM_TABLE_STRING_POOL_SIZE (SYM_TABLE_SIZE << 3)
+#include "esctypes.h"
+#include "hashset.h"
 
-typedef struct SymBucket_
+#define SYM_TABLE_SET_SIZE 16
+#define SYM_TABLE_MAX_SETS 8
+
+typedef struct SymTableEntry_
 {
 	const char* sym;
-	unsigned int addr;
-} SymBucket;
+	UWord_t addr;
+} SymTableEntry;
 
 typedef struct SymTable_
 {
-	SymBucket buckets[SYM_TABLE_SIZE];
-	size_t bucketsSize;
-	char strPool[SYM_TABLE_STRING_POOL_SIZE];
-	size_t strPoolSize;
+	HashSet* sets[SYM_TABLE_MAX_SETS];
+	size_t setCount;
 } SymTable;
 
-void SymTableInit(SymTable* symTable);
+void SymTableInit(SymTable* table);
 
-int SymTableInsert(SymTable* symTable, const char* sym, unsigned int addr);
-const SymBucket* SymTableFind(SymTable* symTable, const char* sym);
-
-void SymTableDump(FILE* stream, SymTable* symTable);
+int SymTableInsert(SymTable* table, const char* sym, UWord_t addr);
+UWord_t SymTableFind(SymTable* table, const char* sym);
 
 #endif

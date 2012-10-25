@@ -8,7 +8,6 @@ typedef enum TokenClass_
 	TOKEN_CLASS_PSEUDO_OPCODE,
 	TOKEN_CLASS_LABEL_DECL,
 	TOKEN_CLASS_LVALUE,
-	TOKEN_CLASS_NUMBER,
 	TOKEN_CLASS_PUNCTUATION
 } TokenClass;
 
@@ -59,5 +58,6 @@ extern const TokenDescr TOKEN_DESCR_DIR_GLOBAL;
 extern const TokenDescr TOKEN_DESCR_DIR_ORG;
 
 extern const TokenDescr TOKEN_DESCR_EOL;
+extern const TokenDescr TOKEN_DESCR_EOF;
 
 #endif
