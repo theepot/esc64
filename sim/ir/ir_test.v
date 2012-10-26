@@ -1,4 +1,11 @@
+`ifdef IR_STRUCT
+`include "ir_s.v"
+`define DUMPNAME "ir_s.vcd"
+`else
 `include "ir.v"
+`define DUMPNAME "ir.vcd"
+`endif
+
 `include "../globals.v"
 
 module ir_test();
@@ -9,19 +16,18 @@ module ir_test();
 	wire [6:0] opcode;
 	wire [2:0] op0, op1, op2;
 	
-	reg clock, notReset, notLoad;
+	reg clock, notLoad;
 	
 	assign data_bus = dataE ? data : 16'bzzzzzzzzzzzzzzzz;
 	
 	initial begin
-		$dumpfile("wave.vcd");
-		$dumpvars(0, data, opcode, op0, op1, op2, clock, notReset, notLoad);
+		$dumpfile(`DUMPNAME);
+		$dumpvars(0, data, opcode, op0, op1, op2, clock, notLoad);
 	
 		data = 0;
 		dataE = 0;
 		
 		clock = 0;
-		notReset = 1;
 		notLoad = 1;
 		
 		#100	data = 16'b1010111_101_110_011;
@@ -53,6 +59,6 @@ module ir_test();
 		#20	clock = ~clock;
 	end
 	
-	instructionRegister ir(clock, notReset, notLoad, data, opcode, op0, op1, op2);
+	instructionRegister ir(clock, notLoad, data, opcode, op0, op1, op2);
 
 endmodule
