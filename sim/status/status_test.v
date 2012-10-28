@@ -1,4 +1,11 @@
+`ifdef STATUS_STRUCT
+`include "status_s.v"
+`define DUMPNAME "status_s.vcd"
+`else
 `include "status.v"
+`define DUMPNAME "status.vcd"
+`endif
+
 `include "../globals.v"
 
 module status_test();
@@ -6,7 +13,7 @@ module status_test();
 	wire cOut, zOut;
 	
 	initial begin
-		$dumpfile("wave.vcd");
+		$dumpfile(`DUMPNAME);
 		$dumpvars(0);
 	
 		clock = 0;

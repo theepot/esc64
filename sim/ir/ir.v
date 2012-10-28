@@ -3,8 +3,8 @@
 
 `include "../register/register.v"
 
-module instructionRegister(clock, notReset, notLoad, in, outOpcode, outOp0, outOp1, outOp2);
-	input clock, notReset, notLoad;
+module instructionRegister(clock, notLoad, in, outOpcode, outOp0, outOp1, outOp2);
+	input clock, notLoad;
 	input [15:0] in;
 	
 	wire [15:0] in;
@@ -17,7 +17,7 @@ module instructionRegister(clock, notReset, notLoad, in, outOpcode, outOp0, outO
 	wire [6:0] outOpcode;
 	wire [2:0] outOp0, outOp1, outOp2;
 	
-	register ir(clock, notReset, notLoad, 1, in, regOut);
+	register ir(clock, 1, notLoad, 1, in, regOut);
 	
 	assign outOpcode = regOut[15:9];
 	assign outOp0 = regOut[8:6];
