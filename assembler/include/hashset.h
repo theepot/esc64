@@ -6,8 +6,11 @@
 
 #define HASHSET_ERROR_DUPLICATE (-1)
 #define HASHSET_ERROR_INSUFFICIENT_MEM (-2)
+#define HASHSET_ERROR_NOT_FOUND (-3)
 
 #define HASHSET_TRY_INSERT_CONTINUE (1)
+
+#define HASHSET_TRY_MATCH_CONTINUE (1)
 
 typedef unsigned Hash_t;
 
@@ -27,7 +30,7 @@ typedef struct HashSet_
 void HashSetInit(HashSet* set, void* mem, size_t memSize, size_t valSize, HashProc hashProc, KeyCompareProc compareProc);
 
 int HashSetInsert(HashSet* set, const void* value);
-void* HashSetFind(HashSet* set, const void* value);
+int HashSetFind(HashSet* set, const void* valueFind, void** valueOut);
 
 void HashSetDump(FILE* stream, HashSet* set, HashDumpProc hashDumpProc);
 

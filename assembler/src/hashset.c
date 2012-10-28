@@ -14,9 +14,10 @@ static unsigned GetHash(HashSet* set, const void* key);
 static size_t GetBucketSize(HashSet* set);
 static void* GetBucket(HashSet* set, size_t index);
 static int TryInsert(HashSet* set, Hash_t hash, size_t slot, const void* value);
+static int TryMatch(HashSet* set, Hash_t hash, size_t slot, const void* valueFind, void** valueOut);
 static int IsBucketUsed(void* bucket);
 static Hash_t GetBucketHash(void* bucket);
-static void* GetBucketValue(HashSet* set, void* bucket);
+static void* GetBucketValue(void* bucket);
 
 static void SetBucket(HashSet* set, void* bucket, Hash_t hash, const void* value);
 
@@ -58,39 +59,30 @@ int HashSetInsert(HashSet* set, const void* value)
 	return HASHSET_ERROR_INSUFFICIENT_MEM;
 }
 
-void* HashSetFind(HashSet* set, const void* value)
+int HashSetFind(HashSet* set, const void* valueFind, void** valueOut)
 {
-	/*
-		get key hash
-		bucket = map[hash % size]
-		loop
-			if bucket is not in use
-				return not found
-			elseif bucket.hash = hash and bucket.key = key
-				return bucket
-			bucket = next bucket
-		*at end of memory*
-		return not found
-	 */
-
-	//TODO find doesn't work properly yet. look at insert for an example
-
-
-	Hash_t hash = GetHash(set, value);
+	Hash_t hash = GetHash(set, valueFind);
+	size_t toSlot = hash % set->elemCount;
 	size_t i;
-	for(i = hash % set->elemCount; i < set->elemCount; ++i)
+	int r = 0;
+
+	for(i = toSlot; i < set->elemCount; ++i)
 	{
-		void* bucket = GetBucket(set, i);
-		if(!IsBucketUsed(bucket))
+		if((r = TryMatch(set, hash, i, valueFind, valueOut)) != HASHSET_TRY_MATCH_CONTINUE)
 		{
-			return NULL;
-		}
-		else if(GetBucketHash(bucket) == hash && set->compareProc(value, GetBucketValue(set, bucket)))
-		{
-			return GetBucketValue(set, bucket);
+			return r;
 		}
 	}
-	return NULL;
+
+	for(i = toSlot; i < set->elemCount; ++i)
+	{
+		if((r = TryMatch(set, hash, i, valueFind, valueOut)) != HASHSET_TRY_MATCH_CONTINUE)
+		{
+			return r;
+		}
+	}
+
+	return HASHSET_ERROR_INSUFFICIENT_MEM;
 }
 
 void HashSetDump(FILE* stream, HashSet* set, HashDumpProc hashDumpProc)
@@ -107,7 +99,7 @@ void HashSetDump(FILE* stream, HashSet* set, HashDumpProc hashDumpProc)
 		if(IsBucketUsed(bucket))
 		{
 			fprintf(stream, "hash=%u; ", GetBucketHash(bucket));
-			hashDumpProc(stream, GetBucketValue(set, bucket));
+			hashDumpProc(stream, GetBucketValue(bucket));
 			putc('\n', stream);
 		}
 		else
@@ -156,7 +148,7 @@ static int TryInsert(HashSet* set, Hash_t hash, size_t slot, const void* value)
 	void* bucket = GetBucket(set, slot);
 	if(IsBucketUsed(bucket))
 	{
-		if(GetBucketHash(bucket) == hash && set->compareProc(value, GetBucketValue(set, bucket)))
+		if(GetBucketHash(bucket) == hash && set->compareProc(value, GetBucketValue(bucket)))
 		{
 			return HASHSET_ERROR_DUPLICATE;
 		}
@@ -166,8 +158,22 @@ static int TryInsert(HashSet* set, Hash_t hash, size_t slot, const void* value)
 		SetBucket(set, bucket, hash, value);
 		return 0;
 	}
-
 	return HASHSET_TRY_INSERT_CONTINUE;
+}
+
+static int TryMatch(HashSet* set, Hash_t hash, size_t slot, const void* valueFind, void** valueOut)
+{
+	void* bucket = GetBucket(set, slot);
+	if(IsBucketUsed(bucket))
+	{
+		if(GetBucketHash(bucket) == hash && set->compareProc(valueFind, GetBucketValue(bucket)))
+		{
+			*valueOut = GetBucketValue(bucket);
+			return 0;
+		}
+		return HASHSET_TRY_MATCH_CONTINUE;
+	}
+	return HASHSET_ERROR_NOT_FOUND;
 }
 
 static int IsBucketUsed(void* bucket)
@@ -182,7 +188,7 @@ static unsigned GetBucketHash(void* bucket)
 	return *p;
 }
 
-static void* GetBucketValue(HashSet* set, void* bucket)
+static void* GetBucketValue(void* bucket)
 {
 	return bucket + sizeof(Hash_t);
 }
@@ -190,7 +196,7 @@ static void* GetBucketValue(HashSet* set, void* bucket)
 static void SetBucket(HashSet* set, void* bucket, Hash_t hash, const void* value)
 {
 	memcpy(bucket, &hash, sizeof(Hash_t));
-	memcpy(GetBucketValue(set, bucket), value, set->valSize);
+	memcpy(GetBucketValue(bucket), value, set->valSize);
 }
 
 

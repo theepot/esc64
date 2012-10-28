@@ -340,19 +340,19 @@ static int GetRegisterRef(Scanner* scanner, Token* token)
 	if(!strcasecmp(scanner->buf, "pc"))
 	{
 		token->descr = &TOKEN_DESCR_REGISTER_REF;
-		token->intValue = 5; //TODO remove magic number
+		token->intValue = REG_PC; //TODO remove magic number
 		return 1;
 	}
 	else if(!strcasecmp(scanner->buf, "lr"))
 	{
 		token->descr = &TOKEN_DESCR_REGISTER_REF;
-		token->intValue = 6; //TODO remove magic number
+		token->intValue = REG_LR; //TODO remove magic number
 		return 1;
 	}
 	else if(!strcasecmp(scanner->buf, "sp"))
 	{
 		token->descr = &TOKEN_DESCR_REGISTER_REF;
-		token->intValue = 7; //TODO remove magic number
+		token->intValue = REG_SP; //TODO remove magic number
 		return 1;
 	}
 
@@ -385,9 +385,9 @@ static int GetRegisterNumeric(Scanner* scanner, Token* token)
 		num = num * 10 + c - '0';
 	}
 
-	if(num > 7)
+	if(num > REG_MAX)
 	{
-		return 0; //TODO remove magic number
+		return 0;
 	}
 
 	token->descr = &TOKEN_DESCR_REGISTER_REF;

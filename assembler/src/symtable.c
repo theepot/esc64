@@ -3,27 +3,29 @@
 #include <assert.h>
 #include <string.h>
 
-//TODO remove temp memory fix
-static char mem[SYM_TABLE_SET_SIZE * (sizeof(SymTableEntry) + sizeof(Hash_t))];
-
 static int CompareEntry(const void* a, const void* b);
 static Hash_t HashEntry(const void* entry);
 
-void SymTableInit(SymTable* table)
+void SymTableInit(SymTable* table, size_t setSize)
 {
-	table->setCount = 1;
-	HashSet* set = &(table->sets[0]);
-	HashSetInit(set, mem, SYM_TABLE_SET_SIZE, sizeof(SymTableEntry), HashEntry, CompareEntry); //TODO remove temp memory fix
+	size_t memSize = setSize * (sizeof(SymTableEntry) + sizeof(Hash_t));
+	table->rootSet = malloc(sizeof(SymTableSet));
+	table->rootSet->next = NULL;
+	HashSetInit(&table->rootSet->set, malloc(memSize), memSize, sizeof(SymTableEntry), HashEntry, CompareEntry); //TODO remove temp memory fix
 }
 
 int SymTableInsert(SymTable* table, const char* sym, UWord_t addr)
 {
-	//TODO
+	SymTableEntry entry = { sym, addr };
+	return HashSetInsert(&table->rootSet->set, &entry);
 }
 
 UWord_t SymTableFind(SymTable* table, const char* sym)
 {
-	//TODO
+	SymTableEntry entry = { sym, 0 };
+	SymTableEntry* out = NULL;
+	assert(HashSetFind(&table->rootSet->set, &entry, (void**)&out) == 0);
+	return out->addr;
 }
 
 static int CompareEntry(const void* a, const void* b)

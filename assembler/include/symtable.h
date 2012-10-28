@@ -7,8 +7,10 @@
 #include "esctypes.h"
 #include "hashset.h"
 
-#define SYM_TABLE_SET_SIZE 16
-#define SYM_TABLE_MAX_SETS 8
+/*	TODO's
+	- use string pool to store strings
+	- allocate more hash sets when existing ones are full
+*/
 
 typedef struct SymTableEntry_
 {
@@ -16,13 +18,18 @@ typedef struct SymTableEntry_
 	UWord_t addr;
 } SymTableEntry;
 
+typedef struct SymTableSet_
+{
+	HashSet set;
+	struct SymTableSet_* next;
+} SymTableSet;
+
 typedef struct SymTable_
 {
-	HashSet* sets[SYM_TABLE_MAX_SETS];
-	size_t setCount;
+	SymTableSet* rootSet;
 } SymTable;
 
-void SymTableInit(SymTable* table);
+void SymTableInit(SymTable* table, size_t setSize);
 
 int SymTableInsert(SymTable* table, const char* sym, UWord_t addr);
 UWord_t SymTableFind(SymTable* table, const char* sym);
