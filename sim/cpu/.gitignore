@@ -1,7 +1,4 @@
 cpu
 gen_urom_image
 gen_program_ram
-dump*.lst
-urom.lst
-ram.lst
-
+*.lst
