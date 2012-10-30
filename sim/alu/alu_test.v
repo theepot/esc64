@@ -1,4 +1,9 @@
+`ifdef ALU_STRUCT
+`include "alu_s.v"
+`else
 `include "alu.v"
+`endif
+
 `include "../globals.v"
 
 module alu_test();
@@ -6,12 +11,12 @@ module alu_test();
 	reg		[15:0]  b;
 	wire	[15:0]  y;
 	reg		[4:0]   f;
-	reg		fsel, csel, ucin, fcin, fyoe;
+	reg		csel, ucin, fcin, notALUOE, notShiftOE;
 	wire	cout, zout;
 	
 	task alu_print_state;
 	begin
-		$display("ERROR: alu state: a:%X b:%X y:%X f:%X fsel:%X csel:%X ucin:%X fcin:%X fyoe:%X cout:%X zout:%X\n", a, b, y, f, fsel, csel, ucin, fcin, fyoe, cout, zout);
+		$display("ERROR: alu state: a:%X b:%X y:%X f:%X csel:%X ucin:%X fcin:%X notALUOE:%X notShiftOE:%X cout:%X zout:%X\n", a, b, y, f, csel, ucin, fcin, notALUOE, notShiftOE, cout, zout);
 	end
 	endtask
 
@@ -29,18 +34,20 @@ module alu_test();
 		else begin
 			cin = fcin;
 		end
-		if(!fyoe) begin
+		if(notALUOE && notShiftOE) begin
 			expected_y = 16'bzzzzzzzzzzzzzzzz;
-		end 
-		else if(fsel) begin
+		end
+		else if(~notShiftOE && notALUOE) begin
 			if(f[0]) begin
+				expected_cout = a >> 15;
 				expected_y = a << 1;
 			end
 			else begin
+				expected_cout = a & 1;
 				expected_y = a >> 1;
 			end
 		end
-		else begin
+		else if(~notALUOE && notShiftOE) begin
 			case(f)
 				`ALU_F_A: begin
 					expected_y = a + cin;
@@ -62,6 +69,10 @@ module alu_test();
 				default:$display("Warning in ALU test. Unknown code at f");
 			endcase
 		end
+		else begin
+			$display("ERROR: Testbench asserted both shitOE and ALUOE of the alu. This may not happen.");
+		end
+		
 		expected_zout = y === 16'H0000 ? 1 : 0;
 		
 		if(expected_y !== y) begin
@@ -69,12 +80,12 @@ module alu_test();
 			alu_print_state();
 		end
 		
-		if(fyoe && expected_cout !== cout) begin
+		if((!notALUOE ^ !notShiftOE) && f !== `ALU_F_NOT && expected_cout !== cout) begin
 			$display("ERROR: cout(carry out) is %X. Expected %X", cout, expected_cout);
 			alu_print_state();
 		end
 		
-		if(fyoe && expected_zout !== zout) begin
+		if((!notALUOE ^ !notShiftOE) && expected_zout !== zout) begin
 			$display("ERROR: zout(zero out) is %X. Expected %X", zout, expected_zout);
 			alu_print_state();
 		end
@@ -82,225 +93,244 @@ module alu_test();
 	endtask
 	
 	initial begin
-		//$monitor("time: %d\na: %X\nb: %X\ny: %X\nf: %b\nfsel: %d\ncsel: %d\nucin: %d\nfcin: %d\ncout: %d\nzout: %d\n",
-			//$time, a, b, y, f, fsel, csel, ucin, fcin, cout, zout);
-		
+		`ifdef ALU_STRUCT
+		$dumpfile("test_s.vcd");
+		`else
 		$dumpfile("test.vcd");
+		`endif
 		$dumpvars(0);
 		
 		//pass through A
+		$display("Testing: pass through A");
 		a = 16'HDEAD;
 		b = 16'HBEEF;
-		fsel = `ALU_FSEL_74181;
+		notALUOE = 0;
+		notShiftOE = 1;
 		csel = `ALU_CSEL_FCIN;
 		ucin = 0;
 		fcin = 0;
-		fyoe = 1;
 		f = `ALU_F_A;
 		
 		# `TEST_DELAY alu_check();
 		
 		//pass through A with carry in
+		$display("Testing: pass through A with carry in");
 		# `TEST_DELAY a = 16'H0002;
 		b = 16'HBEEF;
-		fsel = `ALU_FSEL_74181;
+		notALUOE = 0;
+		notShiftOE = 1;
 		csel = `ALU_CSEL_FCIN;
 		ucin = 0;
 		fcin = 1;
-		fyoe = 1;
 		f = `ALU_F_A;
 		
 		# `TEST_DELAY alu_check();
 		
 		//pass through A check zero and carry
+		$display("Testing: pass through A check zero and carry");
 		# `TEST_DELAY a = 16'HFFFF;
 		b = 16'HBEEF;
-		fsel = `ALU_FSEL_74181;
+		notALUOE = 0;
+		notShiftOE = 1;
 		csel = `ALU_CSEL_FCIN;
 		ucin = 0;
 		fcin = 1;
-		fyoe = 1;
 		f = `ALU_F_A;
 		
 		# `TEST_DELAY alu_check();
 		
 		//pass through B
+		$display("Testing: pass through B");
 		# `TEST_DELAY a = 16'H0002;
 		b = 16'HBEEF;
-		fsel = `ALU_FSEL_74181;
+		notALUOE = 0;
+		notShiftOE = 1;
 		csel = `ALU_CSEL_FCIN;
 		ucin = 0;
 		fcin = 0;
-		fyoe = 1;
 		f = `ALU_F_A;
 		
 		# `TEST_DELAY alu_check();
 		
 		
 		//add
+		$display("Testing: add");
 		# `TEST_DELAY a = 16'HA4D7;
 		b = 16'H07F8;
-		fsel = `ALU_FSEL_74181;
+		notALUOE = 0;
+		notShiftOE = 1;
 		csel = `ALU_CSEL_FCIN;
 		ucin = 0;
 		fcin = 0;
-		fyoe = 1;
 		f = `ALU_F_ADD;
 		
 		# `TEST_DELAY alu_check();
 		
 		//add with overflow and zero
+		$display("Testing: add with overflow and zero");
 		# `TEST_DELAY a = 16'HFFFF;
 		b = 16'H0001;
-		fsel = `ALU_FSEL_74181;
+		notALUOE = 0;
+		notShiftOE = 1;
 		csel = `ALU_CSEL_FCIN;
 		ucin = 0;
 		fcin = 0;
-		fyoe = 1;
 		f = `ALU_F_ADD;
 		
 		# `TEST_DELAY alu_check();
 		
 		//add with carry
+		$display("Testing: add with carry");
 		# `TEST_DELAY a = 16'H0010;
 		b = 16'H0001;
-		fsel = `ALU_FSEL_74181;
+		notALUOE = 0;
+		notShiftOE = 1;
 		csel = `ALU_CSEL_FCIN;
 		ucin = 0;
 		fcin = 1;
-		fyoe = 1;
 		f = `ALU_F_ADD;
 		
 		# `TEST_DELAY alu_check();
 		
 		//subtract
+		$display("Testing: subtract");
 		# `TEST_DELAY a = 16'HF000;
 		b = 16'H0001;
-		fsel = `ALU_FSEL_74181;
+		notALUOE = 0;
+		notShiftOE = 1;
 		csel = `ALU_CSEL_FCIN;
 		ucin = 0;
 		fcin = 1;
-		fyoe = 1;
 		f = `ALU_F_SUB;
 		
 		# `TEST_DELAY alu_check();
 		
 		//subtract with underflow
+		$display("Testing: subtract with underflow");
 		# `TEST_DELAY a = 16'H0001;
 		b = 16'H0010;
-		fsel = `ALU_FSEL_74181;
+		notALUOE = 0;
+		notShiftOE = 1;
 		csel = `ALU_CSEL_FCIN;
 		ucin = 0;
 		fcin = 1;
-		fyoe = 1;
 		f = `ALU_F_SUB;
 		
 		# `TEST_DELAY alu_check();
 		
 		//subtract without carry
+		$display("Testing: subtract without carry");
 		# `TEST_DELAY a = 16'HF000;
 		b = 16'H0010;
-		fsel = `ALU_FSEL_74181;
+		notALUOE = 0;
+		notShiftOE = 1;
 		csel = `ALU_CSEL_FCIN;
 		ucin = 0;
 		fcin = 0;
-		fyoe = 1;
 		f = `ALU_F_SUB;
 		
 		# `TEST_DELAY alu_check();
 		
 		//not
+		$display("Testing: not");
 		# `TEST_DELAY a = 16'HF031;
 		b = 16'H0010;
-		fsel = `ALU_FSEL_74181;
+		notALUOE = 0;
+		notShiftOE = 1;
 		csel = `ALU_CSEL_FCIN;
 		ucin = 0;
 		fcin = 0;
-		fyoe = 1;
 		f = `ALU_F_NOT;
 		
 		# `TEST_DELAY alu_check();
 		
 		//xor
+		$display("Testing: xor");
 		# `TEST_DELAY a = 16'HF031;
 		b = 16'H0010;
-		fsel = `ALU_FSEL_74181;
+		notALUOE = 0;
+		notShiftOE = 1;
 		csel = `ALU_CSEL_FCIN;
 		ucin = 0;
 		fcin = 0;
-		fyoe = 1;
 		f = `ALU_F_XOR;
 		
 		# `TEST_DELAY alu_check();
 		
 		//and
+		$display("Testing: and");
 		# `TEST_DELAY a = 16'HF031;
 		b = 16'H0010;
-		fsel = `ALU_FSEL_74181;
+		notALUOE = 0;
+		notShiftOE = 1;
 		csel = `ALU_CSEL_FCIN;
 		ucin = 0;
 		fcin = 0;
-		fyoe = 1;
 		f = `ALU_F_AND;
 		
 		# `TEST_DELAY alu_check();
 		
 		//or
+		$display("Testing: or");
 		# `TEST_DELAY a = 16'HF031;
 		b = 16'H0010;
-		fsel = `ALU_FSEL_74181;
+		notALUOE = 0;
+		notShiftOE = 1;
 		csel = `ALU_CSEL_FCIN;
 		ucin = 0;
 		fcin = 0;
-		fyoe = 1;
 		f = `ALU_F_OR;
 		
 		# `TEST_DELAY alu_check();
 		
 		//shift left
+		$display("Testing: shift left");
 		# `TEST_DELAY a = 16'HF031;
 		b = 16'H0010;
-		fsel = `ALU_FSEL_SHIFT;
+		notALUOE = 1;
+		notShiftOE = 0;
 		csel = `ALU_CSEL_FCIN;
 		ucin = 0;
 		fcin = 0;
-		fyoe = 1;
 		f = `ALU_F_SHIFT_LEFT;
 		
 		# `TEST_DELAY alu_check();
 		
 		//shift right
+		$display("Testing: shift right");
 		# `TEST_DELAY a = 16'HF031;
 		b = 16'H0010;
-		fsel = `ALU_FSEL_SHIFT;
+		notALUOE = 1;
+		notShiftOE = 0;
 		csel = `ALU_CSEL_FCIN;
 		ucin = 0;
 		fcin = 0;
-		fyoe = 1;
 		f = `ALU_F_SHIFT_RIGHT;
 		
 		# `TEST_DELAY alu_check();
 		
 		//no output
+		$display("Testing: no output");
 		# `TEST_DELAY a = 16'HF031;
 		b = 16'H0010;
-		fsel = `ALU_FSEL_SHIFT;
+		notALUOE = 1;
+		notShiftOE = 1;
 		csel = `ALU_CSEL_FCIN;
 		ucin = 0;
 		fcin = 0;
-		fyoe = 0;
 		f = `ALU_F_SHIFT_RIGHT;
 		
 		# `TEST_DELAY alu_check();
 		
 		//carry in from microsequencer
+		$display("Testing: carry in from microsequencer");
 		# `TEST_DELAY a = 16'HF031;
 		b = 16'H0010;
-		fsel = `ALU_FSEL_SHIFT;
+		notALUOE = 1;
+		notShiftOE = 0;
 		csel = `ALU_CSEL_UCIN;
 		ucin = 1;
 		fcin = 0;
-		fyoe = 1;
 		f = `ALU_F_ADD;
 		
 		# `TEST_DELAY alu_check();
@@ -308,6 +338,6 @@ module alu_test();
 		#20 $finish;
 	end
 		
-		alu koenraad_de_rekenpiraat(a, b, y, f, fsel, csel, ucin, fcin, cout, zout, fyoe);
+		alu koenraad_de_rekenpiraat(a, b, y, f, csel, ucin, fcin, cout, zout, notALUOE, notShiftOE);
 
 endmodule

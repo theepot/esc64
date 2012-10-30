@@ -15,7 +15,11 @@ module GPRegister_test();
 	assign data_bus = oe ? data : 16'bzzzzzzzzzzzzzzzz;
 	
 	initial begin
+		`ifdef GPREGISTER_STRUCT
+		$dumpfile("test_s.vcd");
+		`else
 		$dumpfile("test.vcd");
+		`endif
 		$dumpvars(0);
 	
 		clock = 0;
