@@ -19,11 +19,17 @@ static const Token expectedTokens[] =
 	{ .descr = &TOKEN_DESCR_NUMBER, .intValue = 10 },
 	{ .descr = &TOKEN_DESCR_EOL },
 
-	{ .descr = &TOKEN_DESCR_PSEUDO_OPCODE_LDR },
+	{ .descr = &TOKEN_DESCR_OPCODE_LDR },
 	{ .descr = &TOKEN_DESCR_REGISTER_REF, .intValue = REG(0) },
 	{ .descr = &TOKEN_DESCR_COMMA },
 	{ .descr = &TOKEN_DESCR_NUMBER, .intValue = 1234 },
-	{ .descr = &TOKEN_DESCR_EOF },
+	{ .descr = &TOKEN_DESCR_EOL },
+
+	{ .descr = &TOKEN_DESCR_PSEUDO_OPCODE_MOV },
+	{ .descr = &TOKEN_DESCR_REGISTER_REF, .intValue = 7 }, //TODO find a good place to define all register names
+	{ .descr = &TOKEN_DESCR_COMMA },
+	{ .descr = &TOKEN_DESCR_LABEL_REF, .strValue = "henk" },
+	{ .descr = &TOKEN_DESCR_EOF }
 };
 
 static const size_t expectedTokensSize = sizeof(expectedTokens) / sizeof(Token);

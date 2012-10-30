@@ -19,22 +19,34 @@ Unlinked instruction structure:
 	Type = LINKABLE_INSTR
 	Size
 	Data:
-		Count
 		LinkableInstruction[]:
 			Instruction
-			Extended operand
-				LinkStatus [ LINKED, UNLINKED, UNLINKED_ROOT* ]
-				Data <union>:
-					LINKED				=> data/addr
-					UNLINKED_ROOT*		=> index to LinkData structure in file:
-						Next
-						SymbolSize
-						Symbol
-					UNLINKED			=> index to next unlinked Data entry of same symbol name
+			Extended operand:
+				Expression*:
+					ExpType: [CONST, BINARY_OP, UNARY_OP, SYMBOL]
+					if ExpType = CONST:
+						Number
+					if ExpType = BINARY_OP:
+						[+ - * / % & | ^]
+					if ExpType = UNARY_OP:
+						[+ - ~]
+					if ExpType = SYMBOL:
+						Linkage: [LINKED, UNLINKED, UNLINKED_ROOT]
+						if Linkage = LINKED:
+							Number
+						if Linkage = UNLINKED:
+							Next
+						if Linkage = UNLINKED_ROOT:
+							SymbolDescr:
+								Next
+								Length
+								Symbol
 
 * UNLINKED_ROOT will be assigned when checking unlinked instructions at the end of the compilation pass.
   the first unlinked instruction of each symbol will be assigned the UNLINKED_ROOT type.
   LinkData will also be written at this point
+
+* For now only ExpTypes CONST and SYMBOL are planned.
 
 ==================================================
 

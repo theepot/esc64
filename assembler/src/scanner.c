@@ -405,14 +405,14 @@ static int GetOpcode(Scanner* scanner, Token* token)
 			{ "or", &TOKEN_DESCR_OPCODE_OR },
 			{ "xor", &TOKEN_DESCR_OPCODE_XOR },
 			{ "and", &TOKEN_DESCR_OPCODE_AND },
-			{ "mov", &TOKEN_DESCR_OPCODE_MOV },
+			{ "mov", &TOKEN_DESCR_PSEUDO_OPCODE_MOV },
 			{ "moveq", &TOKEN_DESCR_OPCODE_MOV_EQ },
 			{ "movnq", &TOKEN_DESCR_OPCODE_MOV_NEQ },
 			{ "movls", &TOKEN_DESCR_OPCODE_MOV_LESS },
 			{ "movlq", &TOKEN_DESCR_OPCODE_MOV_LESS_EQ },
 			{ "cmp", &TOKEN_DESCR_OPCODE_CMP },
-			{ "ldr", &TOKEN_DESCR_PSEUDO_OPCODE_LDR },
-			{ "str", &TOKEN_DESCR_PSEUDO_OPCODE_STR },
+			{ "ldr", &TOKEN_DESCR_OPCODE_LDR },
+			{ "str", &TOKEN_DESCR_OPCODE_STR },
 			{ "call", &TOKEN_DESCR_OPCODE_CALL }
 	};
 

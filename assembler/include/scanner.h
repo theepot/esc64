@@ -1,11 +1,10 @@
 #ifndef SCANNER_INCLUDED
 #define SCANNER_INCLUDED
 
-/*
-
-TODO for scanner:
-	- use hash maps to look up reserved words
-
+/*	TODO's:
+	- Use hash maps to look up reserved words
+	- Make register names part of reserved words
+	- Create more elaborate unit-test
 */
 
 #include <stdio.h>
