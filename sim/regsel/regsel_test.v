@@ -1,4 +1,11 @@
+`ifdef REGSEL_STRUCT
+`define WAVENAME "regsel_s.vcd"
+`include "regsel_s.v"
+`else
+`define WAVENAME "regsel.vcd"
 `include "regsel.v"
+`endif
+
 `include "../globals.v"
 
 
@@ -8,7 +15,6 @@ module regSel_test();
 	reg [1:0] oeSourceSel;
 	reg loadSourceSel;
 	reg [2:0] useqRegSelOE, useqRegSelLoad, op0, op1, op2;
-	
 
 	reg[7:0] expected_regNotOEs;
 	reg[7:0] expected_regNotLoads;
@@ -48,8 +54,8 @@ module regSel_test();
 	endtask
 
 	initial begin
-		$dumpfile("wave.vcd");
-		$dumpvars(0, regNotOEs, regNotLoads, oe, load, oeSourceSel, loadSourceSel, useqRegSelOE, useqRegSelLoad, op0, op1, op2);
+		$dumpfile(`WAVENAME);
+		$dumpvars(0);
 		
 		oe = 0;
 		load = 0;

@@ -1,16 +1,56 @@
-`include "../alu/alu.v"
-`include "../pc/pc.v"
-`include "../register/register.v"
-`include "../regsel/regsel.v"
 `include "../mSeq/mSeq.v"
 `include "../sram/sram.v"
-`include "../ir/ir.v"
-`include "../status/status.v"
+
+`ifdef ALL_STRUCT
+	`define GPREGISTER_STRUCT 1
+	`define PC_STRUCT 1
+	`define STATUS_STRUCT 1
+	`define IR_STRUCT 1
+	`define ALU_STRUCT 1
+	`define REGLSEL_STRUCT 1
+	`define BREG_STRUCT 1
+`endif
 
 `ifdef GPREGISTER_STRUCT
 `include "../GPRegister/GPRegister_s.v"
 `else
 `include "../GPRegister/GPRegister.v"
+`endif
+
+`ifdef PC_STRUCT
+`include "../pc/pc_s.v"
+`else
+`include "../pc/pc.v"
+`endif
+
+`ifdef STATUS_STRUCT
+`include "../status/status_s.v"
+`else
+`include "../status/status.v"
+`endif
+
+`ifdef IR_STRUCT
+`include "../ir/ir_s.v"
+`else
+`include "../ir/ir.v"
+`endif
+
+`ifdef ALU_STRUCT
+`include "../alu/alu_s.v"
+`else
+`include "../alu/alu.v"
+`endif
+
+`ifdef REGSEL_STRUCT
+`include "../regsel/regsel_s.v"
+`else
+`include "../regsel/regsel.v"
+`endif
+
+`ifdef BREG_STRUCT
+`include "../74xxx/octRegister_74377.v"
+`else
+`include "../register/register.v"
 `endif
 
 module cpu();
@@ -21,61 +61,61 @@ module cpu();
 	reg notReset;
 
 	//register selection
-	wire regselOE; //regsel <> useq
-	wire regselLoad; //regsel <> useq
-	wire [1:0] regselOESourceSel; //regsel <> useq
-	wire regselLoadSourceSel; //regsel <> useq
-	wire [2:0] regselUSeqRegSelOE; //regsel <> useq
-	wire [2:0] regselUSeqRegSelLoad; //regsel <> useq
-	wire [2:0] regselOp0; //regsel <> ir
-	wire [2:0] regselOp1; //regsel <> ir
-	wire [2:0] regselOp2; //regsel <> ir
-	wire [7:0] regselRegOEs; //regsel <> r0..r7
-	wire [7:0] regselRegNotLoads; //regsel <> r0..r7
+	wire regselOE; //regsel < useq
+	wire regselLoad; //regsel < useq
+	wire [1:0] regselOESourceSel; //regsel < useq
+	wire regselLoadSourceSel; //regsel < useq
+	wire [2:0] regselUSeqRegSelOE; //regsel < useq
+	wire [2:0] regselUSeqRegSelLoad; //regsel < useq
+	wire [2:0] regselOp0; //regsel < ir
+	wire [2:0] regselOp1; //regsel < ir
+	wire [2:0] regselOp2; //regsel < ir
+	wire [7:0] regselRegOEs; //regsel > r0..r7
+	wire [7:0] regselRegNotLoads; //regsel > r0..r7
 
 	regSel _regsel(regselOE, regselLoad, regselOESourceSel, regselLoadSourceSel, regselUSeqRegSelOE, regselUSeqRegSelLoad, regselOp0, regselOp1, regselOp2, regselRegOEs, regselRegNotLoads);
 
 	//registers
-	wire r0NotOE; //r0 <> regsel
-	wire r0NotLoad; //r0 <> regsel
+	wire r0NotOE; //r0 < regsel
+	wire r0NotLoad; //r0 < regsel
 	assign r0NotOE = regselRegOEs[0];
 	assign r0NotLoad = regselRegNotLoads[0];
 	
-	wire r1NotOE; //r1 <> regsel
-	wire r1NotLoad; //r1 <> regsel
+	wire r1NotOE; //r1 < regsel
+	wire r1NotLoad; //r1 < regsel
 	assign r1NotOE = regselRegOEs[1];
 	assign r1NotLoad = regselRegNotLoads[1];
-		
-	wire r2NotOE; //r2 <> regsel
-	wire r2NotLoad; //r2 <> regsel
+	
+	wire r2NotOE; //r2 < regsel
+	wire r2NotLoad; //r2 < regsel
 	assign r2NotOE = regselRegOEs[2];
 	assign r2NotLoad = regselRegNotLoads[2];
 	
-	wire r3NotOE; //r3 <> regsel
-	wire r3NotLoad; //r3 <> regsel
+	wire r3NotOE; //r3 < regsel
+	wire r3NotLoad; //r3 < regsel
 	assign r3NotOE = regselRegOEs[3];
 	assign r3NotLoad = regselRegNotLoads[3];
 	
-	wire r4NotOE; //r4 <> regsel
-	wire r4NotLoad; //r4 <> regsel
+	wire r4NotOE; //r4 < regsel
+	wire r4NotLoad; //r4 < regsel
 	assign r4NotOE = regselRegOEs[4];
 	assign r4NotLoad = regselRegNotLoads[4];
 	
-	wire r5NotOE; //r5 <> regsel
-	wire r5NotLoad; //r5 <> regsel
+	wire r5NotOE; //r5 < regsel
+	wire r5NotLoad; //r5 < regsel
 	assign r5NotOE = regselRegOEs[5];
 	assign r5NotLoad = regselRegNotLoads[5];
 	
-	wire lrNotOE; //lr <> regsel
-	wire lrNotLoad; //lr <> regsel
+	wire lrNotOE; //lr < regsel
+	wire lrNotLoad; //lr < regsel
 	assign lrNotOE = regselRegOEs[6];
 	assign lrNotLoad = regselRegNotLoads[6];
 	
-	wire pcNotOE; //pc <> regsel
-	wire pcNotLoad; //pc <> regsel
+	wire pcNotOE; //pc < regsel
+	wire pcNotLoad; //pc < regsel
 	assign pcNotOE = regselRegOEs[7];
 	assign pcNotLoad = regselRegNotLoads[7];
-	wire pcInc; //pc <> useq
+	wire pcInc; //pc < useq
 	
 	GPRegister r0(clock, r0NotLoad, r0NotOE, yBus, aBus);
 	GPRegister r1(clock, r1NotLoad, r1NotOE, yBus, aBus);
@@ -97,26 +137,31 @@ module cpu();
 	//ALU
 	wire[15:0] aluB; //alu < aluBReg
 	wire aluBRegNotLoad; //aluBReg < useq
-	wire aluYOE; //alu < useq
-	register aluBReg(clock, notReset, aluBRegNotLoad, 1, aBus, aluB);
+	wire aluNotALUOE; //alu < useq
+	wire aluNotShiftOE; //alu < useq
 	
-	wire [4:0] aluF; //alu <> useq
-	wire aluFSel; //alu <> useq
-	wire aluCSel; //alu <> useq
-	wire aluUCIn; //alu <> useq
-	alu _alu(aBus, aluB, yBus, aluF, aluFSel, aluCSel, aluUCIn, statusCOut, statusCIn, statusZIn, aluYOE);
+`ifdef BREG_STRUCT
+	octRegister_74377 bRegL(clock, aluBRegNotLoad, aBus[7:0], aluB[7:0]);
+	octRegister_74377 bRegH(clock, aluBRegNotLoad, aBus[15:8], aluB[15:8]);
+`else
+	register aluBReg(clock, notReset, aluBRegNotLoad, 1, aBus, aluB);
+`endif
+
+	wire [4:0] aluF; //alu < useq
+	wire aluCSel; //alu < useq
+	wire aluUCIn; //alu < useq
+	alu _alu(aBus, aluB, yBus, aluF, aluCSel, aluUCIn, statusCOut, statusCIn, statusZIn, aluNotALUOE, aluNotShiftOE);
 	
 	//ram
-	wire memNotOE; //mem <> useq
-	wire memNotWE; //mem <> useq
-	wire memNotCS; //mem <> useq
+	wire memNotOE; //mem < useq
+	wire memNotWE; //mem < useq
+	wire memNotCS; //mem < useq
 	sram #(.MEMFILE("ram.lst")) ram(aBus, yBus, memNotOE, memNotWE, memNotCS);
 	
 	//instruction register
-	wire irNotLoad; //ir <> useq
-	wire [6:0] irOpcode; //ir <> useq
-	
-	instructionRegister ir(clock, notReset, irNotLoad, yBus, irOpcode, regselOp0, regselOp1, regselOp2);
+	wire irNotLoad; //ir < useq
+	wire [6:0] irOpcode; //ir < useq
+	instructionRegister ir(clock, irNotLoad, yBus, irOpcode, regselOp0, regselOp1, regselOp2);
 		
 	//micro sequencer
 	wire [26:0] control;
@@ -131,9 +176,9 @@ module cpu();
 	assign regselUSeqRegSelLoad = control[17:15]; //3,H
 	assign pcInc = control[14]; //1,H
 	assign aluBRegNotLoad = control[13]; //1,L
-	assign aluYOE = control[12]; //1,H
+	assign aluNotALUOE = control[12]; //1,L
 	assign aluF = control[11:7]; //5,H
-	assign aluFSel = control[6]; //1,H
+	assign aluNotShiftOE = control[6]; //1,L
 	assign aluCSel = control[5]; //1,H
 	assign aluUCIn = control[4]; //1,H
 	assign memNotOE = control[3]; //1,L
@@ -154,7 +199,7 @@ module cpu();
 
 	always begin
 		#800 clock = ~clock;
-		if(ir.ir.data == 16'b1111111_000_000_000) begin
+		if(irOpcode == 7'b1111111) begin
 			#5 $writememb("dump0.lst", ram.mem, 0, 64);
 			$writememb("dump1.lst", ram.mem, (1<<16) - 100, (1<<16)-1);
 			$finish;
