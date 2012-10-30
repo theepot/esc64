@@ -1,4 +1,11 @@
+`ifdef PC_STRUCT
+`include "pc_s.v"
+`define WAVENAME "pc_s.vcd"
+`else
 `include "pc.v"
+`define WAVENAME "pc.vcd"
+`endif
+
 `include "../globals.v"
 
 module pc_test();
@@ -16,8 +23,8 @@ module pc_test();
 	
 	
 	initial begin
-		$dumpfile("wave.vcd");
-		$dumpvars(0, data_bus, data, dataE, clk, notClr, notWrite, read, inc);
+		$dumpfile(`WAVENAME);
+		$dumpvars(0);
 	
 		clk = 0;
 		notClr = 1;
@@ -28,14 +35,14 @@ module pc_test();
 		data = 0;
 		dataE = 0;
 		
-		#100	data = 16'HDEAD;
+		#100	data = 16'HFFFF;
 		#100	dataE = 1;
 				notWrite = 0;
 		#100	notWrite = 1;
 				dataE = 0;
 		#100	read = 0;
 		
-		#100	if(data_bus !== 16'HDEAD) begin
+		#100	if(data_bus !== 16'HFFFF) begin
 			$display("ERROR: pc: data_bus=%X (should be DEAD)", data_bus);
 		end
 		
@@ -46,8 +53,8 @@ module pc_test();
 		
 		#100	read = 0;
 		
-		#100	if(data_bus !== 16'HDEAE) begin
-			$display("ERROR: pc: data_bus=%X (should be DEAE)", data_bus);
+		#100	if(data_bus !== 16'H0000) begin
+			$display("ERROR: pc: data_bus=%X (should be 0000)", data_bus);
 		end
 		
 		#100	read = 1;
@@ -59,6 +66,6 @@ module pc_test();
 		#20 clk = ~clk;
 	end
 	
-	program_counter #(.DATA_WIDTH(16)) pc(clk, notClr, notWrite, read, inc, data_bus, data_bus);
+	program_counter pc(clk, notClr, notWrite, read, inc, data_bus, data_bus);
 
 endmodule
