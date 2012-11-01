@@ -27,8 +27,8 @@ module program_counter(clock, notReset, notLoad, notOE, inc, in, out);
 	//counters
 	QuadCounter_74163 counter0(clock, notReset, notLoad, inc, inc,		in[3:0],	counterOut[3:0], carry0);	//least significant
 	QuadCounter_74163 counter1(clock, notReset, notLoad, inc, carry0,	in[7:4],	counterOut[7:4], carry1);
-	QuadCounter_74163 counter2(clock, notReset, notLoad, inc, carry1,	in[11:8],	counterOut[11:8], carry2);
-	QuadCounter_74163 counter3(clock, notReset, notLoad, inc, carry2,	in[15:12],	counterOut[15:12], /*NC*/);	//most significant
+	QuadCounter_74163 counter2(clock, notReset, notLoad, inc, carry0&carry1,	in[11:8],	counterOut[11:8], carry2);
+	QuadCounter_74163 counter3(clock, notReset, notLoad, inc, carry0&carry1&carry2,	in[15:12],	counterOut[15:12], /*NC*/);	//most significant
 
 	//three-state buffers
 	OctThreeState_74541 threeStateL(0, notOE, counterOut[15:8], out[15:8]);

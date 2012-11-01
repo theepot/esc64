@@ -7,32 +7,32 @@
 	`define STATUS_STRUCT 1
 	`define IR_STRUCT 1
 	`define ALU_STRUCT 1
-	`define REGLSEL_STRUCT 1
+	`define REGSEL_STRUCT 1
 	`define BREG_STRUCT 1
 `endif
 
 `ifdef GPREGISTER_STRUCT
 `include "../GPRegister/GPRegister_s.v"
 `else
-`include "../GPRegister/GPRegister.v"
+//`include "../GPRegister/GPRegister.v"
 `endif
 
 `ifdef PC_STRUCT
 `include "../pc/pc_s.v"
 `else
-`include "../pc/pc.v"
+//`include "../pc/pc.v"
 `endif
 
 `ifdef STATUS_STRUCT
 `include "../status/status_s.v"
 `else
-`include "../status/status.v"
+//`include "../status/status.v"
 `endif
 
 `ifdef IR_STRUCT
 `include "../ir/ir_s.v"
 `else
-`include "../ir/ir.v"
+//`include "../ir/ir.v"
 `endif
 
 `ifdef ALU_STRUCT
@@ -44,13 +44,13 @@
 `ifdef REGSEL_STRUCT
 `include "../regsel/regsel_s.v"
 `else
-`include "../regsel/regsel.v"
+//`include "../regsel/regsel.v"
 `endif
 
 `ifdef BREG_STRUCT
 `include "../74xxx/octRegister_74377.v"
 `else
-`include "../register/register.v"
+//`include "../register/register.v"
 `endif
 
 module cpu();
@@ -193,8 +193,12 @@ module cpu();
 		notReset = 0;
 		clock = 0;
 		#900 notReset = 1;
+
 		
-		#999999 $finish;
+		#(800*2*1000)
+		$display("ERROR: computer did not halt in 1000 cycles");
+		$finish;
+
 	end
 
 	always begin
