@@ -4,7 +4,7 @@
 #include <string.h>
 #include "cpu.h"
 
-#define MEM_SIZE (64)
+#define MEM_SIZE (2048)
 #define LABELS_MAX (256)
 
 #define GP0	0
@@ -238,35 +238,52 @@ void mov(const int dst, const int src)
 	add_instruction(op_mov, dst, src, 0, "move");
 }
 
+void mov_on_zero(const int dst, const int src)
+{
+	add_instruction(op_mov_on_zero, dst, src, 0, "move on zero");
+}
 void mov_on_equal(const int dst, const int src)
 {
-	add_instruction(op_mov_on_equal, dst, src, 0, "move on equal");
+	mov_on_zero(dst, src);
 }
 
+void mov_on_not_zero(const int dst, const int src)
+{
+	add_instruction(op_mov_on_not_zero, dst, src, 0, "move on not zero");
+}
 void mov_on_not_equal(const int dst, const int src)
 {
-	add_instruction(op_mov_on_not_equal, dst, src, 0, "move on not equal");
+	mov_on_not_zero(dst, src);
 }
 
+void mov_on_not_carry(const int dst, const int src)
+{
+	add_instruction(op_mov_on_not_carry, dst, src, 0, "move on not carry");
+}
 void mov_on_less_than(const int dst, const int src)
 {
-	add_instruction(op_mov_on_less_than, dst, src, 0, "move on less than");
+	mov_on_not_carry(dst, src);
 }
 
+void mov_on_not_carry_or_zero(const int dst, const int src)
+{
+	add_instruction(op_mov_on_not_carry_or_zero, dst, src, 0, "move on not carry or zero");
+}
 void mov_on_less_than_or_equal(const int dst, const int src)
 {
-	add_instruction(op_mov_on_less_than_or_equal, dst, src, 0, "move on less than or equal");
+	mov_on_not_carry_or_zero(dst, src);
 }
+
 
 void mov_literal(const int dst, const int literal)
 {
-	add_instruction(op_mov_big_literal, dst, 0, 0, "move literal");
+	add_instruction(op_mov_literal, dst, 0, 0, "move literal");
 	add_literal(literal, 0);
 }
 
 void mov_literal_labeled(const int dst, const char* const name)
 {
-	add_instruction(op_mov_big_literal, dst, 0, 0, "move literal labeled");
+	add_instruction(op_mov_literal, dst, 0, 0, "move literal labeled");
 	add_literal_labeled(name, 0);
 }
 
@@ -337,6 +354,51 @@ int main(int argc, char** argv)
 	init_mem();
 	
 	//begin program
+	unsigned dest = 0xFFFF;
+	
+#define FN(f, a, b, e, z, c) \
+	dest -= 3; \
+	fprintf(stderr, "@%05u expect: %04X, %c, %c\n", dest, (e), (z) ? '1' : '0', (c) ? '1' : '0'); \
+	mov_literal(GP0, (a)); \
+	mov_literal(GP1, (b)); \
+	mov_literal(GP2, dest); \
+	f(GP0, GP0, GP1); \
+	store(GP2, GP0); \
+	mov_literal(GP0, 1); \
+	mov(GP1, GP0); \
+	mov_literal(GP2, dest+1); \
+	mov_literal(GP3, dest+2); \
+	mov_literal(GP4, 0); \
+	mov_on_not_zero(GP0, GP4); \
+	mov_on_not_carry(GP1, GP4); \
+	store(GP2, GP0); \
+	store(GP3, GP1);
+
+#define ADD(a, b, e, z, c) FN(add, a, b, e, z, c)
+#define SUB(a, b, e, z, c) FN(sub, a, b, e, z, c)
+#define OR(a, b, e, z, c) FN(or, a, b, e, z, c)
+#define XOR(a, b, e, z, c) FN(xor, a, b, e, z, c)
+#define AND(a, b, e, z, c) FN(and, a, b, e, z, c)
+	
+	ADD(2, 1, 3, 0, 0);
+	ADD(0xFFFF, 1, 0, 1, 1);
+	ADD(0xFFFF, 2, 1, 0, 1);
+	
+	SUB(0xFF, 0xF, 0xFF-0xF, 0, 1);
+	SUB(1, 10, 0xFFF7, 0, 0);
+	SUB(7, 7, 7-7, 1, 1);
+	
+	OR(123, 0, 123, 0, 0);
+	OR(0, 0, 0, 1, 0);
+	
+	XOR(0xAAAA, 0xAAAA, 0, 1, 0);
+	XOR(0xAAAA, 0xBBBB, 0xAAAA^0xBBBB, 0, 0);
+	
+	AND(0xFC, 0x3F, 0xFC&0x3F, 0, 0);
+	AND(0xF0F0, 0, 0, 1, 0);
+	 
+	halt();
+	
 	/*mov_literal(0, 10);
 	mov_literal(1, 5);
 	mov_literal_labeled(2, "sub0");
@@ -348,7 +410,7 @@ int main(int argc, char** argv)
 	add(0, 0, 1);
 	mov(PC, LR); //return*/
 	
-		mov_literal(0, 10);	//r0 = 10
+		/*mov_literal(0, 10);	//r0 = 10
 		mov_literal(1, 1);	//r1 = 1
 		mov_literal(5, 1);	//r5 = 0
 		mov_literal_labeled(2, "end0");	//r2 = end0
@@ -376,7 +438,7 @@ int main(int argc, char** argv)
 		jump("loop1");
 	lbl("end1");
 	
-		halt();
+		halt();*/
 	
 	/*mov_literal(0, 10);
 	mov_literal(1, 10);

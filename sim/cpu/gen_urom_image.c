@@ -45,26 +45,26 @@ int main(int argc, char** argv)
 	put_uop("", op_entry, mem);
 	
 	//mov's
-#define MOV(o,c,z) put_op_entry("regselOE, regselOESourceSel="RGS_OESRC_OP1", regselLoad, regselLoadSourceSel="RGS_LOADSRC_OP0", aluNotALUOE, aluF="ALU_F_A", statusNotLoad", (o), (c), (z), fetch, mem)
+#define MOV(o,c,z) put_op_entry("regselOE, regselOESourceSel="RGS_OESRC_OP1", regselLoad, regselLoadSourceSel="RGS_LOADSRC_OP0", aluNotALUOE, aluF="ALU_F_A, (o), (c), (z), fetch, mem)
 #define NOP(o) put_op_entry("", (o), dontcare, dontcare, fetch, mem)
 
 	MOV(op_mov, dontcare, dontcare);
 	
-	NOP(op_mov_on_equal);
-	MOV(op_mov_on_equal, dontcare, true);
+	NOP(op_mov_on_zero);
+	MOV(op_mov_on_zero, dontcare, true);
 	
-	NOP(op_mov_on_not_equal);
-	MOV(op_mov_on_not_equal, dontcare, false);
+	NOP(op_mov_on_not_zero);
+	MOV(op_mov_on_not_zero, dontcare, false);
 	
-	NOP(op_mov_on_less_than);
-	MOV(op_mov_on_less_than, false, false);
+	NOP(op_mov_on_not_carry);
+	MOV(op_mov_on_not_carry, false, false);
 	
-	NOP(op_mov_on_less_than_or_equal);
-	MOV(op_mov_on_less_than_or_equal, false, dontcare);
-	MOV(op_mov_on_less_than_or_equal, dontcare, true);
+	NOP(op_mov_on_not_carry_or_zero);
+	MOV(op_mov_on_not_carry_or_zero, false, dontcare);
+	MOV(op_mov_on_not_carry_or_zero, dontcare, true);
 	
 	//mov immediate
-	put_op_entry("pcInc, regselLoad, regselLoadSourceSel="RGS_LOADSRC_OP0", regselOE, regselOESourceSel="RGS_OESRC_USEQ", regselUSeqRegSelOE="RGS_PC", memNotCS, memNotOE", op_mov_big_literal, dontcare, dontcare, fetch, mem);
+	put_op_entry("pcInc, regselLoad, regselLoadSourceSel="RGS_LOADSRC_OP0", regselOE, regselOESourceSel="RGS_OESRC_USEQ", regselUSeqRegSelOE="RGS_PC", memNotCS, memNotOE", op_mov_literal, dontcare, dontcare, fetch, mem);
 	
 	//ALU functions
 #define FN(op, f) \
