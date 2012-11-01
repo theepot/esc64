@@ -1,5 +1,5 @@
-`ifndef _MSEQ_INCLUDED_
-`define _MSEQ_INCLUDED_
+`ifndef _MSEQ_S_INCLUDED_
+`define _MSEQ_S_INCLUDED_
 
 `include "../rom/rom.v"
 `include "../register/register.v"

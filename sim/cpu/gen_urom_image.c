@@ -57,7 +57,7 @@ int main(int argc, char** argv)
 	MOV(op_mov_on_not_zero, dontcare, false);
 	
 	NOP(op_mov_on_not_carry);
-	MOV(op_mov_on_not_carry, false, false);
+	MOV(op_mov_on_not_carry, false, dontcare);
 	
 	NOP(op_mov_on_not_carry_or_zero);
 	MOV(op_mov_on_not_carry_or_zero, false, dontcare);
@@ -76,6 +76,13 @@ int main(int argc, char** argv)
 	FN(op_and, ALU_F_AND);
 	/*sub*/put_op_entry("regselOE, regselOESourceSel="RGS_OESRC_OP2", aluBRegNotLoad", op_sub, dontcare, dontcare, next, mem); \
 	put_uop("regselOE, regselOESourceSel="RGS_OESRC_OP1", regselLoad, regselLoadSourceSel="RGS_LOADSRC_OP0", statusNotLoad, aluNotALUOE, aluF="ALU_F_SUB", aluCSel="ALU_CSEL_UCIN", aluUCIn", fetch, mem);
+	
+	//shift left
+	put_op_entry("regselOE, regselOESourceSel="RGS_OESRC_OP1", regselLoad, regselLoadSourceSel="RGS_LOADSRC_OP0", aluNotShiftOE, statusNotLoad, aluF="ALU_F_SHIFT_LEFT, op_shift_left, dontcare, dontcare, fetch, mem);
+	
+	//shift right
+	put_op_entry("regselOE, regselOESourceSel="RGS_OESRC_OP1", regselLoad, regselLoadSourceSel="RGS_LOADSRC_OP0", aluNotShiftOE, statusNotLoad, aluF="ALU_F_SHIFT_RIGHT, op_shift_right, dontcare, dontcare, fetch, mem);
+	
 	
 	//load
 	put_op_entry("regselOE, regselOESourceSel="RGS_OESRC_OP1", regselLoad, regselLoadSourceSel="RGS_LOADSRC_OP0", memNotCS, memNotOE", op_load, dontcare, dontcare, fetch, mem);
