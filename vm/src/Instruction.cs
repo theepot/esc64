@@ -8,16 +8,16 @@ namespace SlowpokeVM
 {
     class Instruction
     {
-        private const int OPCODE_OFFSET = 0;
+        private const int OPCODE_OFFSET = 9;
         private const int OPCODE_MASK = 0x7F;
 
-        private const int OPERAND0_OFFSET = 7;
+        private const int OPERAND0_OFFSET = 6;
         private const int OPERAND0_MASK = 0x7;
 
-        private const int OPERAND1_OFFSET = 10;
+        private const int OPERAND1_OFFSET = 3;
         private const int OPERAND1_MASK = 0x7;
 
-        private const int OPERAND2_OFFSET = 13;
+        private const int OPERAND2_OFFSET = 0;
         private const int OPERAND2_MASK = 0x7;
 
         public int Opcode { get; set; }

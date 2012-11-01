@@ -79,7 +79,12 @@ namespace SlowpokeVM
         {
             get { return GetRegister(REG_R4); }
         }
-
+		
+		public Register GPRegister5
+		{
+			get { return GetRegister(REG_R5); }
+		}
+		
         public StatusRegister Status
         {
             get { return status; }

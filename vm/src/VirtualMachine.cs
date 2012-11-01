@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.IO;
 
 namespace SlowpokeVM
 {
@@ -62,5 +63,55 @@ namespace SlowpokeVM
         {
             while (Step()) ;
         }
+		
+		public void LoadProgramLst(TextReader reader)
+		{
+			int address = 0;
+			string line;
+			string line1;
+			string line2;
+			while((line = reader.ReadLine()) != null)
+			{
+				line1 = line.Substring(0, line.IndexOf("//"));
+				line2 = line1.Replace ("_", "").Replace(" ", "");
+				if(line2 == String.Empty)
+				{
+					continue;
+				}
+				
+				if(line2.Length != 16)
+				{
+					throw new Exception("Invalid line size");
+				}
+				
+				int word;
+				if(line2 == "xxxxxxxxxxxxxxxx")
+				{
+					word = 0;
+				}
+				else
+				{
+					word = Convert.ToUInt16(line2, 2);
+				}
+				
+				Memory[address++] = word;
+			}
+		}
+		
+		public void LoadProgram(string fileName)
+		{
+			string extension = Path.GetExtension(fileName);
+			if(extension == ".lst")
+			{
+				using(StreamReader reader = new StreamReader(fileName))
+				{
+					LoadProgramLst(reader);
+				}
+			}
+			else
+			{
+				throw new Exception("Can't load program");
+			}
+		}
     }
 }

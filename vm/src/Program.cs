@@ -40,12 +40,10 @@ namespace SlowpokeVM
     class Program
     {
         static VirtualMachine vm = new VirtualMachine();
-        static int address = 0;
-
-        public static void Add(int d, int a, int b)
+        /*public static void Add(int d, int a, int b)
         {
             Instruction instr = new Instruction();
-            instr.Opcode = Opcodes.ADD;
+            instr.Opcode = InstructionDescr.Opcodes.ADD;
             instr.Operand0 = d;
             instr.Operand1 = a;
             instr.Operand2 = b;
@@ -55,41 +53,36 @@ namespace SlowpokeVM
         public static void Halt()
         {
             Instruction instr = new Instruction();
-            instr.Opcode = Opcodes.HALT;
+            instr.Opcode = InstructionDescr.Opcodes.HALT;
             instr.Write(vm.Memory, address++);
         }
 
         public static void MovWide(int d, int l)
         {
             Instruction instr = new Instruction();
-            instr.Opcode = Opcodes.MOV_WIDE;
+            instr.Opcode = InstructionDescr.Opcodes.MOV_WIDE;
             instr.Operand0 = d;
             instr.Write(vm.Memory, address++);
             vm.Memory[address++] = l;
-        }
+        }*/
 
         static void Main(string[] args)
         {
-            /*00*/MovWide(RegisterFile.REG_R0, 0);
-            /*02*/MovWide(RegisterFile.REG_R1, 1);
-            /*04*/Add(RegisterFile.REG_R0, RegisterFile.REG_R0, RegisterFile.REG_R1);
-            /*05*/MovWide(RegisterFile.REG_PC, 4);
-
-            vm.DebugMode = true;
-            vm.Registers.GPRegister0.BreakOnValue(100);
-
+			vm.LoadProgram("/home/lukas/slowpoke/esc64/sim/cpu/ram.lst");
             vm.Reset();
-            vm.Registers.GPRegister0.Signed = 0;
-            vm.Registers.GPRegister1.Signed = 1;
             bool ok = true;
             while (ok)
             {
-                Console.WriteLine("r0={0}, r1={1}", vm.Registers.GPRegister0.Signed, vm.Registers.GPRegister1.Signed);
                 ok = vm.Step();
             }
 
             BreakPoint bp = vm.BreakPoint;
             Console.WriteLine("Break point hit: {0}", bp.GetType().Name);
+			
+			for(int i = 0xFFFF - 12; i <= 0xFFFF; ++i)
+			{
+				Console.WriteLine("{0}\t{1}", i, vm.Memory[i]);
+			}
         }
     }
 }
