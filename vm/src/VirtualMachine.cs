@@ -4,21 +4,36 @@ using System.Linq;
 using System.Text;
 using System.IO;
 
-namespace SlowpokeVM
+namespace ESC64VM
 {
-    partial class VirtualMachine
+	public delegate void BreakPointHit(VirtualMachine vm, BreakPoint bp);
+	
+    public partial class VirtualMachine
     {
+		public event BreakPointHit OnBreakPointHit;
+		
         public MemoryController Memory { get; private set; }
         public RegisterFile Registers { get; private set; }
-        public BreakPoint BreakPoint { get; set; }
+        public BreakPoint CurrentBreakPoint { get; set; }
         public bool DebugMode { get; set; }
-
+		
         public VirtualMachine()
         {
             Memory = new MemoryController();
             Registers = new RegisterFile(this);
         }
-
+		
+		private void FireBreakPointHit()
+		{
+			try
+			{
+				OnBreakPointHit(this, CurrentBreakPoint);
+			}
+			catch
+			{
+			}
+		}
+		
         public void Reset()
         {
             Registers.ProgramCounter.Unsigned = 0;
@@ -28,18 +43,18 @@ namespace SlowpokeVM
         {
             lock (this)
             {
-                BreakPoint = new BreakOnPause();
+                CurrentBreakPoint = new BreakOnPause();
             }
         }
 
         private void ClearBreakPoint()
         {
-            BreakPoint = null;
+            CurrentBreakPoint = null;
         }
 
         private bool IsBreakPointHit()
         {
-            return BreakPoint != null;
+            return CurrentBreakPoint != null;
         }
 
         public bool Step()
@@ -52,10 +67,15 @@ namespace SlowpokeVM
 
                 if (!ExecuteInstruction(instr))
                 {
-                    BreakPoint = new BreakOnProgramEnd();
+                    CurrentBreakPoint = new BreakOnProgramEnd();
                 }
 
-                return !IsBreakPointHit();
+                if(IsBreakPointHit())
+				{
+					FireBreakPointHit();
+					return false;
+				}
+				return true;
             }
         }
 

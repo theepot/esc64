@@ -1,13 +1,17 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace SlowpokeVM
+namespace ESC64VM
 {
-    class Register
+	public delegate void RegisterChanged(int oldValue);
+	
+    public class Register
     {
-        public HashSet<int> onValueBreakPoints;
+		public event RegisterChanged Change;
+		
+		public HashSet<int> onValueBreakPoints;
 
         private VirtualMachine vm;
         protected int data;
@@ -20,16 +24,42 @@ namespace SlowpokeVM
             onValueBreakPoints = new HashSet<int>();
             this.vm = vm;
         }
-
+		
+		private void RegisterChanged(int oldValue)
+		{
+			try
+			{
+				Change(oldValue);
+			}
+			catch(Exception)
+			{
+			}
+		}
+		
         private void SetData(int data)
         {
-            this.data = data;
-            if (vm.DebugMode && onValueBreakPoints.Contains(data))
-            {
-                vm.BreakPoint = new BreakOnValue(this, data);
-            }
+			if(vm.DebugMode)
+			{
+				if(BreakOnWrite)
+				{
+					vm.CurrentBreakPoint = new BreakOnWrite(this);
+					RegisterChanged(this.data);
+				}
+				else if (vm.DebugMode && onValueBreakPoints.Contains(data))
+	            {
+	                vm.CurrentBreakPoint = new BreakOnValue(this, data);
+					RegisterChanged(this.data);
+	            }
+			}
+			
+			this.data = data;
         }
-
+		
+		private void GetData(int data)
+		{
+			//TODO implement
+		}
+		
         public void BreakOnValue(int value)
         {
             onValueBreakPoints.Add(value);

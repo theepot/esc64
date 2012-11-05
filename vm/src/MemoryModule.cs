@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace SlowpokeVM
+namespace ESC64VM
 {
-    class MemoryController
+    public class MemoryController
     {
-        private const int MEMORY_SIZE = 0xFFFF + 1;
+        public const int MEMORY_SIZE = 0xFFFF + 1;
 
         private UInt16[] memory;
 

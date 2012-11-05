@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.IO;
 
-namespace SlowpokeVM
+namespace ESC64VM
 {
-    class Instruction
+    public class Instruction
     {
         private const int OPCODE_OFFSET = 9;
         private const int OPCODE_MASK = 0x7F;
@@ -19,7 +19,7 @@ namespace SlowpokeVM
 
         private const int OPERAND2_OFFSET = 0;
         private const int OPERAND2_MASK = 0x7;
-
+		
         public int Opcode { get; set; }
         public int Operand0 { get; set; }
         public int Operand1 { get; set; }

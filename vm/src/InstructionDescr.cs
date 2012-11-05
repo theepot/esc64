@@ -3,20 +3,24 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace SlowpokeVM
+namespace ESC64VM
 {
-    class InstructionDescr
+    public class InstructionDescr
     {
     	public string Name { get; private set; }
     	public int Opcode { get; private set; }
-    	public int OperandCount { get; private set; }
+		public bool HasOperand0;
+		public bool HasOperand1;
+		public bool HasOperand2;
     	public bool Wide { get; private set; }
     
-    	public InstructionDescr(string name, int opcode, int operandCount, bool wide = false)
+    	public InstructionDescr(string name, int opcode, bool hasOperand0 = false, bool hasOperand1 = false, bool hasOperand2 = false, bool wide = false)
     	{
     		Name = name;
     		Opcode = opcode;
-    		OperandCount = operandCount;
+    		HasOperand0 = hasOperand0;
+			HasOperand1 = hasOperand1;
+			HasOperand2 = hasOperand2;
     		Wide = wide;
     	}
     	
@@ -43,23 +47,23 @@ namespace SlowpokeVM
     	}
     	
     	public static readonly InstructionDescr
-    		NOP						= new InstructionDescr("NOP",		Opcodes.NOP,  0),
-			ADD						= new InstructionDescr("ADD",		Opcodes.ADD,  3),
-			SUB						= new InstructionDescr("SUB",		Opcodes.SUB,  3),
-			OR						= new InstructionDescr("OR",		Opcodes.OR, 3),
-			XOR						= new InstructionDescr("XOR",		Opcodes.XOR, 3),
-			AND						= new InstructionDescr("AND",		Opcodes.AND, 3),
-			MOV						= new InstructionDescr("MOV",		Opcodes.MOV, 2),
-			MOV_WIDE				= new InstructionDescr("MOV_W",		Opcodes.MOV_WIDE, 1, true),
-			MOV_NOTZEO				= new InstructionDescr("MOV_NZ",	Opcodes.MOV_NOTZERO, 2),
-			MOV_ZERO				= new InstructionDescr("MOV_Z",		Opcodes.MOV_ZERO, 2),
-			MOV_NOTCARRY			= new InstructionDescr("MOV_NC",	Opcodes.MOV_NOTCARRY, 2),
-			MOV_NOTCARRY_OR_ZERO	= new InstructionDescr("MOV_NC_Z",	Opcodes.MOV_NOTCARRY_OR_ZERO, 2),
-			CMP						= new InstructionDescr("CMP",		Opcodes.CMP, 2),
-            LDR						= new InstructionDescr("LDR",		Opcodes.LDR, 2),
-            STR						= new InstructionDescr("STR",		Opcodes.STR, 2),
-            CALL					= new InstructionDescr("CALL",		Opcodes.CALL, 1),
-            HALT					= new InstructionDescr("HALT",		Opcodes.HALT, 0);
+    		NOP						= new InstructionDescr("NOP",		Opcodes.NOP),
+			ADD						= new InstructionDescr("ADD",		Opcodes.ADD,  true, true, true),
+			SUB						= new InstructionDescr("SUB",		Opcodes.SUB,  true, true, true),
+			OR						= new InstructionDescr("OR",		Opcodes.OR, true, true, true),
+			XOR						= new InstructionDescr("XOR",		Opcodes.XOR, true, true, true),
+			AND						= new InstructionDescr("AND",		Opcodes.AND, true, true, true),
+			MOV						= new InstructionDescr("MOV",		Opcodes.MOV, true, true),
+			MOV_WIDE				= new InstructionDescr("MOV_W",		Opcodes.MOV_WIDE, true, false, false, true),
+			MOV_NOTZEO				= new InstructionDescr("MOV_NZ",	Opcodes.MOV_NOTZERO, true, true),
+			MOV_ZERO				= new InstructionDescr("MOV_Z",		Opcodes.MOV_ZERO, true, true),
+			MOV_NOTCARRY			= new InstructionDescr("MOV_NC",	Opcodes.MOV_NOTCARRY, true, true),
+			MOV_NOTCARRY_OR_ZERO	= new InstructionDescr("MOV_NC_Z",	Opcodes.MOV_NOTCARRY_OR_ZERO, true, true),
+			CMP						= new InstructionDescr("CMP",		Opcodes.CMP, true, true),
+            LDR						= new InstructionDescr("LDR",		Opcodes.LDR, true, true),
+            STR						= new InstructionDescr("STR",		Opcodes.STR, true, true),
+            CALL					= new InstructionDescr("CALL",		Opcodes.CALL, true),
+            HALT					= new InstructionDescr("HALT",		Opcodes.HALT);
             
         private static Dictionary<int, InstructionDescr> opcodeToDescrTable = new Dictionary<int, InstructionDescr>();
         

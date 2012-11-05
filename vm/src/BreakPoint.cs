@@ -1,19 +1,19 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace SlowpokeVM
+namespace ESC64VM
 {
-    class BreakPoint
+    public class BreakPoint
     {
     }
 
-    class BreakOnProgramEnd : BreakPoint
+    public class BreakOnProgramEnd : BreakPoint
     {
     }
 
-    class BreakOnValueChanged : BreakPoint
+    public class BreakOnValueChanged : BreakPoint
     {
         public Register Source { get; private set; }
 
@@ -23,7 +23,7 @@ namespace SlowpokeVM
         }
     }
 
-    class BreakOnWrite : BreakOnValueChanged
+    public class BreakOnWrite : BreakOnValueChanged
     {
         public BreakOnWrite(Register source)
             : base(source)
@@ -31,7 +31,7 @@ namespace SlowpokeVM
         }
     }
 
-    class BreakOnRead : BreakOnValueChanged
+    public class BreakOnRead : BreakOnValueChanged
     {
         public BreakOnRead(Register source)
             : base(source)
@@ -39,7 +39,7 @@ namespace SlowpokeVM
         }
     }
 
-    class BreakOnValue : BreakOnValueChanged
+    public class BreakOnValue : BreakOnValueChanged
     {
         public int Value { get; private set; }
 
@@ -49,7 +49,7 @@ namespace SlowpokeVM
         }
     }
 
-    class BreakOnPause : BreakPoint
+    public class BreakOnPause : BreakPoint
     {
     }
 }

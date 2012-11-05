@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace SlowpokeVM
+namespace ESC64VM
 {
-    class RegisterFile
+    public class RegisterFile
     {
         private const int REGISTER_COUNT = 8;
 

@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace SlowpokeVM
+namespace ESC64VM
 {
-    partial class VirtualMachine
+    public partial class VirtualMachine
     {
         /*  TODO's
             - correct carry / zero flag behaviour
