@@ -3,13 +3,6 @@
 #include <string.h>
 #include <assert.h>
 
-/*
-	TODO's
-		- fix the 'sizeof(unsigned) + keySize + valSize' thing
-		- have insert/find search from toSlot all the way around memory
-		  instead of just from toSlot to the end of memory
-*/
-
 static unsigned GetHash(HashSet* set, const void* key);
 static size_t GetBucketSize(HashSet* set);
 static void* GetBucket(HashSet* set, size_t index);

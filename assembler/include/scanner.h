@@ -4,6 +4,7 @@
 /*	TODO's:
 	- Use hash maps to look up reserved words
 	- Make register names part of reserved words
+	- NOTE: all reserved words can be put in one hashmap. So seperate GetDirective and GetInstruction procedures might not be needed anymore
 	- Create more elaborate unit-test
 */
 

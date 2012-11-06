@@ -314,7 +314,6 @@ static void GetLabelRef(Scanner* scanner, Token* token)
 
 static int GetDirective(Scanner* scanner, Token* token)
 {
-	//TODO all directive are .word now...
 	static const TokenDescrTable table[] =
 	{
 		{ "align", &TOKEN_DESCR_DIR_ALIGN },
@@ -340,26 +339,25 @@ static int GetRegisterRef(Scanner* scanner, Token* token)
 	if(!strcasecmp(scanner->buf, "pc"))
 	{
 		token->descr = &TOKEN_DESCR_REGISTER_REF;
-		token->intValue = REG_PC; //TODO remove magic number
+		token->intValue = REG_PC;
 		return 1;
 	}
 	else if(!strcasecmp(scanner->buf, "lr"))
 	{
 		token->descr = &TOKEN_DESCR_REGISTER_REF;
-		token->intValue = REG_LR; //TODO remove magic number
+		token->intValue = REG_LR;
 		return 1;
 	}
 	else if(!strcasecmp(scanner->buf, "sp"))
 	{
 		token->descr = &TOKEN_DESCR_REGISTER_REF;
-		token->intValue = REG_SP; //TODO remove magic number
+		token->intValue = REG_SP;
 		return 1;
 	}
 
 	return GetRegisterNumeric(scanner, token);
 }
 
-//TODO take notice: only supports Rn where n is a single digit
 static int GetRegisterNumeric(Scanner* scanner, Token* token)
 {
 	const size_t sz = scanner->bufIndex - 1; //don't include null-terminator

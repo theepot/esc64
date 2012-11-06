@@ -1,123 +1,91 @@
 #ifndef OBJCODE_INCLUDED
 #define OBJCODE_INCLUDED
 
+/*	TODO's
+	- needs testing
+*/
+
 #include <stdio.h>
 
 #include "esctypes.h"
 
-/*
-==================================================
+typedef unsigned int ObjSize_t;
 
-Section structure:
-	Type
-	Size
-	Data
+struct ObjectFile_;
 
-==================================================
+typedef void (*SectionFlushProc)(struct ObjectFile_*);
 
-Unlinked instruction structure:
-	Type = LINKABLE_INSTR
-	Size
-	Data:
-		LinkableInstruction[]:
-			Instruction
-			Extended operand:
-				Expression*:
-					ExpType: [CONST, BINARY_OP, UNARY_OP, SYMBOL]
-					if ExpType = CONST:
-						Number
-					if ExpType = BINARY_OP:
-						[+ - * / % & | ^]
-					if ExpType = UNARY_OP:
-						[+ - ~]
-					if ExpType = SYMBOL:
-						Linkage: [LINKED, UNLINKED, UNLINKED_ROOT]
-						if Linkage = LINKED:
-							Number
-						if Linkage = UNLINKED:
-							Next
-						if Linkage = UNLINKED_ROOT:
-							SymbolDescr:
-								Next
-								Length
-								Symbol
-
-* UNLINKED_ROOT will be assigned when checking unlinked instructions at the end of the compilation pass.
-  the first unlinked instruction of each symbol will be assigned the UNLINKED_ROOT type.
-  LinkData will also be written at this point
-
-* For now only ExpTypes CONST and SYMBOL are planned.
-
-==================================================
-
-CodeBlock structure:
-	SectionType = CODE_BLOCK
-	Size
-	Data:
-		Size
-		Instruction[]
-
-==================================================
-*/
-
-typedef enum ObjectFileSection_
+typedef struct SectionBuffer_
 {
-	OBJ_SECTION_NONE = 0,
-	OBJ_SECTION_CODE,
-	OBJ_SECTION_LINKABLE
-} ObjectFileSection;
+	void* buf;
+	size_t bufSize;
+	size_t bufIndex;
+	ObjSize_t headerFieldOffset;
+	ObjSize_t headNextOffset;
+	SectionFlushProc flushProc;
+} SectionBuffer;
 
-typedef struct ObjectSection_
-{
-	ObjectFileSection type;
-	size_t size;
-} ObjectSection;
+//	header structure:
+//		size			: 2
+//		symtable offset	: 2
+//		data			: 2
+//		unlinked offset	: 2
+#define OBJ_HEADER_RAW_SIZE_OFFSET		(0 * sizeof(UWord_t))
+#define OBJ_HEADER_SYM_TABLE_POS_OFFSET	(1 * sizeof(UWord_t))
+#define OBJ_HEADER_DATA_POS_OFFSET		(2 * sizeof(UWord_t))
+#define OBJ_HEADER_UNLINKED_POS_OFFSET	(3 * sizeof(UWord_t))
+#define OBJ_HEADER_SIZE					(4 * sizeof(UWord_t))
+#define OBJ_HEADER_START				0
 
-typedef enum ObjectLinkStatus_
-{
-	OBJ_LINK_LINKED,
-	OBJ_LINK_UNLINKED,
-	OBJ_LINK_UNLINKED_ROOT
-} ObjectLinkStatus;
+//	data section structure:
+//		size	: 2
+//		next	: 2
+//		address	: 2
+//		data	: size
+#define OBJ_DATA_SECTION_RAW_SIZE_OFFSET	(0 * sizeof(UWord_t))
+#define OBJ_DATA_SECTION_NEXT_OFFSET		(1 * sizeof(UWord_t))
+#define OBJ_DATA_SECTION_ADDR_OFFSET		(2 * sizeof(UWord_t))
+#define OBJ_DATA_SECTION_DATA_OFFSET		(3 * sizeof(UWord_t))
 
-typedef struct ObjectLinkableInstr_
-{
-	UWord_t instr;
-	ObjectLinkStatus linkStatus;
-	union
-	{
-		UWord_t data;
-		int linkData;
-		int next;
-	};
-} ObjectLinkableInstr;
+//	symbol section structure:
+//		size	: 2
+//		next	: 2
+//		data	: size
+#define OBJ_SYM_SECTION_RAW_SIZE_OFFSET	(0 * sizeof(UWord_t))
+#define OBJ_SYM_SECTION_NEXT_OFFSET		(1 * sizeof(UWord_t))
+#define OBJ_SYM_SECTION_DATA_OFFSET		(2 * sizeof(UWord_t))
 
-typedef enum ObjectStreamType_
-{
-	OBJ_STREAM_READ,
-	OBJ_STREAM_WRITE
-} ObjectStreamType;
+#define OBJ_SYM_TABLE_BUF_SIZE		20
+#define OBJ_DATA_BUF_SIZE			5
+#define OBJ_UNLINKED_BUF_SIZE		3
 
 typedef struct ObjectFile_
 {
 	FILE* stream;
-	ObjectStreamType streamType;
+	int readOnly;
+	uint32_t binSize;
 
-	ObjectSection curSection;
+	SectionBuffer symTableBuf;
+	unsigned char symTableMem[OBJ_SYM_TABLE_BUF_SIZE];
+
+	SectionBuffer dataBuf;
+	unsigned char dataBufMem[OBJ_DATA_BUF_SIZE];
+	UWord_t dataBaseAddr;
+
+	SectionBuffer unlinkedBuf;
+	unsigned char unlinkedBufMem[OBJ_UNLINKED_BUF_SIZE];
 } ObjectFile;
 
 int ObjectFileInit(ObjectFile* objFile, const char* path, int readOnly);
+void ObjectFileClose(ObjectFile* objFile);
 
 //write procedures
-int ObjectWriteOrg(ObjectFile* objFile, UWord_t addr);
-
-int ObjectWriteInstr(ObjectFile* objFile, int opcode, int* operands);
-int ObjectWriteWideInstr(ObjectFile* objFile, int opcode, int* operands);
-int ObjectWriteUnlinkedWideInstr(ObjectFile* objFile, int opcode, int* operands);
-
-//read procedures
-const ObjectSection* ObjectReadSection(ObjectFile* objFile);
-void ObjectReadRaw(ObjectFile* objFile, void* buf, size_t amount);
-void ObjectReadLinkableInstr(ObjectFile* objFile, ObjectLinkableInstr* instr);
+void ObjectWriteData(ObjectFile* objFile, UWord_t address, UWord_t data);
+void ObjectWriteSymbol(ObjectFile* objFile, const char* sym, size_t symSize, UWord_t value);
 
 #endif
+
+
+
+
+
