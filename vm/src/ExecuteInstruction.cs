@@ -82,6 +82,22 @@ namespace ESC64VM
                         //TODO update carry
                         r[op0()].Unsigned = result;
                     } return true;
+                case InstructionDescr.Opcodes.SHL:
+		            {
+		            	int a = r[op1()].Unsigned;
+		            	status.CarryFlag = (a & (1 << 15)) != 0;
+		            	int result = a << 1;
+		            	status.ZeroFlag = result == 0;
+		            	r[op0()].Unsigned = result;
+		            } return true;
+                case InstructionDescr.Opcodes.SHR:
+		            {
+		            	int a = r[op1()].Unsigned;
+		            	status.CarryFlag = (a & 1) != 0;
+		            	int result = a >> 1;
+		            	status.ZeroFlag = result == 0;
+		            	r[op0()].Unsigned = result;
+		            } return true;
                 case InstructionDescr.Opcodes.MOV:
                     {
                         r[op0()].Unsigned = r[op1()].Unsigned;

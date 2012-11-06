@@ -5,7 +5,7 @@ using System.Text;
 
 namespace ESC64VM
 {
-	public delegate void RegisterChanged(int oldValue);
+	public delegate void RegisterChanged(Register register, int oldValue, int newValue);
 	
     public class Register
     {
@@ -25,39 +25,44 @@ namespace ESC64VM
             this.vm = vm;
         }
 		
-		private void RegisterChanged(int oldValue)
+		private void RegisterChanged(Register register, int oldValue, int newValue)
 		{
 			try
 			{
-				Change(oldValue);
+				Change(this, oldValue, newValue);
 			}
 			catch(Exception)
 			{
 			}
 		}
 		
-        private void SetData(int data)
+        private int Data
         {
-			if(vm.DebugMode)
+	        get
 			{
-				if(BreakOnWrite)
+				if(vm.DebugMode && BreakOnRead)
 				{
-					vm.CurrentBreakPoint = new BreakOnWrite(this);
-					RegisterChanged(this.data);
+					vm.CurrentBreakPoint = new BreakOnRead(this);
 				}
-				else if (vm.DebugMode && onValueBreakPoints.Contains(data))
-	            {
-	                vm.CurrentBreakPoint = new BreakOnValue(this, data);
-					RegisterChanged(this.data);
-	            }
+				return data;
 			}
+        	set
+        	{
+				if(vm.DebugMode)
+				{
+					if(BreakOnWrite)
+					{
+						vm.CurrentBreakPoint = new BreakOnWrite(this);
+					}
+					else if (vm.DebugMode && onValueBreakPoints.Contains(value))
+			        {
+			            vm.CurrentBreakPoint = new BreakOnValue(this, value);
+			        }
+				}
 			
-			this.data = data;
-        }
-		
-		private void GetData(int data)
-		{
-			//TODO implement
+				RegisterChanged(this, data, value);
+				data = value;
+        	}		
 		}
 		
         public void BreakOnValue(int value)
@@ -74,11 +79,11 @@ namespace ESC64VM
         {
             get
             {
-                return (int)((Int16)data);
+                return (int)((Int16)Data);
             }
             set
             {
-                SetData((UInt16)((Int16)value));
+                Data = (UInt16)((Int16)value);
             }
         }
 
@@ -86,11 +91,11 @@ namespace ESC64VM
         {
             get
             {
-                return data;
+                return Data;
             }
             set
             {
-                SetData((UInt16)value);
+                Data = (UInt16)value;
             }
         }
     }

@@ -33,6 +33,8 @@ namespace ESC64VM
 		        OR = 11,
 		        XOR = 13,
 		        AND = 15,
+				SHL = 17,
+				SHR = 18,
 		        MOV = 19,
 		        MOV_WIDE = 24,
 		        MOV_NOTZERO = 20,
@@ -53,6 +55,8 @@ namespace ESC64VM
 			OR						= new InstructionDescr("OR",		Opcodes.OR, true, true, true),
 			XOR						= new InstructionDescr("XOR",		Opcodes.XOR, true, true, true),
 			AND						= new InstructionDescr("AND",		Opcodes.AND, true, true, true),
+			SHL						= new InstructionDescr("SHL",		Opcodes.SHL, true, true),
+			SHR						= new InstructionDescr("SHR",		Opcodes.SHR, true, true),
 			MOV						= new InstructionDescr("MOV",		Opcodes.MOV, true, true),
 			MOV_WIDE				= new InstructionDescr("MOV_W",		Opcodes.MOV_WIDE, true, false, false, true),
 			MOV_NOTZEO				= new InstructionDescr("MOV_NZ",	Opcodes.MOV_NOTZERO, true, true),
@@ -74,7 +78,12 @@ namespace ESC64VM
         
         public static InstructionDescr FindDescrByOpcode(int opcode)
         {
-        	return opcodeToDescrTable[opcode];
+        	try
+        	{
+        		return opcodeToDescrTable[opcode];
+        	}
+        	catch(Exception) {}
+        	return null;
         }
         
         static InstructionDescr()
@@ -85,6 +94,8 @@ namespace ESC64VM
 			AddOpcodeToDescr(OR);
 			AddOpcodeToDescr(XOR);
 			AddOpcodeToDescr(AND);
+			AddOpcodeToDescr(SHL);
+			AddOpcodeToDescr(SHR);
 			AddOpcodeToDescr(MOV);
 			AddOpcodeToDescr(MOV_WIDE);
 			AddOpcodeToDescr(MOV_NOTZEO);
