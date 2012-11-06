@@ -6,7 +6,7 @@
 `define ALU_F_SUB			5'b01100
 `define ALU_F_ADD			5'b10010
 `define ALU_F_NOT			5'b00001
-`define ALU_F_XOR			5'b01111
+`define ALU_F_XOR			5'b01101
 `define ALU_F_AND			5'b10111
 `define ALU_F_OR			5'b11101
 

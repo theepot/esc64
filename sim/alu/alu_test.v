@@ -285,7 +285,46 @@ module alu_test();
 		
 		//shift left
 		$display("Testing: shift left");
-		# `TEST_DELAY a = 16'HF031;
+		# `TEST_DELAY a = 16'H0031;
+		b = 16'H0010;
+		notALUOE = 1;
+		notShiftOE = 0;
+		csel = `ALU_CSEL_FCIN;
+		ucin = 0;
+		fcin = 0;
+		f = `ALU_F_SHIFT_LEFT;
+		
+		# `TEST_DELAY alu_check();
+		
+		//shift left. carry out
+		$display("Testing: shift left. carry out");
+		# `TEST_DELAY a = 16'H8FA1;
+		b = 16'H0010;
+		notALUOE = 1;
+		notShiftOE = 0;
+		csel = `ALU_CSEL_FCIN;
+		ucin = 0;
+		fcin = 0;
+		f = `ALU_F_SHIFT_LEFT;
+		
+		# `TEST_DELAY alu_check();
+		
+		//shift left. carry, zero out
+		$display("Testing: shift left. carry and zero out");
+		# `TEST_DELAY a = 16'H8000;
+		b = 16'H0010;
+		notALUOE = 1;
+		notShiftOE = 0;
+		csel = `ALU_CSEL_FCIN;
+		ucin = 0;
+		fcin = 0;
+		f = `ALU_F_SHIFT_LEFT;
+		
+		# `TEST_DELAY alu_check();
+		
+		//shift left. zero out
+		$display("Testing: shift left. zero out");
+		# `TEST_DELAY a = 16'H0000;
 		b = 16'H0010;
 		notALUOE = 1;
 		notShiftOE = 0;

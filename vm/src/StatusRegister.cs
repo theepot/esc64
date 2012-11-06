@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace SlowpokeVM
+namespace ESC64VM
 {
-    class StatusRegister : Register
+    public class StatusRegister : Register
     {
         public const int INDEX_ZERO = 0;
         public const int INDEX_CARRY = 1;
