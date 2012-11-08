@@ -5,11 +5,11 @@
 
 #include "objcode.h"
 
-static ObjectFile objFile;
+static ObjectStream objFile;
 
 void TestObjFile(void)
 {
-	ObjectFileInit(&objFile, "/home/lukas/Desktop/dump.bin", 0);
+	ObjectStreamInitWrite(&objFile, "/home/lukas/Desktop/dump.bin", 0);
 
 	ObjectWriteData(&objFile, 0x00, 0x00);
 	ObjectWriteData(&objFile, 0x01, 0x11);
@@ -21,5 +21,5 @@ void TestObjFile(void)
 	ObjectWriteData(&objFile, 0x0E, 0xEE);
 	ObjectWriteData(&objFile, 0x0F, 0xFF);
 
-	ObjectFileClose(&objFile);
+	ObjectStreamCloseWrite(&objFile);
 }
