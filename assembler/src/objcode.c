@@ -16,18 +16,24 @@ static ObjSize_t GetFilePos(FILE* stream);
 static void Seek(FILE* stream, ObjSize_t pos);
 
 static void InitSectionWriteBuffer(SectionWriteBuffer* sectionBuf, ObjSize_t headerFieldOffset, void* buf, size_t bufSize, SectionFlushProc flushProc);
-static void InitSectionReadBuffer(SectionReadBuffer* readBuf, ObjSize_t headerFieldOffset, void* buf, size_t bufSize, SectionReadProc readProc);
-static void SectionWrite(ObjectStream* objStream, SectionWriteBuffer* sectionBuf, const void* data, size_t dataSize);
-static void SectionWriteInt16(ObjectStream* objStream, SectionWriteBuffer* sectionBuf, UWord_t data);
+static void InitSectionReadBuffer(ObjectInputStream* objStream, SectionReadBuffer* readBuf, ObjSize_t headerFieldOffset, void* buf, size_t bufSize, SectionReadProc readProc);
+static void SectionWrite(ObjectOutputStream* objStream, SectionWriteBuffer* sectionBuf, const void* data, size_t dataSize);
+static void SectionWriteInt16(ObjectOutputStream* objStream, SectionWriteBuffer* sectionBuf, UWord_t data);
+static size_t SectionRead(ObjectInputStream* objStream, SectionReadBuffer* sectionBuf);
+static int SectionSeekNextSeg(ObjectInputStream* objStream, SectionReadBuffer* sectionBuf);
+static size_t ReadSectionData(ObjectInputStream* objStream, SectionReadBuffer* sectionBuf);
 static void BufferSectionData(SectionWriteBuffer* sectionBuf, const void* data, size_t dataSize);
-static void FlushData(ObjectStream* objStream);
-static void FlushSymTable(ObjectStream* objStream);
-static void FlushUnlinked(ObjectStream* objStream);
+static void FlushData(ObjectOutputStream* objStream);
+static void FlushSymTable(ObjectOutputStream* objStream);
+static void FlushUnlinked(ObjectOutputStream* objStream);
+static void ReadDataProc(ObjectInputStream* objStream);
+static void ReadSymTableProc(ObjectInputStream* objStream);
+static void ReadUnlinkedProc(ObjectInputStream* objStream);
 
-static UWord_t GetDataHeadAddr(ObjectStream* objStream);
-static void FlushSectionBuffer(ObjectStream* objStream, SectionWriteBuffer* sectionBuf);
+static UWord_t GetDataHeadAddr(ObjectOutputStream* objStream);
+static void FlushSectionBuffer(ObjectOutputStream* objStream, SectionWriteBuffer* sectionBuf);
 
-int ObjectStreamInitWrite(ObjectStream* objStream, const char* path)
+int ObjectOutputStreamOpen(ObjectOutputStream* objStream, const char* path)
 {
 	objStream->stream = fopen(path, "wb+");
 	if(objStream->stream == NULL)
@@ -35,52 +41,46 @@ int ObjectStreamInitWrite(ObjectStream* objStream, const char* path)
 		return -1;
 	}
 
-	objStream->binSize = 0;
 	objStream->dataSize = 0;
 	objStream->symTableEntries = 0;
 
 	WriteRepeated(objStream->stream, 0, OBJ_HEADER_SIZE); //write empty header
 
-	InitSectionWriteBuffer(&objStream->symTableBuf.writeBuffer, OBJ_HEADER_SYM_TABLE_POS_OFFSET, objStream->symTableMem, OBJ_SYM_TABLE_BUF_SIZE, FlushSymTable);
-	InitSectionWriteBuffer(&objStream->dataBuf.writeBuffer, OBJ_HEADER_DATA_POS_OFFSET, objStream->dataBufMem, OBJ_DATA_BUF_SIZE, FlushData);
-	InitSectionWriteBuffer(&objStream->unlinkedBuf.writeBuffer, OBJ_HEADER_UNLINKED_POS_OFFSET, objStream->unlinkedBufMem, OBJ_UNLINKED_BUF_SIZE, FlushUnlinked);
+	InitSectionWriteBuffer(&objStream->symTableBuf, OBJ_HEADER_SYM_TABLE_POS_OFFSET, objStream->symTableMem, OBJ_SYM_TABLE_BUF_SIZE, FlushSymTable);
+	InitSectionWriteBuffer(&objStream->dataBuf, OBJ_HEADER_DATA_POS_OFFSET, objStream->dataBufMem, OBJ_DATA_BUF_SIZE, FlushData);
+	InitSectionWriteBuffer(&objStream->unlinkedBuf, OBJ_HEADER_UNLINKED_POS_OFFSET, objStream->unlinkedBufMem, OBJ_UNLINKED_BUF_SIZE, FlushUnlinked);
 
 	objStream->dataBaseAddr = 0;
 
 	return 0;
 }
 
-void ObjectStreamCloseWrite(ObjectStream* objStream)
+void ObjectOutputStreamClose(ObjectOutputStream* objStream)
 {
-	FlushSectionBuffer(objStream, &objStream->symTableBuf.writeBuffer);
-	FlushSectionBuffer(objStream, &objStream->dataBuf.writeBuffer);
-	FlushSectionBuffer(objStream, &objStream->unlinkedBuf.writeBuffer);
+	FlushSectionBuffer(objStream, &objStream->symTableBuf);
+	FlushSectionBuffer(objStream, &objStream->dataBuf);
+	FlushSectionBuffer(objStream, &objStream->unlinkedBuf);
 
-	//write header.size
 	Seek(objStream->stream, OBJ_HEADER_START);
-	WriteInt16(objStream->stream, objStream->binSize);
-
-	//write sym table count and data size
-	Seek(objStream->stream, OBJ_HEADER_SYM_TABLE_COUNT);
-	WriteInt16(objStream->stream, objStream->symTableEntries);
 	WriteInt16(objStream->stream, objStream->dataSize);
+	WriteInt16(objStream->stream, objStream->symTableEntries);
 
 	fclose(objStream->stream);
 }
 
-void ObjectWriteData(ObjectStream* objStream, UWord_t address, UWord_t data)
+void ObjectWriteData(ObjectOutputStream* objStream, UWord_t address, UWord_t data)
 {
 	if(GetDataHeadAddr(objStream) != address)
 	{
-		FlushSectionBuffer(objStream, &objStream->dataBuf.writeBuffer);
+		FlushSectionBuffer(objStream, &objStream->dataBuf);
 		objStream->dataBaseAddr = address;
 	}
 
-	SectionWriteInt16(objStream, &objStream->dataBuf.writeBuffer, data);
+	SectionWriteInt16(objStream, &objStream->dataBuf, data);
 	objStream->dataSize += sizeof(UWord_t);
 }
 
-void ObjectWriteSymbol(ObjectStream* objStream, const char* sym, size_t symSize, UWord_t value)
+void ObjectWriteSymbol(ObjectOutputStream* objStream, const char* sym, size_t symSize, UWord_t value)
 {
 	size_t bufSize = symSize + 1 + sizeof(UWord_t);
 	char buf[bufSize];
@@ -90,11 +90,11 @@ void ObjectWriteSymbol(ObjectStream* objStream, const char* sym, size_t symSize,
 	value = htons(value);
 	memcpy(&buf[symSize + 1], &value, sizeof(UWord_t)); //value
 
-	SectionWrite(objStream, &objStream->symTableBuf.writeBuffer, buf, bufSize);
+	SectionWrite(objStream, &objStream->symTableBuf, buf, bufSize);
 	objStream->symTableEntries += bufSize;
 }
 
-int ObjectStreamInitRead(ObjectStream* objStream, const char* path)
+int ObjectInputStreamOpen(ObjectInputStream* objStream, const char* path, UWord_t* dataSize, UWord_t* symTableEntries)
 {
 	objStream->stream = fopen(path, "rb");
 	if(!objStream->stream)
@@ -102,40 +102,38 @@ int ObjectStreamInitRead(ObjectStream* objStream, const char* path)
 		return -1;
 	}
 
-	//TODO pass read proc pointers
-	InitSectionReadBuffer(&objStream->symTableBuf.readBuffer, OBJ_HEADER_SYM_TABLE_POS_OFFSET, objStream->symTableMem, OBJ_SYM_TABLE_BUF_SIZE, NULL);
-	InitSectionReadBuffer(&objStream->dataBuf.readBuffer, OBJ_HEADER_DATA_POS_OFFSET, objStream->dataBufMem, OBJ_DATA_BUF_SIZE, NULL);
-	InitSectionReadBuffer(&objStream->unlinkedBuf.readBuffer, OBJ_HEADER_UNLINKED_POS_OFFSET, objStream->symTableMem, OBJ_UNLINKED_BUF_SIZE, NULL);
+	InitSectionReadBuffer(objStream, &objStream->symTableBuf, OBJ_HEADER_SYM_TABLE_POS_OFFSET, objStream->symTableMem, OBJ_SYM_TABLE_BUF_SIZE, ReadSymTableProc);
+	InitSectionReadBuffer(objStream, &objStream->dataBuf, OBJ_HEADER_DATA_POS_OFFSET, objStream->dataBufMem, OBJ_DATA_BUF_SIZE, ReadDataProc);
+	InitSectionReadBuffer(objStream, &objStream->unlinkedBuf, OBJ_HEADER_UNLINKED_POS_OFFSET, objStream->symTableMem, OBJ_UNLINKED_BUF_SIZE, ReadUnlinkedProc);
 
-	//TODO read data size, symtable entries, total size
-	//TODO init dataBaseOffset
+	Seek(objStream->stream, OBJ_HEADER_START);
+	*dataSize = ReadInt16(objStream->stream);
+	*symTableEntries = ReadInt16(objStream->stream);
 
 	return 0;
 }
 
-void ObjectStreamCloseRead(ObjectStream* objStream)
+void ObjectInputStreamClose(ObjectInputStream* objStream)
 {
-	//TODO
+	fclose(objStream->stream);
 }
 
-int ObjectReadData(ObjectStream* objStream, UWord_t* address, UWord_t* data)
+size_t ObjectReadData(ObjectInputStream* objStream)
 {
-	//TODO
-	return 0;
+	return SectionRead(objStream, &objStream->dataBuf);
 }
 
-int ObjectReadSymbol(ObjectStream* objStream, char* sym, size_t symSize, UWord_t* value)
+int ObjectReadSymbol(ObjectInputStream* objStream)
 {
-	//TODO
-	return 0;
+	return SectionRead(objStream, &objStream->symTableBuf);
 }
 
-static UWord_t GetDataHeadAddr(ObjectStream* objStream)
+static UWord_t GetDataHeadAddr(ObjectOutputStream* objStream)
 {
-	return objStream->dataBaseAddr + objStream->dataBuf.writeBuffer.bufIndex / sizeof(UWord_t);
+	return objStream->dataBaseAddr + objStream->dataBuf.bufIndex / sizeof(UWord_t);
 }
 
-static void FlushSectionBuffer(ObjectStream* objStream, SectionWriteBuffer* sectionBuf)
+static void FlushSectionBuffer(ObjectOutputStream* objStream, SectionWriteBuffer* sectionBuf)
 {
 	if(sectionBuf->bufIndex == 0)
 	{
@@ -164,7 +162,7 @@ static void FlushSectionBuffer(ObjectStream* objStream, SectionWriteBuffer* sect
 	sectionBuf->flushProc(objStream); //flush section specific fields
 	Write(objStream->stream, sectionBuf->buf, sectionBuf->bufIndex); //data
 
-	sectionBuf->headNextOffset = filePos + OBJ_DATA_SECTION_NEXT_OFFSET;
+	sectionBuf->headNextOffset = filePos + OBJ_SECTION_NEXT_OFFSET;
 	sectionBuf->bufIndex = 0;
 }
 
@@ -221,16 +219,19 @@ static void InitSectionWriteBuffer(SectionWriteBuffer* sectionBuf, ObjSize_t hea
 	sectionBuf->flushProc = flushProc;
 }
 
-static void InitSectionReadBuffer(SectionReadBuffer* readBuf, ObjSize_t headerFieldOffset, void* buf, size_t bufSize, SectionReadProc readProc)
+static void InitSectionReadBuffer(ObjectInputStream* objStream, SectionReadBuffer* readBuf, ObjSize_t headerFieldOffset, void* buf, size_t bufSize, SectionReadProc readProc)
 {
 	readBuf->buf = buf;
 	readBuf->bufSize = bufSize;
-	readBuf->read = 0;
+	readBuf->segRemaining = 0;
 	readBuf->headerFieldOffset = headerFieldOffset;
 	readBuf->readProc = readProc;
+
+	Seek(objStream->stream, headerFieldOffset);
+	readBuf->nextSegOffset = ReadInt16(objStream->stream);
 }
 
-static void SectionWrite(ObjectStream* objStream, SectionWriteBuffer* sectionBuf, const void* data, size_t dataSize)
+static void SectionWrite(ObjectOutputStream* objStream, SectionWriteBuffer* sectionBuf, const void* data, size_t dataSize)
 {
 	ObjSize_t newIndex = sectionBuf->bufIndex + dataSize;
 	if(newIndex > sectionBuf->bufSize)
@@ -241,10 +242,52 @@ static void SectionWrite(ObjectStream* objStream, SectionWriteBuffer* sectionBuf
 	BufferSectionData(sectionBuf, data, dataSize);
 }
 
-static void SectionWriteInt16(ObjectStream* objStream, SectionWriteBuffer* sectionBuf, UWord_t data)
+static void SectionWriteInt16(ObjectOutputStream* objStream, SectionWriteBuffer* sectionBuf, UWord_t data)
 {
 	data = htons(data);
 	SectionWrite(objStream, sectionBuf, &data, sizeof(UWord_t));
+}
+
+static size_t SectionRead(ObjectInputStream* objStream, SectionReadBuffer* sectionBuf)
+{
+	if(sectionBuf->segRemaining == 0)
+	{
+		if(SectionSeekNextSeg(objStream, sectionBuf))
+		{
+			return 0;
+		}
+	}
+
+	return ReadSectionData(objStream, sectionBuf);
+}
+
+static int SectionSeekNextSeg(ObjectInputStream* objStream, SectionReadBuffer* sectionBuf)
+{
+	if(sectionBuf->nextSegOffset == 0)
+	{
+		return -1;
+	}
+
+	Seek(objStream->stream, sectionBuf->nextSegOffset);
+
+	//read common headers
+	sectionBuf->segRemaining = ReadInt16(objStream->stream); //size
+	sectionBuf->nextSegOffset = ReadInt16(objStream->stream); //next
+
+	sectionBuf->readProc(objStream);
+	sectionBuf->curSegOffset = GetFilePos(objStream->stream);
+
+	return 0;
+}
+
+static size_t ReadSectionData(ObjectInputStream* objStream, SectionReadBuffer* sectionBuf)
+{
+	Seek(objStream->stream, sectionBuf->curSegOffset);
+	size_t read = sectionBuf->bufSize < sectionBuf->segRemaining ? sectionBuf->bufSize : sectionBuf->segRemaining;
+	Read(objStream->stream, sectionBuf->buf, read);
+	sectionBuf->segRemaining -= read;
+	sectionBuf->curSegOffset += read;
+	return read;
 }
 
 static void BufferSectionData(SectionWriteBuffer* sectionBuf, const void* data, size_t dataSize)
@@ -253,18 +296,33 @@ static void BufferSectionData(SectionWriteBuffer* sectionBuf, const void* data, 
 	sectionBuf->bufIndex += dataSize;
 }
 
-static void FlushData(ObjectStream* objStream)
+static void FlushData(ObjectOutputStream* objStream)
 {
 	WriteInt16(objStream->stream, objStream->dataBaseAddr);
 	objStream->dataBaseAddr = GetDataHeadAddr(objStream);
 }
 
-static void FlushSymTable(ObjectStream* objStream)
+static void FlushSymTable(ObjectOutputStream* objStream)
 {
 	//no additional fields
 }
 
-static void FlushUnlinked(ObjectStream* objStream)
+static void FlushUnlinked(ObjectOutputStream* objStream)
+{
+	//no additional fields
+}
+
+static void ReadDataProc(ObjectInputStream* objStream)
+{
+	objStream->dataBaseAddr = ReadInt16(objStream->stream);
+}
+
+static void ReadSymTableProc(ObjectInputStream* objStream)
+{
+	//no additional fields
+}
+
+static void ReadUnlinkedProc(ObjectInputStream* objStream)
 {
 	//no additional fields
 }

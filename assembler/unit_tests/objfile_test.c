@@ -2,24 +2,48 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <arpa/inet.h>
 
 #include "objcode.h"
 
-static ObjectStream objFile;
+static ObjectOutputStream oos;
+static ObjectInputStream ois;
+static const char* path = "/home/lukas/Desktop/dump.bin";
 
 void TestObjFile(void)
 {
-	ObjectStreamInitWrite(&objFile, "/home/lukas/Desktop/dump.bin", 0);
+	ObjectOutputStreamOpen(&oos, path);
 
-	ObjectWriteData(&objFile, 0x00, 0x00);
-	ObjectWriteData(&objFile, 0x01, 0x11);
+	ObjectWriteData(&oos, 0x0000, 0x0000);
+	ObjectWriteData(&oos, 0x0001, 0x0011);
 
-	ObjectWriteData(&objFile, 0x0A, 0xAA);
-	ObjectWriteData(&objFile, 0x0B, 0xBB);
-	ObjectWriteData(&objFile, 0x0C, 0xCC);
-	ObjectWriteData(&objFile, 0x0D, 0xDD);
-	ObjectWriteData(&objFile, 0x0E, 0xEE);
-	ObjectWriteData(&objFile, 0x0F, 0xFF);
+	ObjectWriteData(&oos, 0x000A, 0x00AA);
+	ObjectWriteData(&oos, 0x000B, 0x00BB);
+	ObjectWriteData(&oos, 0x000C, 0x00CC);
+	ObjectWriteData(&oos, 0x000D, 0x00DD);
+	ObjectWriteData(&oos, 0x000E, 0x00EE);
+	ObjectWriteData(&oos, 0x000F, 0x00FF);
 
-	ObjectStreamCloseWrite(&objFile);
+	ObjectOutputStreamClose(&oos);
+
+	UWord_t dataSize;
+	UWord_t symTableEntries;
+	ObjectInputStreamOpen(&ois, path, &dataSize, &symTableEntries);
+
+	size_t dataRead = ObjectReadData(&ois);
+	while(dataRead)
+	{
+		printf("@%X", ois.dataBaseAddr);
+		size_t i;
+		for(i = 0; i < dataRead; i += sizeof(UWord_t))
+		{
+			UWord_t* p = (UWord_t*)(ois.dataBuf.buf + i);
+			printf("\t%X", ntohs(*p));
+		}
+		puts("");
+		fflush(stdout);
+		dataRead = ObjectReadData(&ois);
+	}
+
+	ObjectInputStreamClose(&ois);
 }
