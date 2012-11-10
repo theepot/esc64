@@ -6,9 +6,19 @@
 
 #include "objcode.h"
 
+/*	TODO's
+	- test unlinked stuff
+	- improve overall
+*/
+
 static ObjectOutputStream oos;
 static ObjectInputStream ois;
 static const char* path = "/home/lukas/Desktop/dump.bin";
+
+static void WriteSym(const char* name, UWord_t value)
+{
+	ObjectWriteSymbol(&oos, name, strlen(name), value);
+}
 
 void TestObjFile(void)
 {
@@ -20,6 +30,10 @@ void TestObjFile(void)
 	ObjectWriteData(&oos, 0x000A, 0x00AA);
 	ObjectWriteData(&oos, 0x000B, 0x00BB);
 	ObjectWriteData(&oos, 0x000C, 0x00CC);
+
+	WriteSym("hello", 0x123);
+	WriteSym("world", 0xABC);
+
 	ObjectWriteData(&oos, 0x000D, 0x00DD);
 	ObjectWriteData(&oos, 0x000E, 0x00EE);
 	ObjectWriteData(&oos, 0x000F, 0x00FF);
@@ -43,6 +57,25 @@ void TestObjFile(void)
 		puts("");
 		fflush(stdout);
 		dataRead = ObjectReadData(&ois);
+	}
+
+	ObjectSymbolIterator symIt;
+	ObjectSymbolIteratorInit(&symIt, &ois);
+
+	size_t nameSize;
+	const char* name;
+	ObjSize_t offset;
+	UWord_t value;
+
+	while(!ObjectSymbolIteratorNext(&symIt, &offset, &name, &nameSize, &value))
+	{
+		printf(
+			"name     = %s\n"
+			"nameSize = %u\n"
+			"offset   = %X\n"
+			"value    = %X\n\n",
+			name, nameSize, offset, value);
+		fflush(stdout);
 	}
 
 	ObjectInputStreamClose(&ois);

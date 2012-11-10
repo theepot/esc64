@@ -4,6 +4,10 @@
 
 #include "scanner.h"
 
+/*	TODO's
+	- improve!
+*/
+
 static size_t expectedN = 0;
 
 static const Token expectedTokens[] =
