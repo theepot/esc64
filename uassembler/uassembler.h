@@ -1,9 +1,9 @@
-#include "stdio.h"
-#include "math.h"
-#include "string.h"
-#include "stdlib.h"
-#include "assert.h"
-#include "ctype.h"
+#include <stdio.h>
+#include <math.h>
+#include <string.h>
+#include <stdlib.h>
+#include <assert.h>
+#include <ctype.h>
 
 #define L 0
 #define H 1
@@ -61,19 +61,15 @@ int mem_size = 0;
 int fetch_index = 0;
 int next_uop_index = 0;
 
-void initialise_field_descriptions(const int auto_index)
+void initialise_field_descriptions()
 {
-	//if(!auto_index)
-		qsort(field_descriptions, fields_amount, sizeof(field_description), compare_field_descriptions);
+
+	qsort(field_descriptions, fields_amount, sizeof(field_description), compare_field_descriptions);
 
 	int i;
 	int index = 0;
 	for(i = 0; i < fields_amount; i++)
-	{
-		if(auto_index)
-			field_descriptions[i].index = index;
 		index += field_descriptions[i].width;
-	}
 	
 	if(index != data_width)
 	{
@@ -128,7 +124,6 @@ void print_mem_verilog_bin(const char* const m, const int size, const int commen
 			bit = 0;
 		}
 	}
-
 }
 
 int find_field_by_name(const char* const name)
@@ -332,7 +327,7 @@ void put_uop(const char* const fieldvalues, const next_sel nxt, char* mem)
 void init()
 {
 	//init
-	initialise_field_descriptions(0);
+	initialise_field_descriptions();
 	mem_size = pow(2, addr_width) * data_width;
 	mem = malloc(mem_size);
 	memset(mem, 2, mem_size);

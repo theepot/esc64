@@ -2,10 +2,10 @@
 `define OCT_REGISTER_74273_INCLUDED
 
 module octRegister_74273(clock, notReset, in, out);
-	input clock, notLoad;
+	input clock, notReset;
 	input [7:0] in;
 	output [7:0] out;
-	reg [7:0] outInt;
+	reg [7:0] out;
 
 	always @ (posedge clock) begin
 		#(15+30)
