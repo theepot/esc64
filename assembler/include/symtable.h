@@ -9,7 +9,7 @@
 
 /*	TODO's
 	- use string pool to store strings
-	- allocate more hash sets when existing ones are full
+	- multiple pages of hashsets are not needed anymore
 */
 
 typedef struct SymTableEntry_

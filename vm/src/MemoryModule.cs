@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace SlowpokeVM
+namespace ESC64VM
 {
-    class MemoryController
+    public class MemoryController
     {
-        private const int MEMORY_SIZE = 0xFFFF;
+        public const int MEMORY_SIZE = 0xFFFF + 1;
 
         private UInt16[] memory;
 
@@ -15,22 +15,24 @@ namespace SlowpokeVM
         {
             memory = new UInt16[MEMORY_SIZE];
         }
-
+		
+		private void CheckBounds(int n)
+		{
+			if(n >= MEMORY_SIZE || n < 0)
+			{
+				throw new Exception();
+			}
+		}
+		
         public void SetData(int address, int data)
         {
-            if (address >= MEMORY_SIZE || address < 0)
-            {
-                throw new Exception();
-            }
+            CheckBounds(address);
             memory[address] = (UInt16)data;
         }
 
         public int GetData(int address)
         {
-            if (address >= MEMORY_SIZE)
-            {
-                throw new Exception();
-            }
+            CheckBounds(address);
             return memory[address];
         }
 
@@ -39,6 +41,5 @@ namespace SlowpokeVM
             get { return GetData(address); }
             set { SetData(address, value); }
         }
-
     }
 }

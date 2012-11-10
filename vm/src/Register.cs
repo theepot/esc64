@@ -1,13 +1,17 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace SlowpokeVM
+namespace ESC64VM
 {
-    class Register
+	public delegate void RegisterChanged(Register register, int oldValue, int newValue);
+	
+    public class Register
     {
-        public HashSet<int> onValueBreakPoints;
+		public event RegisterChanged Change;
+		
+		public HashSet<int> onValueBreakPoints;
 
         private VirtualMachine vm;
         protected int data;
@@ -20,16 +24,47 @@ namespace SlowpokeVM
             onValueBreakPoints = new HashSet<int>();
             this.vm = vm;
         }
-
-        private void SetData(int data)
+		
+		private void RegisterChanged(Register register, int oldValue, int newValue)
+		{
+			try
+			{
+				Change(this, oldValue, newValue);
+			}
+			catch(Exception)
+			{
+			}
+		}
+		
+        private int Data
         {
-            this.data = data;
-            if (vm.DebugMode && onValueBreakPoints.Contains(data))
-            {
-                vm.BreakPoint = new BreakOnValue(this, data);
-            }
-        }
-
+	        get
+			{
+				if(vm.DebugMode && BreakOnRead)
+				{
+					vm.CurrentBreakPoint = new BreakOnRead(this);
+				}
+				return data;
+			}
+        	set
+        	{
+				if(vm.DebugMode)
+				{
+					if(BreakOnWrite)
+					{
+						vm.CurrentBreakPoint = new BreakOnWrite(this);
+					}
+					else if (vm.DebugMode && onValueBreakPoints.Contains(value))
+			        {
+			            vm.CurrentBreakPoint = new BreakOnValue(this, value);
+			        }
+				}
+			
+				RegisterChanged(this, data, value);
+				data = value;
+        	}		
+		}
+		
         public void BreakOnValue(int value)
         {
             onValueBreakPoints.Add(value);
@@ -44,11 +79,11 @@ namespace SlowpokeVM
         {
             get
             {
-                return (int)((Int16)data);
+                return (int)((Int16)Data);
             }
             set
             {
-                SetData((UInt16)((Int16)value));
+                Data = (UInt16)((Int16)value);
             }
         }
 
@@ -56,11 +91,11 @@ namespace SlowpokeVM
         {
             get
             {
-                return data;
+                return Data;
             }
             set
             {
-                SetData((UInt16)value);
+                Data = (UInt16)value;
             }
         }
     }

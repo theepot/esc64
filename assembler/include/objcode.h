@@ -1,123 +1,130 @@
 #ifndef OBJCODE_INCLUDED
 #define OBJCODE_INCLUDED
 
+/*	TODO's
+	- create procedures to access read data from buffers
+*/
+
 #include <stdio.h>
 
 #include "esctypes.h"
 
-/*
-==================================================
+typedef unsigned int ObjSize_t;
 
-Section structure:
-	Type
-	Size
-	Data
+struct ObjectOutputStream_;
+struct ObjectInputStream_;
 
-==================================================
+typedef void (*SectionFlushProc)(struct ObjectOutputStream_*);
+typedef void (*SectionReadProc)(struct ObjectInputStream_*);
 
-Unlinked instruction structure:
-	Type = LINKABLE_INSTR
-	Size
-	Data:
-		LinkableInstruction[]:
-			Instruction
-			Extended operand:
-				Expression*:
-					ExpType: [CONST, BINARY_OP, UNARY_OP, SYMBOL]
-					if ExpType = CONST:
-						Number
-					if ExpType = BINARY_OP:
-						[+ - * / % & | ^]
-					if ExpType = UNARY_OP:
-						[+ - ~]
-					if ExpType = SYMBOL:
-						Linkage: [LINKED, UNLINKED, UNLINKED_ROOT]
-						if Linkage = LINKED:
-							Number
-						if Linkage = UNLINKED:
-							Next
-						if Linkage = UNLINKED_ROOT:
-							SymbolDescr:
-								Next
-								Length
-								Symbol
-
-* UNLINKED_ROOT will be assigned when checking unlinked instructions at the end of the compilation pass.
-  the first unlinked instruction of each symbol will be assigned the UNLINKED_ROOT type.
-  LinkData will also be written at this point
-
-* For now only ExpTypes CONST and SYMBOL are planned.
-
-==================================================
-
-CodeBlock structure:
-	SectionType = CODE_BLOCK
-	Size
-	Data:
-		Size
-		Instruction[]
-
-==================================================
-*/
-
-typedef enum ObjectFileSection_
+typedef struct SectionWriteBuffer_
 {
-	OBJ_SECTION_NONE = 0,
-	OBJ_SECTION_CODE,
-	OBJ_SECTION_LINKABLE
-} ObjectFileSection;
+	void* buf;
+	size_t bufSize;
+	size_t bufIndex;
+	ObjSize_t headerFieldOffset;
+	ObjSize_t headNextOffset;
+	SectionFlushProc flushProc;
+} SectionWriteBuffer;
 
-typedef struct ObjectSection_
+typedef struct SectionReadBuffer_
 {
-	ObjectFileSection type;
-	size_t size;
-} ObjectSection;
+	void* buf;
+	size_t bufSize;
+	size_t segRemaining;
+	ObjSize_t curSegOffset;
+	ObjSize_t headerFieldOffset;
+	ObjSize_t nextSegOffset;
+	SectionReadProc readProc;
+} SectionReadBuffer;
 
-typedef enum ObjectLinkStatus_
-{
-	OBJ_LINK_LINKED,
-	OBJ_LINK_UNLINKED,
-	OBJ_LINK_UNLINKED_ROOT
-} ObjectLinkStatus;
+//	header structure:
+//		size				: 2
+//		symtable symcount	: 2
+//		symtable offset		: 2
+//		data				: 2
+//		unlinked offset		: 2
+#define OBJ_HEADER_DATA_SIZE_OFFSET		(0 * sizeof(UWord_t))
+#define OBJ_HEADER_SYM_TABLE_ENTRIES	(1 * sizeof(UWord_t))
+#define OBJ_HEADER_SYM_TABLE_POS_OFFSET	(2 * sizeof(UWord_t))
+#define OBJ_HEADER_DATA_POS_OFFSET		(3 * sizeof(UWord_t))
+#define OBJ_HEADER_UNLINKED_POS_OFFSET	(4 * sizeof(UWord_t))
+#define OBJ_HEADER_SIZE					(5 * sizeof(UWord_t))
+#define OBJ_HEADER_START				0
 
-typedef struct ObjectLinkableInstr_
-{
-	UWord_t instr;
-	ObjectLinkStatus linkStatus;
-	union
-	{
-		UWord_t data;
-		int linkData;
-		int next;
-	};
-} ObjectLinkableInstr;
+//	section common headers
+//		size	: 2
+//		next	: 2
+#define OBJ_SECTION_SIZE_OFFSET			(0 * sizeof(UWord_t))
+#define OBJ_SECTION_NEXT_OFFSET 		(1 * sizeof(UWord_t))
 
-typedef enum ObjectStreamType_
-{
-	OBJ_STREAM_READ,
-	OBJ_STREAM_WRITE
-} ObjectStreamType;
+//	data section structure:
+//		size	: 2
+//		next	: 2
+//		address	: 2
+//		data	: size
+#define OBJ_DATA_SECTION_ADDR_OFFSET	(2 * sizeof(UWord_t))
+#define OBJ_DATA_SECTION_DATA_OFFSET	(3 * sizeof(UWord_t))
 
-typedef struct ObjectFile_
+//	symbol section structure:
+//		size	: 2
+//		next	: 2
+//		data	: size
+#define OBJ_SYM_SECTION_DATA_OFFSET		(2 * sizeof(UWord_t))
+
+#define OBJ_SYM_TABLE_BUF_SIZE			20
+#define OBJ_DATA_BUF_SIZE				(5 * sizeof(UWord_t))
+#define OBJ_UNLINKED_BUF_SIZE			3
+
+typedef struct ObjectOutputStream_
 {
 	FILE* stream;
-	ObjectStreamType streamType;
+	UWord_t dataSize;
+	UWord_t symTableEntries;
 
-	ObjectSection curSection;
-} ObjectFile;
+	SectionWriteBuffer symTableBuf;
+	unsigned char symTableMem[OBJ_SYM_TABLE_BUF_SIZE];
 
-int ObjectFileInit(ObjectFile* objFile, const char* path, int readOnly);
+	SectionWriteBuffer dataBuf;
+	unsigned char dataBufMem[OBJ_DATA_BUF_SIZE];
+	UWord_t dataBaseAddr;
 
-//write procedures
-int ObjectWriteOrg(ObjectFile* objFile, UWord_t addr);
+	SectionWriteBuffer unlinkedBuf;
+	unsigned char unlinkedBufMem[OBJ_UNLINKED_BUF_SIZE];
+} ObjectOutputStream;
 
-int ObjectWriteInstr(ObjectFile* objFile, int opcode, int* operands);
-int ObjectWriteWideInstr(ObjectFile* objFile, int opcode, int* operands);
-int ObjectWriteUnlinkedWideInstr(ObjectFile* objFile, int opcode, int* operands);
+typedef struct ObjectInputStream_
+{
+	FILE* stream;
 
-//read procedures
-const ObjectSection* ObjectReadSection(ObjectFile* objFile);
-void ObjectReadRaw(ObjectFile* objFile, void* buf, size_t amount);
-void ObjectReadLinkableInstr(ObjectFile* objFile, ObjectLinkableInstr* instr);
+	SectionReadBuffer symTableBuf;
+	unsigned char symTableMem[OBJ_SYM_TABLE_BUF_SIZE];
+
+	SectionReadBuffer dataBuf;
+	unsigned char dataBufMem[OBJ_DATA_BUF_SIZE];
+	UWord_t dataBaseAddr;
+
+	SectionReadBuffer unlinkedBuf;
+	unsigned char unlinkedBufMem[OBJ_UNLINKED_BUF_SIZE];
+} ObjectInputStream;
+
+int ObjectOutputStreamOpen(ObjectOutputStream* objStream, const char* path);
+void ObjectOutputStreamClose(ObjectOutputStream* objStream);
+
+void ObjectWriteData(ObjectOutputStream* objStream, UWord_t address, UWord_t data);
+void ObjectWriteSymbol(ObjectOutputStream* objStream, const char* sym, size_t symSize, UWord_t value);
+//TODO implement write unlinked
+
+int ObjectInputStreamOpen(ObjectInputStream* objStream, const char* path, UWord_t* dataSize, UWord_t* symTableEntries);
+void ObjectInputStreamClose(ObjectInputStream* objStream);
+
+size_t ObjectReadData(ObjectInputStream* objStream);
+int ObjectReadSymbol(ObjectInputStream* objStream);
+//TODO implement read unlinked
 
 #endif
+
+
+
+
+
