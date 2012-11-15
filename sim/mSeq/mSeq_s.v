@@ -1,38 +1,59 @@
 `ifndef _MSEQ_S_INCLUDED_
 `define _MSEQ_S_INCLUDED_
 
-`include "../rom/rom.v"
-`include "../register/register.v"
+`include "../74xxx/octRegister_74273.v"
+`include "../74xxx/Quad2To1Mux_74157.v"
+`include "../rom_2Kx8/rom_2Kx8.v"
 
 module mSeq(clock, notReset, opcode, carry, zero, control);
-	parameter OPCODE_WIDTH = 7;
-	parameter ADDR_WIDTH = 13;
-	parameter CONTROL_WIDTH = 27;
-	parameter INITIAL_ADDRESS = 0;
 	parameter ROM_FILENAME="urom.lst";
-	//`define ROM_WIDTH = (CONTROL_WIDTH + ADDR_WIDTH + 1)
 	
 	input clock, notReset, carry, zero;
-	input [OPCODE_WIDTH-1:0] opcode;
-	output [CONTROL_WIDTH-1:0] control;
+	input [6:0] opcode;
+	output [26:0] control;
+
+	wire [15:0] roms_addr;
+	wire [(8*6)-1:0] roms_data;
+
+	wire rom_next_sel = roms_data[0];
+	wire [12:0] rom_next_addr = roms_data[13:1];
+	assign control = roms_data[14+27:14];
 	
-	wire clock, notReset, carry, zero;
-	wire [OPCODE_WIDTH-1:0] opcode;
-	wire [CONTROL_WIDTH-1:0] control;
+	rom_2Kx8 rom0(roms_addr[12:0], roms_data[7:0], 0, 0); //LSBs
+	rom_2Kx8 rom1(roms_addr[12:0], roms_data[15:8], 0, 0);
+	rom_2Kx8 rom2(roms_addr[12:0], roms_data[23:16], 0, 0);
+	rom_2Kx8 rom3(roms_addr[12:0], roms_data[31:24], 0, 0);
+	rom_2Kx8 rom4(roms_addr[12:0], roms_data[39:32], 0, 0);
+	rom_2Kx8 rom5(roms_addr[12:0], roms_data[47:40], 0, 0);
 	
-	wire [(CONTROL_WIDTH + ADDR_WIDTH + 1)-1:0] rom_data;
-	wire rom_data_sel;
-	wire [ADDR_WIDTH-1:0] rom_data_next;
-	assign #150 rom_data_sel = rom_data[0];
-	assign #150 rom_data_next = rom_data[ADDR_WIDTH:1];
-	assign #150 control = rom_data[CONTROL_WIDTH + ADDR_WIDTH:ADDR_WIDTH + 1];
+	octRegister_74273 addr_reg0(clock, notReset, addr_mux_out[7:0],   roms_addr[7:0]); //LSBs
+	octRegister_74273 addr_reg1(clock, notReset, addr_mux_out[15:8],  roms_addr[15:8]);
 	
-	wire [ADDR_WIDTH-1:0] address_register_output, address_register_input;
-	assign address_register_input = !notReset ? INITIAL_ADDRESS : rom_data_sel ? ((opcode << 2) | (carry << 1) | zero) : rom_data_next;
+	wire [15:0] addr_mux_out;
+	Quad2To1Mux_74157 addr_mux0(0, rom_next_sel, rom_next_addr[3:0],         {opcode[1:0],carry, zero}, addr_mux_out[3:0]); //LSBs
+	Quad2To1Mux_74157 addr_mux1(0, rom_next_sel, rom_next_addr[7:4],          opcode[5:2],              addr_mux_out[7:4]);
+	Quad2To1Mux_74157 addr_mux2(0, rom_next_sel, rom_next_addr[11:8],        {3'b000, opcode[6]},       addr_mux_out[11:8]);
+	Quad2To1Mux_74157 addr_mux3(0, rom_next_sel, {3'bxxx, rom_next_addr[12]}, 4'bxxx0,                  addr_mux_out[15:12]);
 	
-	rom #(.MEMFILE(ROM_FILENAME), .DATA_WIDTH((CONTROL_WIDTH + ADDR_WIDTH + 1)), .ADDR_WIDTH(ADDR_WIDTH)) mem(address_register_output, rom_data);
 	
-	register #(.DATA_WIDTH(ADDR_WIDTH)) address_register(clock, 1, 0, 1, address_register_input, address_register_output);
+	
+	//load all the ROM chips with the right part from the signle rom image
+	reg [40:0] tmp_mem[0:(1<<13)-1];
+	integer n;
+	initial begin
+		$readmemb(ROM_FILENAME, tmp_mem);
+		n = 0;
+		for(n = 0; n < (1<<13); n = n + 1) begin
+			rom0.mem[n] = tmp_mem[n][7:0];
+			rom1.mem[n] = tmp_mem[n][15:8];
+			rom2.mem[n] = tmp_mem[n][23:16];
+			rom3.mem[n] = tmp_mem[n][31:24];
+			rom4.mem[n] = tmp_mem[n][39:32];
+			rom5.mem[n] = {7'b0000000, tmp_mem[n][40]};
+		end
+		
+	end
+	
 endmodule
 
 `endif

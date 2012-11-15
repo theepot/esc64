@@ -1,10 +1,6 @@
 `include "../globals.v"
 
-`ifdef MSEQ_STRUCT
-`include "mSeq_s.v"
-`else
 `include "mSeq.v"
-`endif
 
 module mSeq_test();
 	reg clock, notReset, carry, zero;
@@ -12,11 +8,7 @@ module mSeq_test();
 	wire [9:0] control;
 	
 	initial begin
-		`ifdef MSEQ_STRUCT
-		$dumpfile("test_s.vcd");
-		`else
 		$dumpfile("test.vcd");
-		`endif
 		
 		$dumpvars(0, clock, notReset, carry, zero, opcode, control, microsequencer.address_register_output, microsequencer.rom_data, microsequencer.rom_data_sel, microsequencer.rom_data_next);
 	

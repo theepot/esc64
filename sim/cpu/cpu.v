@@ -1,4 +1,3 @@
-`include "../mSeq/mSeq.v"
 `include "../sram/sram.v"
 
 `ifdef ALL_STRUCT
@@ -9,6 +8,7 @@
 	`define ALU_STRUCT 1
 	`define REGSEL_STRUCT 1
 	`define BREG_STRUCT 1
+	`define MSEQ_STRUCT 1
 `endif
 
 `ifdef GPREGISTER_STRUCT
@@ -38,7 +38,7 @@
 `ifdef ALU_STRUCT
 `include "../alu/alu_s.v"
 `else
-`include "../alu/alu.v"
+//`include "../alu/alu.v"
 `endif
 
 `ifdef REGSEL_STRUCT
@@ -51,6 +51,12 @@
 `include "../74xxx/octRegister_74377.v"
 `else
 //`include "../register/register.v"
+`endif
+
+`ifdef MSEQ_STRUCT
+`include "../mSeq/mSeq_s.v"
+`else
+//`include "../mSeq/mSeq.v"
 `endif
 
 module cpu();
