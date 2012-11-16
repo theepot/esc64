@@ -1,0 +1,573 @@
+v 20110115 2
+C 3400 4300 1 0 0 74377-1.sym
+{
+T 3700 7750 5 10 0 0 0 0 1
+device=74377
+T 5100 7600 5 10 1 1 0 6 1
+refdes=U1
+T 3700 7950 5 10 0 0 0 0 1
+footprint=DIP20
+}
+C 3400 600 1 0 0 74377-1.sym
+{
+T 3700 4050 5 10 0 0 0 0 1
+device=74377
+T 5100 3900 5 10 1 1 0 6 1
+refdes=U2
+T 3700 4250 5 10 0 0 0 0 1
+footprint=DIP20
+}
+C 6200 4500 1 0 0 74541-1.sym
+{
+T 6500 7650 5 10 0 0 0 0 1
+device=74541
+T 7900 7500 5 10 1 1 0 6 1
+refdes=U3
+T 6500 7850 5 10 0 0 0 0 1
+footprint=DIP20
+}
+C 6200 800 1 0 0 74541-1.sym
+{
+T 6500 3950 5 10 0 0 0 0 1
+device=74541
+T 7900 3800 5 10 1 1 0 6 1
+refdes=U4
+T 6500 4150 5 10 0 0 0 0 1
+footprint=DIP20
+}
+C 7500 4300 1 0 0 gnd-1.sym
+C 7500 600 1 0 0 gnd-1.sym
+N 6200 7200 5400 7200 4
+{
+T 6200 7200 5 10 0 1 0 0 1
+netname=ledBus:1
+}
+N 6200 6900 5400 6900 4
+{
+T 6200 6900 5 10 0 1 0 0 1
+netname=ledBus:2
+}
+N 6200 6600 5400 6600 4
+{
+T 6200 6600 5 10 0 1 0 0 1
+netname=ledBus:3
+}
+N 6200 6300 5400 6300 4
+{
+T 6200 6300 5 10 0 1 0 0 1
+netname=ledBus:4
+}
+N 6200 6000 5400 6000 4
+{
+T 6200 6000 5 10 0 1 0 0 1
+netname=ledBus:5
+}
+N 6200 5700 5400 5700 4
+{
+T 6200 5700 5 10 0 1 0 0 1
+netname=ledBus:6
+}
+N 6200 5400 5400 5400 4
+{
+T 6200 5400 5 10 0 1 0 0 1
+netname=ledBus:7
+}
+N 6200 5100 5400 5100 4
+{
+T 6200 5100 5 10 0 1 0 0 1
+netname=ledBus:8
+}
+N 6200 3500 5400 3500 4
+{
+T 6200 3500 5 10 0 1 0 0 1
+netname=ledBus:9
+}
+N 6200 3200 5400 3200 4
+{
+T 6200 3200 5 10 0 1 0 0 1
+netname=ledBus:10
+}
+N 6200 2900 5400 2900 4
+{
+T 6200 2900 5 10 0 1 0 0 1
+netname=ledBus:11
+}
+N 6200 2600 5400 2600 4
+{
+T 6200 2600 5 10 0 1 0 0 1
+netname=ledBus:12
+}
+N 6200 2300 5400 2300 4
+{
+T 6200 2300 5 10 0 1 0 0 1
+netname=ledBus:13
+}
+N 6200 2000 5400 2000 4
+{
+T 6200 2000 5 10 0 1 0 0 1
+netname=ledBus:14
+}
+N 6200 1700 5400 1700 4
+{
+T 6200 1700 5 10 0 1 0 0 1
+netname=ledBus:15
+}
+N 6200 1400 5400 1400 4
+{
+T 6200 1400 5 10 0 1 0 0 1
+netname=ledBus:16
+}
+N 6800 4500 6100 4500 4
+N 6100 500 6100 4500 4
+N 6100 800 6800 800 4
+N 1700 800 3400 800 4
+N 2100 800 2100 4500 4
+N 2100 4500 3400 4500 4
+N 1700 500 6100 500 4
+N 1700 1100 3400 1100 4
+N 3400 4800 2300 4800 4
+N 2300 4800 2300 1100 4
+C 1100 1000 1 0 0 in-1.sym
+{
+T 1100 1300 5 10 0 0 0 0 1
+device=INPUT
+T 700 1100 5 10 1 1 0 0 1
+refdes=load
+}
+C 1100 700 1 0 0 in-1.sym
+{
+T 1100 1000 5 10 0 0 0 0 1
+device=INPUT
+T 600 800 5 10 1 1 0 0 1
+refdes=clock
+}
+C 1100 400 1 0 0 in-1.sym
+{
+T 1100 700 5 10 0 0 0 0 1
+device=INPUT
+T 700 500 5 10 1 1 0 0 1
+refdes=OE
+}
+N 7600 4600 7600 4500 4
+N 7600 900 7600 800 4
+T 37400 48000 8 10 0 0 0 0 1
+netname=Q?
+T 37400 47700 8 10 0 0 0 0 1
+netname=Q?
+T 37400 47400 8 10 0 0 0 0 1
+netname=Q?
+T 37400 47100 8 10 0 0 0 0 1
+netname=Q?
+T 37400 46800 8 10 0 0 0 0 1
+netname=Q?
+T 37400 46500 8 10 0 0 0 0 1
+netname=Q?
+T 37400 46200 8 10 0 0 0 0 1
+netname=Q?
+T 37400 45900 8 10 0 0 0 0 1
+netname=Q?
+N 8200 3500 8300 3500 4
+C 8300 3400 1 0 0 out-1.sym
+{
+T 9000 3500 5 10 1 1 0 0 1
+refdes=Q9
+T 8300 3700 5 10 0 0 0 0 1
+device=OUTPUT
+}
+N 8200 3200 8300 3200 4
+C 8300 3100 1 0 0 out-1.sym
+{
+T 9000 3200 5 10 1 1 0 0 1
+refdes=Q10
+T 8300 3400 5 10 0 0 0 0 1
+device=OUTPUT
+}
+N 8200 2900 8300 2900 4
+C 8300 2800 1 0 0 out-1.sym
+{
+T 9000 2900 5 10 1 1 0 0 1
+refdes=Q11
+T 8300 3100 5 10 0 0 0 0 1
+device=OUTPUT
+}
+N 8200 2600 8300 2600 4
+C 8300 2500 1 0 0 out-1.sym
+{
+T 9000 2600 5 10 1 1 0 0 1
+refdes=Q12
+T 8300 2800 5 10 0 0 0 0 1
+device=OUTPUT
+}
+N 8200 2300 8300 2300 4
+C 8300 2200 1 0 0 out-1.sym
+{
+T 9000 2300 5 10 1 1 0 0 1
+refdes=Q13
+T 8300 2500 5 10 0 0 0 0 1
+device=OUTPUT
+}
+N 8200 2000 8300 2000 4
+C 8300 1900 1 0 0 out-1.sym
+{
+T 9000 2000 5 10 1 1 0 0 1
+refdes=Q14
+T 8300 2200 5 10 0 0 0 0 1
+device=OUTPUT
+}
+N 8200 1700 8300 1700 4
+C 8300 1600 1 0 0 out-1.sym
+{
+T 9000 1700 5 10 1 1 0 0 1
+refdes=Q15
+T 8300 1900 5 10 0 0 0 0 1
+device=OUTPUT
+}
+N 8200 1400 8300 1400 4
+C 8300 1300 1 0 0 out-1.sym
+{
+T 9000 1400 5 10 1 1 0 0 1
+refdes=Q16
+T 8300 1600 5 10 0 0 0 0 1
+device=OUTPUT
+}
+N 8200 7200 8300 7200 4
+C 8300 7100 1 0 0 out-1.sym
+{
+T 9000 7200 5 10 1 1 0 0 1
+refdes=Q1
+T 8300 7400 5 10 0 0 0 0 1
+device=OUTPUT
+}
+N 8200 6900 8300 6900 4
+C 8300 6800 1 0 0 out-1.sym
+{
+T 9000 6900 5 10 1 1 0 0 1
+refdes=Q2
+T 8300 7100 5 10 0 0 0 0 1
+device=OUTPUT
+}
+N 8200 6600 8300 6600 4
+C 8300 6500 1 0 0 out-1.sym
+{
+T 9000 6600 5 10 1 1 0 0 1
+refdes=Q3
+T 8300 6800 5 10 0 0 0 0 1
+device=OUTPUT
+}
+N 8200 6300 8300 6300 4
+C 8300 6200 1 0 0 out-1.sym
+{
+T 9000 6300 5 10 1 1 0 0 1
+refdes=Q4
+T 8300 6500 5 10 0 0 0 0 1
+device=OUTPUT
+}
+N 8200 6000 8300 6000 4
+C 8300 5900 1 0 0 out-1.sym
+{
+T 9000 6000 5 10 1 1 0 0 1
+refdes=Q5
+T 8300 6200 5 10 0 0 0 0 1
+device=OUTPUT
+}
+N 8200 5700 8300 5700 4
+C 8300 5600 1 0 0 out-1.sym
+{
+T 9000 5700 5 10 1 1 0 0 1
+refdes=Q6
+T 8300 5900 5 10 0 0 0 0 1
+device=OUTPUT
+}
+N 8200 5400 8300 5400 4
+C 8300 5300 1 0 0 out-1.sym
+{
+T 9000 5400 5 10 1 1 0 0 1
+refdes=Q7
+T 8300 5600 5 10 0 0 0 0 1
+device=OUTPUT
+}
+N 8200 5100 8300 5100 4
+C 8300 5000 1 0 0 out-1.sym
+{
+T 9000 5100 5 10 1 1 0 0 1
+refdes=Q8
+T 8300 5300 5 10 0 0 0 0 1
+device=OUTPUT
+}
+C 2800 7100 1 0 0 in-1.sym
+{
+T 2800 7400 5 10 0 0 0 0 1
+device=INPUT
+T 2400 7200 5 10 1 1 0 0 1
+refdes=D1
+}
+C 2800 6800 1 0 0 in-1.sym
+{
+T 2800 7100 5 10 0 0 0 0 1
+device=INPUT
+T 2400 6900 5 10 1 1 0 0 1
+refdes=D2
+}
+C 2800 6500 1 0 0 in-1.sym
+{
+T 2800 6800 5 10 0 0 0 0 1
+device=INPUT
+T 2400 6600 5 10 1 1 0 0 1
+refdes=D3
+}
+C 2800 6200 1 0 0 in-1.sym
+{
+T 2800 6500 5 10 0 0 0 0 1
+device=INPUT
+T 2400 6300 5 10 1 1 0 0 1
+refdes=D4
+}
+C 2800 5900 1 0 0 in-1.sym
+{
+T 2800 6200 5 10 0 0 0 0 1
+device=INPUT
+T 2400 6000 5 10 1 1 0 0 1
+refdes=D5
+}
+C 2800 5600 1 0 0 in-1.sym
+{
+T 2800 5900 5 10 0 0 0 0 1
+device=INPUT
+T 2400 5700 5 10 1 1 0 0 1
+refdes=D6
+}
+C 2800 5300 1 0 0 in-1.sym
+{
+T 2800 5600 5 10 0 0 0 0 1
+device=INPUT
+T 2400 5400 5 10 1 1 0 0 1
+refdes=D7
+}
+C 2800 5000 1 0 0 in-1.sym
+{
+T 2800 5300 5 10 0 0 0 0 1
+device=INPUT
+T 2400 5100 5 10 1 1 0 0 1
+refdes=D8
+}
+C 2800 3400 1 0 0 in-1.sym
+{
+T 2800 3700 5 10 0 0 0 0 1
+device=INPUT
+T 2400 3500 5 10 1 1 0 0 1
+refdes=D9
+}
+C 2800 3100 1 0 0 in-1.sym
+{
+T 2800 3400 5 10 0 0 0 0 1
+device=INPUT
+T 2400 3200 5 10 1 1 0 0 1
+refdes=D10
+}
+C 2800 2800 1 0 0 in-1.sym
+{
+T 2800 3100 5 10 0 0 0 0 1
+device=INPUT
+T 2400 2900 5 10 1 1 0 0 1
+refdes=D11
+}
+C 2800 2500 1 0 0 in-1.sym
+{
+T 2800 2800 5 10 0 0 0 0 1
+device=INPUT
+T 2400 2600 5 10 1 1 0 0 1
+refdes=D12
+}
+C 2800 2200 1 0 0 in-1.sym
+{
+T 2800 2500 5 10 0 0 0 0 1
+device=INPUT
+T 2400 2300 5 10 1 1 0 0 1
+refdes=D13
+}
+C 2800 1900 1 0 0 in-1.sym
+{
+T 2800 2200 5 10 0 0 0 0 1
+device=INPUT
+T 2400 2000 5 10 1 1 0 0 1
+refdes=D14
+}
+C 2800 1600 1 0 0 in-1.sym
+{
+T 2800 1900 5 10 0 0 0 0 1
+device=INPUT
+T 2400 1700 5 10 1 1 0 0 1
+refdes=D15
+}
+C 2800 1300 1 0 0 in-1.sym
+{
+T 2800 1600 5 10 0 0 0 0 1
+device=INPUT
+T 2400 1400 5 10 1 1 0 0 1
+refdes=D16
+}
+U 5900 7000 5900 1200 10 -1
+C 5700 7200 1 270 0 busripper-1.sym
+{
+T 6100 7200 5 8 0 0 270 0 1
+device=none
+T 5700 7200 5 10 0 1 0 0 1
+netname=ledBus:?
+}
+C 5700 6900 1 270 0 busripper-1.sym
+{
+T 6100 6900 5 8 0 0 270 0 1
+device=none
+T 5700 6900 5 10 0 1 0 0 1
+netname=ledBus:?
+}
+C 5700 6600 1 270 0 busripper-1.sym
+{
+T 6100 6600 5 8 0 0 270 0 1
+device=none
+T 5700 6600 5 10 0 1 0 0 1
+netname=ledBus:?
+}
+C 5700 6300 1 270 0 busripper-1.sym
+{
+T 6100 6300 5 8 0 0 270 0 1
+device=none
+T 5700 6300 5 10 0 1 0 0 1
+netname=ledBus:?
+}
+C 5700 6000 1 270 0 busripper-1.sym
+{
+T 6100 6000 5 8 0 0 270 0 1
+device=none
+T 5700 6000 5 10 0 1 0 0 1
+netname=ledBus:?
+}
+C 5700 5700 1 270 0 busripper-1.sym
+{
+T 6100 5700 5 8 0 0 270 0 1
+device=none
+T 5700 5700 5 10 0 1 0 0 1
+netname=ledBus:?
+}
+C 5700 5400 1 270 0 busripper-1.sym
+{
+T 6100 5400 5 8 0 0 270 0 1
+device=none
+T 5700 5400 5 10 0 1 0 0 1
+netname=ledBus:?
+}
+C 5700 5100 1 270 0 busripper-1.sym
+{
+T 6100 5100 5 8 0 0 270 0 1
+device=none
+T 5700 5100 5 10 0 1 0 0 1
+netname=ledBus:?
+}
+C 5700 3500 1 270 0 busripper-1.sym
+{
+T 6100 3500 5 8 0 0 270 0 1
+device=none
+T 5700 3500 5 10 0 1 0 0 1
+netname=ledBus:?
+}
+C 5700 3200 1 270 0 busripper-1.sym
+{
+T 6100 3200 5 8 0 0 270 0 1
+device=none
+T 5700 3200 5 10 0 1 0 0 1
+netname=ledBus:?
+}
+C 5700 2900 1 270 0 busripper-1.sym
+{
+T 6100 2900 5 8 0 0 270 0 1
+device=none
+T 5700 2900 5 10 0 1 0 0 1
+netname=ledBus:?
+}
+C 5700 2600 1 270 0 busripper-1.sym
+{
+T 6100 2600 5 8 0 0 270 0 1
+device=none
+T 5700 2600 5 10 0 1 0 0 1
+netname=ledBus:?
+}
+C 5700 2300 1 270 0 busripper-1.sym
+{
+T 6100 2300 5 8 0 0 270 0 1
+device=none
+T 5700 2300 5 10 0 1 0 0 1
+netname=ledBus:?
+}
+C 5700 2000 1 270 0 busripper-1.sym
+{
+T 6100 2000 5 8 0 0 270 0 1
+device=none
+T 5700 2000 5 10 0 1 0 0 1
+netname=ledBus:?
+}
+C 5700 1700 1 270 0 busripper-1.sym
+{
+T 6100 1700 5 8 0 0 270 0 1
+device=none
+T 5700 1700 5 10 0 1 0 0 1
+netname=ledBus:?
+}
+C 5700 1400 1 270 0 busripper-1.sym
+{
+T 6100 1400 5 8 0 0 270 0 1
+device=none
+T 5700 1400 5 10 0 1 0 0 1
+netname=ledBus:?
+}
+L 700 1300 1100 1300 3 0 0 0 -1 -1
+L 700 700 1000 700 3 0 0 0 -1 -1
+T 3900 8200 5 10 0 1 0 0 1
+netname=ledBus:?
+C 5800 8100 1 0 0 gnd-1.sym
+C 5700 9300 1 0 0 vcc-1.sym
+C 4900 8400 1 90 0 capacitor-1.sym
+{
+T 4200 8600 5 10 0 0 90 0 1
+device=CAPACITOR
+T 4400 8600 5 10 1 1 90 0 1
+refdes=C1
+T 4000 8600 5 10 0 0 90 0 1
+symversion=0.1
+T 4900 8400 5 10 0 1 0 0 1
+footprint=AXIAL_LAY 300
+}
+C 5700 8400 1 90 0 capacitor-1.sym
+{
+T 5000 8600 5 10 0 0 90 0 1
+device=CAPACITOR
+T 5200 8600 5 10 1 1 90 0 1
+refdes=C2
+T 4800 8600 5 10 0 0 90 0 1
+symversion=0.1
+T 5700 8400 5 10 0 1 0 0 1
+footprint=AXIAL_LAY 300
+}
+C 6500 8400 1 90 0 capacitor-1.sym
+{
+T 5800 8600 5 10 0 0 90 0 1
+device=CAPACITOR
+T 6000 8600 5 10 1 1 90 0 1
+refdes=C3
+T 5600 8600 5 10 0 0 90 0 1
+symversion=0.1
+T 6500 8400 5 10 0 1 0 0 1
+footprint=AXIAL_LAY 300
+}
+C 7300 8400 1 90 0 capacitor-1.sym
+{
+T 6600 8600 5 10 0 0 90 0 1
+device=CAPACITOR
+T 6800 8600 5 10 1 1 90 0 1
+refdes=C4
+T 6400 8600 5 10 0 0 90 0 1
+symversion=0.1
+T 7300 8400 5 10 0 1 0 0 1
+footprint=AXIAL_LAY 300
+}
+N 4700 9300 7100 9300 4
+N 4700 8400 7100 8400 4

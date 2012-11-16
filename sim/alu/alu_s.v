@@ -28,17 +28,21 @@ module alu(a, b, y, f, csel, ucin, fcin, cout, zout, notALUOE, notShiftOE);
 	//carry out selection
 	wire coutLeft, coutRight;
 	wire [1:0] coutMuxOut;
-	Dual4To1Mux_74153 coutMux(0, {f[0], notShiftOE}, {coutRight, 1'bx}, {alu3cout, 1'bx}, {coutLeft, 1'bx}, {alu3cout, 1'bx}, coutMuxOut); 
+	Dual4To1Mux_74153 coutMux(0, {f[0], notShiftOE}, {coutRight, 1'bx}, {alu3cout, 1'bx}, {coutLeft, 1'bx}, {alu3cout, 1'bx}, coutMuxOut);
 	assign cout = coutMuxOut[1];
 	
-	//74181 alu
+	
+	//inverting some signals
 	wire alu3cout;
 	wire aluNotCin;
-	wire [5:0] aluCarryInverterOut;
-	assign alu3cout = aluCarryInverterOut[4];
-	assign aluNotCin = aluCarryInverterOut[5];
-	HexInverter_7404 aluCarryInverter({aluCin, alu3NotCout, 4'bxxxx}, aluCarryInverterOut);
+	wire [5:0] miscInverterOut;
+	wire f0Inverted;
+	assign f0Inverted = miscInverterOut[3];
+	assign alu3cout = miscInverterOut[4];
+	assign aluNotCin = miscInverterOut[5];
+	HexInverter_7404 miscInverter({aluCin, alu3NotCout, f[0], 3'bxxx}, miscInverterOut);
 	
+	//74181 alu
 	wire [15:0] aluOutInt;
 	wire alu0NotCout, alu1NotCout, alu2NotCout, alu3NotCout;
 	ALU_74181 alu0(f[4:1],   a[3:0],   b[3:0],   f[0], aluNotCin,   aluOutInt[3:0],   /*NC*/, /*NC*/, alu0NotCout, /*NC*/); //LS
@@ -50,19 +54,16 @@ module alu(a, b, y, f, csel, ucin, fcin, cout, zout, notALUOE, notShiftOE);
 	OctThreeState_74541 aluOutputBuffer1(notALUOE, 0, aluOutInt[15:8], y[15:8]); //MS
 	
 	//shift
-	wire [15:0] shiftOutInt;
 	wire [15:0] aShiftedRight;
 	assign aShiftedRight = {1'b0, a[15:1]};
 	assign coutRight = a[0];
 	wire [15:0] aShiftedLeft;
 	assign aShiftedLeft = {a[14:0], 1'b0};
 	assign coutLeft = a[15];
-	Quad2To1Mux_74157 shift0(0, f[0], aShiftedRight[3:0],   aShiftedLeft[3:0],   shiftOutInt[3:0]  ); //LS
-	Quad2To1Mux_74157 shift1(0, f[0], aShiftedRight[7:4],   aShiftedLeft[7:4],   shiftOutInt[7:4]  );
-	Quad2To1Mux_74157 shift2(0, f[0], aShiftedRight[11:8],  aShiftedLeft[11:8],  shiftOutInt[11:8] );
-	Quad2To1Mux_74157 shift3(0, f[0], aShiftedRight[15:12], aShiftedLeft[15:12], shiftOutInt[15:12]); //MS
-	OctThreeState_74541 shiftOutputBuffer0(notShiftOE, 0, shiftOutInt[7:0],  y[7:0]); //LS
-	OctThreeState_74541 shiftOutputBuffer1(notShiftOE, 0, shiftOutInt[15:8], y[15:8]); //MS
+	OctThreeState_74541 shiftLeftOutputBuffer0(notShiftOE, f0Inverted, aShiftedLeft[7:0],  y[7:0]); //LS
+	OctThreeState_74541 shiftLeftOutputBuffer1(notShiftOE, f0Inverted, aShiftedLeft[15:8], y[15:8]); //MS
+	OctThreeState_74541 shiftRightOutputBuffer0(notShiftOE, f[0], aShiftedRight[7:0],  y[7:0]); //LS
+	OctThreeState_74541 shiftRightOutputBuffer1(notShiftOE, f[0], aShiftedRight[15:8], y[15:8]); //MS
 
 	//zero flag
 	wire notZero0Out, notZero1Out;
