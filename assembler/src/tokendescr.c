@@ -39,18 +39,112 @@ const TokenDescr TOKEN_DESCR_EOL				= { "EOL", TOKEN_CLASS_PUNCTUATION, TOKEN_VA
 const TokenDescr TOKEN_DESCR_EOF				= { "EOF", TOKEN_CLASS_PUNCTUATION, TOKEN_VALUE_TYPE_NONE, NULL };
 
 //instruction descriptors
-const InstructionDescr INSTR_DESCR_ADD			= { 0x01, OPERAND_0 | OPERAND_1 | OPERAND_2 };
-const InstructionDescr INSTR_DESCR_SUB			= { 0x02, OPERAND_0 | OPERAND_1 | OPERAND_2 };
-const InstructionDescr INSTR_DESCR_OR			= { 0x03, OPERAND_0 | OPERAND_1 | OPERAND_2 };
-const InstructionDescr INSTR_DESCR_XOR			= { 0x04, OPERAND_0 | OPERAND_1 | OPERAND_2 };
-const InstructionDescr INSTR_DESCR_AND			= { 0x05, OPERAND_0 | OPERAND_1 | OPERAND_2 };
-const InstructionDescr INSTR_DESCR_MOV_WIDE		= { 0x10, OPERAND_0 | OPERAND_3 };
-const InstructionDescr INSTR_DESCR_MOV			= { 0x06, OPERAND_0 | OPERAND_1 };
-const InstructionDescr INSTR_DESCR_MOV_EQ		= { 0x07, OPERAND_0 | OPERAND_1 };
-const InstructionDescr INSTR_DESCR_MOV_NEQ		= { 0x08, OPERAND_0 | OPERAND_1 };
-const InstructionDescr INSTR_DESCR_MOV_LESS		= { 0x09, OPERAND_0 | OPERAND_1 };
-const InstructionDescr INSTR_DESCR_MOV_LESS_EQ	= { 0x0A, OPERAND_0 | OPERAND_1 };
-const InstructionDescr INSTR_DESCR_CMP			= { 0x0B, OPERAND_1 | OPERAND_2 };
-const InstructionDescr INSTR_DESCR_LDR			= { 0x0C, OPERAND_0 | OPERAND_1 };
-const InstructionDescr INSTR_DESCR_STR			= { 0x0D, OPERAND_0 | OPERAND_1 };
-const InstructionDescr INSTR_DESCR_CALL			= { 0x0E, OPERAND_1 };
+const InstructionDescr INSTR_DESCR_ADD =
+{
+	0x01,
+	ARGLIST3(
+		ARG(ARG_TYPE_REF, OP0),
+		ARG(ARG_TYPE_REF, OP1),
+		ARG(ARG_TYPE_REF, OP2))
+};
+const InstructionDescr INSTR_DESCR_SUB =
+{
+	0x02,
+	ARGLIST3(
+		ARG(ARG_TYPE_REF, OP0),
+		ARG(ARG_TYPE_REF, OP1),
+		ARG(ARG_TYPE_REF, OP2))
+};
+const InstructionDescr INSTR_DESCR_OR =
+{
+	0x03,
+	ARGLIST3(
+		ARG(ARG_TYPE_REF, OP0),
+		ARG(ARG_TYPE_REF, OP1),
+		ARG(ARG_TYPE_REF, OP2))
+};
+const InstructionDescr INSTR_DESCR_XOR =
+{
+	0x04,
+	ARGLIST3(
+		ARG(ARG_TYPE_REF, OP0),
+		ARG(ARG_TYPE_REF, OP1),
+		ARG(ARG_TYPE_REF, OP2))
+};
+const InstructionDescr INSTR_DESCR_AND =
+{
+	0x05,
+	ARGLIST3(
+		ARG(ARG_TYPE_REF, OP0),
+		ARG(ARG_TYPE_REF, OP1),
+		ARG(ARG_TYPE_REF, OP2))
+};
+const InstructionDescr INSTR_DESCR_MOV_WIDE =
+{
+	0x10,
+	ARGLIST2(
+		ARG(ARG_TYPE_REF, OP0),
+		ARG(ARG_TYPE_IMM, OP3))
+};
+const InstructionDescr INSTR_DESCR_MOV =
+{
+	0x06,
+	ARGLIST2(
+		ARG(ARG_TYPE_REF, OP0),
+		ARG(ARG_TYPE_REF, OP1))
+};
+const InstructionDescr INSTR_DESCR_MOV_EQ =
+{
+	0x07,
+	ARGLIST2(
+		ARG(ARG_TYPE_REF, OP0),
+		ARG(ARG_TYPE_REF, OP1))
+};
+const InstructionDescr INSTR_DESCR_MOV_NEQ =
+{
+	0x08,
+	ARGLIST2(
+		ARG(ARG_TYPE_REF, OP0),
+		ARG(ARG_TYPE_REF, OP1))
+};
+const InstructionDescr INSTR_DESCR_MOV_LESS =
+{
+	0x09,
+	ARGLIST2(
+		ARG(ARG_TYPE_REF, OP0),
+		ARG(ARG_TYPE_REF, OP1))
+};
+const InstructionDescr INSTR_DESCR_MOV_LESS_EQ =
+{
+	0x0A,
+	ARGLIST2(
+		ARG(ARG_TYPE_REF, OP0),
+		ARG(ARG_TYPE_REF, OP1))
+};
+const InstructionDescr INSTR_DESCR_CMP =
+{
+	0x0B,
+	ARGLIST2(
+		ARG(ARG_TYPE_REF, OP1),
+		ARG(ARG_TYPE_REF, OP2))
+};
+const InstructionDescr INSTR_DESCR_LDR =
+{
+	0x0C,
+	ARGLIST2(
+		ARG(ARG_TYPE_REF, OP0),
+		ARG(ARG_TYPE_IMM, OP3))
+};
+const InstructionDescr INSTR_DESCR_STR =
+{
+	0x0D,
+	ARGLIST2(
+		ARG(ARG_TYPE_IMM, OP3),
+		ARG(ARG_TYPE_REF, OP1))
+};
+const InstructionDescr INSTR_DESCR_CALL =
+{
+	0x0E,
+	ARGLIST1(
+		ARG(ARG_TYPE_REF, OP1))
+};

@@ -13,12 +13,6 @@
 
 #define SCANNER_BUF_SIZE 64
 
-#define REG_MAX 7
-#define REG(n) (n)
-#define REG_SP (REG(5))
-#define REG_LR (REG(6))
-#define REG_PC (REG(7))
-
 /*
 
 GRAMMAR:

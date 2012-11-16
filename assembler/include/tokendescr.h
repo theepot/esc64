@@ -1,7 +1,34 @@
 #ifndef TOKENDESCR_INCLUDED
 #define TOKENDESCR_INCLUDED
 
+#include <stdlib.h>
+
 #include "esctypes.h"
+
+#define SCANNER_BUF_SIZE 64
+
+#define REG_MAX	7
+#define REG(n)	(n)
+#define REG0	(REG(0))
+#define REG1	(REG(1))
+#define REG2	(REG(2))
+#define REG3	(REG(3))
+#define REG4	(REG(4))
+#define REG5	(REG(5))
+#define REG6	(REG(6))
+#define REG7	(REG(7))
+#define REG_SP	(REG5)
+#define REG_LR	(REG6)
+#define REG_PC	(REG7)
+
+#define OP_MAX	4
+#define OP(n)	(n)
+#define OP0		(OP(0))
+#define OP1		(OP(1))
+#define OP2		(OP(2))
+#define OP3		(OP(3))
+
+typedef unsigned Operand_t;
 
 typedef enum TokenClass_
 {
@@ -20,18 +47,38 @@ typedef enum TokenValueType_
 	TOKEN_VALUE_TYPE_STRING
 } TokenValueType;
 
-#define OPERAND_FLAG(n) (1 << (n))
-#define OPERAND_0 OPERAND_FLAG(0)
-#define OPERAND_1 OPERAND_FLAG(1)
-#define OPERAND_2 OPERAND_FLAG(2)
-#define OPERAND_3 OPERAND_FLAG(3)
-
 typedef UWord_t Opcode_t;
+
+typedef enum ArgDescrType_
+{
+	ARG_TYPE_REF,
+	ARG_TYPE_IMM
+} ArgDescrType;
+
+typedef struct ArgDescr_
+{
+	ArgDescrType type;
+	Operand_t operand;
+} ArgDescr;
+
+typedef struct ArgListDescr_
+{
+	size_t argCount;
+	const ArgDescr* args;
+} ArgListDescr;
+
+#define ARG(t, o)				{ (t), (o) }
+#define NO_ARGLIST()			{ 0, NULL }
+#define ARGLIST0()				NO_ARGLIST
+#define ARGLIST1(a)				{ 1, (const ArgDescr[]){ a } }
+#define ARGLIST2(a, b)			{ 2, (const ArgDescr[]){ a, b } }
+#define ARGLIST3(a, b, c)		{ 3, (const ArgDescr[]){ a, b, c } }
+#define ARGLIST4(a, b, c, d)	{ 4, (const ArgDescr[]){ a, b, c, d } }
 
 typedef struct InstructionDescr_
 {
 	Opcode_t opcode;
-	unsigned operandFlags;
+	ArgListDescr argList;
 } InstructionDescr;
 
 typedef struct TokenDescr_
