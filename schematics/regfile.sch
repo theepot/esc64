@@ -3343,13 +3343,13 @@ C 19600 4700 1 0 0 in-1.sym
 {
 T 19600 5000 5 10 0 0 0 0 1
 device=INPUT
-T 18750 4700 5 10 1 1 0 0 1
-refdes=notReset
+T 18550 4700 5 10 1 1 0 0 1
+refdes=PCnotReset
 }
 C 19600 3800 1 0 0 in-1.sym
 {
 T 19600 4100 5 10 0 0 0 0 1
 device=INPUT
 T 19000 3800 5 10 1 1 0 0 1
-refdes=incPC
+refdes=PCinc
 }
