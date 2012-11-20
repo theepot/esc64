@@ -8,7 +8,7 @@ pinlabel=in:16
 T 705 3145 5 10 1 1 0 6 1
 pinnumber=26
 T -200 3100 5 10 0 0 0 0 1
-pinseq=0
+pinseq=26
 }
 P 500 1300 800 1300 1 0 0
 {
@@ -19,7 +19,7 @@ pinlabel=inc
 T 705 1345 5 10 1 1 0 6 1
 pinnumber=37
 T -200 1300 5 10 0 0 0 0 1
-pinseq=0
+pinseq=37
 }
 P 500 1600 800 1600 1 0 0
 {
@@ -30,7 +30,7 @@ pinlabel=notOE
 T 705 1645 5 10 1 1 0 6 1
 pinnumber=35
 T -200 1600 5 10 0 0 0 0 1
-pinseq=0
+pinseq=35
 }
 P 500 1900 800 1900 1 0 0
 {
@@ -41,7 +41,7 @@ pinlabel=notLoad
 T 705 1945 5 10 1 1 0 6 1
 pinnumber=33
 T -200 1900 5 10 0 0 0 0 1
-pinseq=0
+pinseq=33
 }
 P 500 2200 800 2200 1 0 0
 {
@@ -52,7 +52,7 @@ pinlabel=notReset
 T 705 2245 5 10 1 1 0 6 1
 pinnumber=31
 T -200 2200 5 10 0 0 0 0 1
-pinseq=0
+pinseq=31
 }
 P 500 2500 800 2500 1 0 0
 {
@@ -63,7 +63,7 @@ pinlabel=clock
 T 705 2545 5 10 1 1 0 6 1
 pinnumber=29
 T -200 2500 5 10 0 0 0 0 1
-pinseq=0
+pinseq=29
 }
 P 2500 3100 2300 3100 1 0 0
 {
@@ -74,7 +74,7 @@ pinlabel=out:16
 T 2395 3145 5 10 1 1 0 0 1
 pinnumber=36
 T 2500 3100 5 10 0 0 0 0 1
-pinseq=0
+pinseq=36
 }
 P 500 3400 800 3400 1 0 0
 {
@@ -85,7 +85,7 @@ pinlabel=in:15
 T 705 3445 5 10 1 1 0 6 1
 pinnumber=24
 T -200 3400 5 10 0 0 0 0 1
-pinseq=0
+pinseq=24
 }
 P 500 3700 800 3700 1 0 0
 {
@@ -96,7 +96,7 @@ pinlabel=in:14
 T 705 3745 5 10 1 1 0 6 1
 pinnumber=22
 T -200 3700 5 10 0 0 0 0 1
-pinseq=0
+pinseq=22
 }
 P 500 4000 800 4000 1 0 0
 {
@@ -107,7 +107,7 @@ pinlabel=in:13
 T 705 4045 5 10 1 1 0 6 1
 pinnumber=20
 T -200 4000 5 10 0 0 0 0 1
-pinseq=0
+pinseq=20
 }
 P 500 4300 800 4300 1 0 0
 {
@@ -118,7 +118,7 @@ pinlabel=in:12
 T 705 4345 5 10 1 1 0 6 1
 pinnumber=18
 T -200 4300 5 10 0 0 0 0 1
-pinseq=0
+pinseq=18
 }
 P 500 4600 800 4600 1 0 0
 {
@@ -129,7 +129,7 @@ pinlabel=in:11
 T 705 4645 5 10 1 1 0 6 1
 pinnumber=16
 T -200 4600 5 10 0 0 0 0 1
-pinseq=0
+pinseq=16
 }
 P 500 4900 800 4900 1 0 0
 {
@@ -140,7 +140,7 @@ pinlabel=in:10
 T 705 4945 5 10 1 1 0 6 1
 pinnumber=14
 T -200 4900 5 10 0 0 0 0 1
-pinseq=0
+pinseq=14
 }
 P 500 5200 800 5200 1 0 0
 {
@@ -151,7 +151,7 @@ pinlabel=in:9
 T 705 5245 5 10 1 1 0 6 1
 pinnumber=12
 T -200 5200 5 10 0 0 0 0 1
-pinseq=0
+pinseq=12
 }
 P 500 5500 800 5500 1 0 0
 {
@@ -162,7 +162,7 @@ pinlabel=in:8
 T 705 5545 5 10 1 1 0 6 1
 pinnumber=10
 T -200 5500 5 10 0 0 0 0 1
-pinseq=0
+pinseq=10
 }
 P 500 5800 800 5800 1 0 0
 {
@@ -173,7 +173,7 @@ pinlabel=in:7
 T 705 5845 5 10 1 1 0 6 1
 pinnumber=8
 T -200 5800 5 10 0 0 0 0 1
-pinseq=0
+pinseq=8
 }
 P 500 6100 800 6100 1 0 0
 {
@@ -184,7 +184,7 @@ pinlabel=in:6
 T 705 6145 5 10 1 1 0 6 1
 pinnumber=6
 T -200 6100 5 10 0 0 0 0 1
-pinseq=0
+pinseq=6
 }
 P 500 6400 800 6400 1 0 0
 {
@@ -195,7 +195,7 @@ pinlabel=in:5
 T 705 6445 5 10 1 1 0 6 1
 pinnumber=5
 T -200 6400 5 10 0 0 0 0 1
-pinseq=0
+pinseq=5
 }
 P 500 6700 800 6700 1 0 0
 {
@@ -206,7 +206,7 @@ pinlabel=in:4
 T 705 6745 5 10 1 1 0 6 1
 pinnumber=4
 T -200 6700 5 10 0 0 0 0 1
-pinseq=0
+pinseq=4
 }
 P 500 7000 800 7000 1 0 0
 {
@@ -217,7 +217,7 @@ pinlabel=in:3
 T 705 7045 5 10 1 1 0 6 1
 pinnumber=3
 T -200 7000 5 10 0 0 0 0 1
-pinseq=0
+pinseq=3
 }
 P 500 7300 800 7300 1 0 0
 {
@@ -228,7 +228,7 @@ pinlabel=in:2
 T 705 7345 5 10 1 1 0 6 1
 pinnumber=2
 T -200 7300 5 10 0 0 0 0 1
-pinseq=0
+pinseq=2
 }
 P 500 7600 800 7600 1 0 0
 {
@@ -239,7 +239,7 @@ pinlabel=in:1
 T 705 7645 5 10 1 1 0 6 1
 pinnumber=1
 T -200 7600 5 10 0 0 0 0 1
-pinseq=0
+pinseq=1
 }
 P 2500 3400 2300 3400 1 0 0
 {
@@ -250,7 +250,7 @@ pinlabel=out:15
 T 2395 3445 5 10 1 1 0 0 1
 pinnumber=34
 T 2500 3400 5 10 0 0 0 0 1
-pinseq=0
+pinseq=34
 }
 P 2500 3700 2300 3700 1 0 0
 {
@@ -261,7 +261,7 @@ pinlabel=out:14
 T 2395 3745 5 10 1 1 0 0 1
 pinnumber=32
 T 2500 3700 5 10 0 0 0 0 1
-pinseq=0
+pinseq=32
 }
 P 2500 4000 2300 4000 1 0 0
 {
@@ -272,7 +272,7 @@ pinlabel=out:13
 T 2395 4045 5 10 1 1 0 0 1
 pinnumber=30
 T 2500 4000 5 10 0 0 0 0 1
-pinseq=0
+pinseq=30
 }
 P 2500 4300 2300 4300 1 0 0
 {
@@ -283,7 +283,7 @@ pinlabel=out:12
 T 2395 4345 5 10 1 1 0 0 1
 pinnumber=28
 T 2500 4300 5 10 0 0 0 0 1
-pinseq=0
+pinseq=28
 }
 P 2500 4600 2300 4600 1 0 0
 {
@@ -294,7 +294,7 @@ pinlabel=out:11
 T 2395 4645 5 10 1 1 0 0 1
 pinnumber=27
 T 2500 4600 5 10 0 0 0 0 1
-pinseq=0
+pinseq=27
 }
 P 2500 4900 2300 4900 1 0 0
 {
@@ -305,7 +305,7 @@ pinlabel=out:10
 T 2395 4945 5 10 1 1 0 0 1
 pinnumber=25
 T 2500 4900 5 10 0 0 0 0 1
-pinseq=0
+pinseq=25
 }
 P 2500 5200 2300 5200 1 0 0
 {
@@ -316,7 +316,7 @@ pinlabel=out:9
 T 2395 5245 5 10 1 1 0 0 1
 pinnumber=23
 T 2500 5200 5 10 0 0 0 0 1
-pinseq=0
+pinseq=23
 }
 P 2500 5500 2300 5500 1 0 0
 {
@@ -327,7 +327,7 @@ pinlabel=out:8
 T 2395 5545 5 10 1 1 0 0 1
 pinnumber=21
 T 2500 5500 5 10 0 0 0 0 1
-pinseq=0
+pinseq=21
 }
 P 2500 5800 2300 5800 1 0 0
 {
@@ -338,7 +338,7 @@ pinlabel=out:7
 T 2395 5845 5 10 1 1 0 0 1
 pinnumber=19
 T 2500 5800 5 10 0 0 0 0 1
-pinseq=0
+pinseq=19
 }
 P 2500 6100 2300 6100 1 0 0
 {
@@ -349,7 +349,7 @@ pinlabel=out:6
 T 2395 6145 5 10 1 1 0 0 1
 pinnumber=17
 T 2500 6100 5 10 0 0 0 0 1
-pinseq=0
+pinseq=17
 }
 P 2500 6400 2300 6400 1 0 0
 {
@@ -360,7 +360,7 @@ pinlabel=out:5
 T 2395 6445 5 10 1 1 0 0 1
 pinnumber=15
 T 2500 6400 5 10 0 0 0 0 1
-pinseq=0
+pinseq=15
 }
 P 2500 6700 2300 6700 1 0 0
 {
@@ -371,7 +371,7 @@ pinlabel=out:4
 T 2395 6745 5 10 1 1 0 0 1
 pinnumber=13
 T 2500 6700 5 10 0 0 0 0 1
-pinseq=0
+pinseq=13
 }
 P 2500 7000 2300 7000 1 0 0
 {
@@ -382,7 +382,7 @@ pinlabel=out:3
 T 2395 7045 5 10 1 1 0 0 1
 pinnumber=11
 T 2500 7000 5 10 0 0 0 0 1
-pinseq=0
+pinseq=11
 }
 P 2500 7300 2300 7300 1 0 0
 {
@@ -393,7 +393,7 @@ pinlabel=out:2
 T 2395 7345 5 10 1 1 0 0 1
 pinnumber=9
 T 2500 7300 5 10 0 0 0 0 1
-pinseq=0
+pinseq=9
 }
 P 2500 7600 2300 7600 1 0 0
 {
@@ -404,7 +404,7 @@ pinlabel=out:1
 T 2395 7645 5 10 1 1 0 0 1
 pinnumber=7
 T 2500 7600 5 10 0 0 0 0 1
-pinseq=0
+pinseq=7
 }
 B 800 1000 1500 6900 3 0 0 0 -1 -1 0 -1 -1 -1 -1 -1
 T 800 8000 8 10 1 1 0 0 1
