@@ -5,3 +5,5 @@ List of TODO things:
 	-rename control lines from the microsequencer
 	-memfile parameter of memory devices should have consistent names
 	-remove delays from the non-structural models if they are not used in the structural-cpu anymore
+	
+	-All active low in/outputs should either have a not in it's name, or a graphical bar above it.
