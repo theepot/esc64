@@ -63,6 +63,8 @@ typedef struct Token_
 	};
 } Token;
 
+void ScannerStaticInit(void);
+
 void ScannerInit(Scanner* scanner, FILE* stream);
 
 void ScannerNext(Scanner* scanner, Token*  token);

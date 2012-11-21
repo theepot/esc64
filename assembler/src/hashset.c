@@ -75,7 +75,7 @@ int HashSetFind(HashSet* set, const void* valueFind, void** valueOut)
 		}
 	}
 
-	return HASHSET_ERROR_INSUFFICIENT_MEM;
+	return HASHSET_ERROR_INSUFFICIENT_MEM; //FIXME wtf? insufficient memory?
 }
 
 void HashSetDump(FILE* stream, HashSet* set, HashDumpProc hashDumpProc)

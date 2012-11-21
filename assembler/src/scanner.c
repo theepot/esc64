@@ -5,6 +5,9 @@
 #include <ctype.h>
 #include <string.h>
 
+#include "hashset.h"
+
+//TODO remove obsolete
 typedef struct TokenDescrTable_
 {
 	const char* sym;

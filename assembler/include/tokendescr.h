@@ -122,6 +122,7 @@ extern const TokenDescr TOKEN_DESCR_DIR_ORG;
 extern const TokenDescr TOKEN_DESCR_EOL;
 extern const TokenDescr TOKEN_DESCR_EOF;
 
+//TODO should these be public?
 extern const InstructionDescr INSTR_DESCR_ADD;
 extern const InstructionDescr INSTR_DESCR_SUB;
 extern const InstructionDescr INSTR_DESCR_OR;
