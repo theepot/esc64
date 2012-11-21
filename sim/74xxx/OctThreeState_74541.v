@@ -11,7 +11,7 @@ module OctThreeState_74541(notOE1, notOE2, in, out);
 	output[7:0] out;
 	wire[7:0] out;
 
-	assign #38 out = ~(notOE1 | notOE2) ? in : 8'bzzzzzzzz;
+	assign #(30+15) out = ~(notOE1 | notOE2) ? in : 8'bzzzzzzzz;
 endmodule
 
 `endif

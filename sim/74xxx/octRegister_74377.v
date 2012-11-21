@@ -9,7 +9,7 @@ module octRegister_74377(clock, notLoad, in, out);
 
 	always @ (posedge clock)
 	if (~notLoad) begin
-		#20 out = in;
+		#(35+15) out = in;
 	end
 
 endmodule

@@ -13,11 +13,11 @@ module QuadCounter_74163(clock, notClear, notLoad, enp, ent, in, out, cout);
 		begin
 			
 			if (~notClear) begin
-				#43 out = 0;
+				#(43+15) out = 0;
 			end else if (~notLoad) begin
-				#43 out = in;
+				#(43+15) out = in;
 			end else if (enp & ent) begin
-				#43 out = out + 1;
+				#(43+15) out = out + 1;
 			end
 		end
 		

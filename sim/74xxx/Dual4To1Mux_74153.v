@@ -13,10 +13,10 @@ module Dual4To1Mux_74153(notIE, sel, inA, inB, inC, inD, out);
 	
 	always @(*) begin
 		case(sel)
-			2'b00: #34 out = inA & ~notIE;
-			2'b01: #34 out = inB & ~notIE;
-			2'b10: #34 out = inC & ~notIE;
-			2'b11: #34 out = inD & ~notIE;
+			2'b00: #(34+15) out = inA & ~notIE;
+			2'b01: #(34+15) out = inB & ~notIE;
+			2'b10: #(34+15) out = inC & ~notIE;
+			2'b11: #(34+15) out = inD & ~notIE;
 		endcase
 	end
 
