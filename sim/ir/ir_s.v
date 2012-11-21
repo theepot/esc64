@@ -11,7 +11,7 @@
 */
 
 module instructionRegister(clock, notLoad, in, outOpcode, outOp0, outOp1, outOp2);
-	input clock, notReset, notLoad;
+	input clock, notLoad;
 	
 	input [15:0] in;
 	wire [15:0] in;

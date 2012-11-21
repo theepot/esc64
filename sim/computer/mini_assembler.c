@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
-#include "cpu.h"
+#include "../cpu/cpu.h"
 
 #define MEM_SIZE (2048)
 #define LABELS_MAX (256)
@@ -364,7 +364,7 @@ int main(int argc, char** argv)
 	init_mem();
 	
 	//begin program
-	unsigned dest = 0xFFFF;
+	unsigned dest = 0x7FFF;
 	
 #define FN3(f, a, b, e, z, c) \
 	dest -= 3; \

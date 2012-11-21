@@ -6,7 +6,7 @@ module ThreeToEightDecoder_74138(notOE1, notOE2, OE3, in, notOut);
 	input[2:0] in;
 	output[7:0] notOut;
 
-	assign #11 notOut = ~notOE1 & ~notOE2 & OE3 ? ~(1 << in) : 8'b11111111;
+	assign #(30+15) notOut = ~notOE1 & ~notOE2 & OE3 ? ~(1 << in) : 8'b11111111;
 endmodule
 
 `endif

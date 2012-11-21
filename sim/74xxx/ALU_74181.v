@@ -24,11 +24,11 @@ module ALU_74181 (S, A, B, M, CNb, F, X, Y, CN4b, AEB);
 	
 	TopLevel74181b Ckt74181b (S, A, B, M, CNb, Fint, Xint, Yint, CN4bint, AEBint);
 	
-	assign #40 CN4b = CN4bint;
-	assign #55 F = Fint;
-	assign #55 AEB = AEBint;
-	assign #55 X = Xint;
-	assign #55 Y = Yint;
+	assign #(55+15) CN4b = CN4bint;
+	assign #(55+15) F = Fint;
+	assign #(55+15) AEB = AEBint;
+	assign #(55+15) X = Xint;
+	assign #(55+15) Y = Yint;
 
 endmodule
 
