@@ -1,16 +1,5 @@
 `include "../sram/sram.v"
 
-`ifdef ALL_STRUCT
-	`define GPREGISTER_STRUCT 1
-	`define PC_STRUCT 1
-	`define STATUS_STRUCT 1
-	`define IR_STRUCT 1
-	`define ALU_STRUCT 1
-	`define REGSEL_STRUCT 1
-	`define BREG_STRUCT 1
-	`define MSEQ_STRUCT 1
-`endif
-
 `ifdef GPREGISTER_STRUCT
 `include "../GPRegister/GPRegister_s.v"
 `else
@@ -59,12 +48,16 @@
 //`include "../mSeq/mSeq.v"
 `endif
 
-module cpu();
+module cpu(clock, notReset, aBus, yBus, memNotRead, memNotWrite);
+	input clock, notReset;
+	output memNotRead, memNotWrite;
+	inout [15:0] aBus, yBus;
+	
+	wire clock, notReset, memNotRead, memNotWrite;
+	
 	//misc
 	wire [15:0] aBus;
 	wire [15:0] yBus;
-	reg clock;
-	reg notReset;
 
 	//register selection
 	wire regselOE; //regsel < useq
@@ -158,12 +151,6 @@ module cpu();
 	wire aluUCIn; //alu < useq
 	alu _alu(aBus, aluB, yBus, aluF, aluCSel, aluUCIn, statusCOut, statusCIn, statusZIn, aluNotALUOE, aluNotShiftOE);
 	
-	//ram
-	wire memNotOE; //mem < useq
-	wire memNotWE; //mem < useq
-	wire memNotCS; //mem < useq
-	sram #(.MEMFILE("ram.lst")) ram(aBus, yBus, memNotOE, memNotWE, memNotCS);
-	
 	//instruction register
 	wire irNotLoad; //ir < useq
 	wire [6:0] irOpcode; //ir < useq
@@ -187,33 +174,9 @@ module cpu();
 	assign aluNotShiftOE = control[6]; //1,L
 	assign aluCSel = control[5]; //1,H
 	assign aluUCIn = control[4]; //1,H
-	assign memNotOE = control[3]; //1,L
-	assign memNotWE = control[2]; //1,L
-	assign memNotCS = control[1]; //1,L
+	assign memNotRead = control[3]; //1,L
+	assign memNotWrite = control[2]; //1,L
+//	assign memNotCS = control[1]; //1,L //TODO: remove this control line.
 	assign irNotLoad = control[0]; //1,L
-	
-	initial begin
-		$dumpfile("cpu.vcd");
-		$dumpvars(0);
-		
-		notReset = 0;
-		clock = 0;
-		#900 notReset = 1;
-
-		
-		#(800*2*1000)
-		$display("ERROR: computer did not halt in 1000 cycles");
-		$finish;
-
-	end
-
-	always begin
-		#800 clock = ~clock;
-		if(irOpcode == 7'b1111111) begin
-			#5 $writememb("dump0.lst", ram.mem, 0, 64);
-			$writememb("dump1.lst", ram.mem, (1<<16) - 100, (1<<16)-1);
-			$finish;
-		end
-	end
 
 endmodule

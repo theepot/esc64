@@ -1,5 +1,5 @@
 #include <uassembler.h>
-#include "cpu.h"
+#include "../cpu/cpu.h"
 
 field_description field_descrps[] = {
 	{.name = "nextsel", .index = 0, .width = 1, .active = 1},
@@ -18,9 +18,9 @@ field_description field_descrps[] = {
 	{.name = "aluNotShiftOE", .index = (6 + 1 + UROM_ADDR_WIDTH), .width = 1, .active = L},
 	{.name = "aluCSel", .index = (5 + 1 + UROM_ADDR_WIDTH), .width = 1, .active = H},
 	{.name = "aluUCIn", .index = (4 + 1 + UROM_ADDR_WIDTH), .width = 1, .active = H},
-	{.name = "memNotOE", .index = (3 + 1 + UROM_ADDR_WIDTH), .width = 1, .active = L},
-	{.name = "memNotWE", .index = (2 + 1 + UROM_ADDR_WIDTH), .width = 1, .active = L},
-	{.name = "memNotCS", .index = (1 + 1 + UROM_ADDR_WIDTH), .width = 1, .active = L},
+	{.name = "memNotRead", .index = (3 + 1 + UROM_ADDR_WIDTH), .width = 1, .active = L},
+	{.name = "memNotWrite", .index = (2 + 1 + UROM_ADDR_WIDTH), .width = 1, .active = L},
+	{.name = "memNotCS", .index = (1 + 1 + UROM_ADDR_WIDTH), .width = 1, .active = L}, //this line is not used anymore
 	{.name = "irNotLoad", .index = (0 + 1 + UROM_ADDR_WIDTH), .width = 1, .active = L}
 };
 
@@ -41,7 +41,7 @@ int main(int argc, char** argv)
 	put_op_entry("", 0, dontcare, dontcare, fetch, mem);
 
 	//fetch
-	put_uop("regselOE, regselOESourceSel="RGS_OESRC_USEQ", regselUSeqRegSelOE="RGS_PC", memNotCS, memNotOE, irNotLoad, pcInc", next, mem);
+	put_uop("regselOE, regselOESourceSel="RGS_OESRC_USEQ", regselUSeqRegSelOE="RGS_PC", memNotCS, memNotRead, irNotLoad, pcInc", next, mem);
 	put_uop("", op_entry, mem);
 	
 	//mov's
@@ -64,7 +64,7 @@ int main(int argc, char** argv)
 	MOV(op_mov_on_not_carry_or_zero, dontcare, true);
 	
 	//mov immediate
-	put_op_entry("pcInc, regselLoad, regselLoadSourceSel="RGS_LOADSRC_OP0", regselOE, regselOESourceSel="RGS_OESRC_USEQ", regselUSeqRegSelOE="RGS_PC", memNotCS, memNotOE", op_mov_literal, dontcare, dontcare, fetch, mem);
+	put_op_entry("pcInc, regselLoad, regselLoadSourceSel="RGS_LOADSRC_OP0", regselOE, regselOESourceSel="RGS_OESRC_USEQ", regselUSeqRegSelOE="RGS_PC", memNotCS, memNotRead", op_mov_literal, dontcare, dontcare, fetch, mem);
 	
 	//ALU functions
 #define FN(op, f) \
@@ -85,11 +85,11 @@ int main(int argc, char** argv)
 	
 	
 	//load
-	put_op_entry("regselOE, regselOESourceSel="RGS_OESRC_OP1", regselLoad, regselLoadSourceSel="RGS_LOADSRC_OP0", memNotCS, memNotOE", op_load, dontcare, dontcare, fetch, mem);
+	put_op_entry("regselOE, regselOESourceSel="RGS_OESRC_OP1", regselLoad, regselLoadSourceSel="RGS_LOADSRC_OP0", memNotCS, memNotRead", op_load, dontcare, dontcare, fetch, mem);
 	
 	//store
 	put_op_entry("regselOE, regselOESourceSel="RGS_OESRC_OP2", aluBRegNotLoad, aluF="ALU_F_B", aluNotALUOE", op_store, dontcare, dontcare, next, mem);
-	put_uop("memNotWE, memNotCS, regselOE, regselOESourceSel="RGS_OESRC_OP1", aluF="ALU_F_B", aluNotALUOE", next, mem);
+	put_uop("memNotWrite, memNotCS, regselOE, regselOESourceSel="RGS_OESRC_OP1", aluF="ALU_F_B", aluNotALUOE", next, mem);
 	put_uop("memNotCS, regselOE, regselOESourceSel="RGS_OESRC_OP1", aluF="ALU_F_B", aluNotALUOE", fetch, mem);
 	
 	//comp
