@@ -524,16 +524,21 @@ static void TestWrite(void);
 static void TestRead(void);
 
 static size_t TestDataSegment(size_t testDataIndex);
+
+static size_t ReadTestData(size_t from, size_t to);
 static size_t ReadTestSymbolTable(size_t from, size_t to);
+static size_t ReadTestUnlinked(size_t from, size_t to);
 
 static size_t WriteTestData(size_t from, size_t to);
-static size_t ReadTestData(size_t from, size_t to);
 static size_t WriteTestSymbolTable(size_t from, size_t to);
+static size_t WriteTestUnlinked(size_t from, size_t to);
 
 static IOHelper ioData;
 static IOHelper ioSym;
+static IOHelper ioUnl;
 
 static ObjectSymbolIterator symIt;
+static ObjectUnlinkedIterator unlinkedIt;
 
 void TestObjFile(const char* path)
 {
@@ -562,7 +567,14 @@ static int IOProcess(IOHelper* helper)
 		to = helper->size;
 	}
 
-	helper->index = helper->proc(helper->index, to);
+	size_t nwIndex = helper->proc(helper->index, to);
+	if(nwIndex == helper->index)
+	{
+		return -1;
+	}
+	
+	helper->index = nwIndex;
+	
 	return 0;
 }
 
@@ -572,24 +584,39 @@ static void TestWrite(void)
 	ioData.step = testDataSize / 6;
 	ioData.size = testDataSize;
 	ioData.proc = WriteTestData;
+	
 	ioSym.index = 0;
 	ioSym.step = testSymbolsSize / 6;
 	ioSym.size = testSymbolsSize;
 	ioSym.proc = WriteTestSymbolTable;
-	while(!IOProcess(&ioData) || !IOProcess(&ioSym)) continue;
+	
+	ioUnl.index = 0;
+	ioUnl.step = testSymbolsSize / 6;
+	ioUnl.size = testSymbolsSize;
+	ioUnl.proc = WriteTestUnlinked;
+	
+	while(!IOProcess(&ioData) || !IOProcess(&ioSym) || !IOProcess(&ioUnl)) continue;
 }
 
 static void TestRead(void)
 {
 	ioData.index = 0;
 	ioData.proc = ReadTestData;
+	
 	ioSym.index = 0;
 	ioSym.proc = ReadTestSymbolTable;
+	
+	ioUnl.index = 0;
+	ioUnl.proc = ReadTestUnlinked;
+	
 	ObjectSymbolIteratorInit(&symIt, &ois);
-	while(!IOProcess(&ioData) || !IOProcess(&ioSym)) continue;
+	ObjectUnlinkedIteratorInit(&unlinkedIt, &ois);
+	
+	while(!IOProcess(&ioData) || !IOProcess(&ioSym) || !IOProcess(&ioUnl)) continue;
 
 	assert(ioData.index == ioData.size);
 	assert(ioSym.index == ioSym.size);
+	assert(ioUnl.index == ioUnl.size);
 }
 
 static size_t TestDataSegment(size_t testDataIndex)
@@ -642,6 +669,18 @@ static size_t WriteTestSymbolTable(size_t from, size_t to)
 	return i;
 }
 
+static size_t WriteTestUnlinked(size_t from, size_t to)
+{
+	size_t i;
+	for(i = from; i < to; ++i)
+	{
+		const char* name = testSymbols[i].name;
+		ObjectWriteUnlinked(&oos, name, strlen(name), testSymbols[i].value);
+	}
+	
+	return i;
+}
+
 static size_t ReadTestSymbolTable(size_t from, size_t to)
 {
 	ObjSize_t offset;
@@ -655,6 +694,21 @@ static size_t ReadTestSymbolTable(size_t from, size_t to)
 		assert(value == testSymbols[i].value);
 	}
 
+	return i;
+}
+
+static size_t ReadTestUnlinked(size_t from, size_t to)
+{
+	const char* name;
+	size_t nameSize;
+	UWord_t addr;
+	size_t i = 0;
+	for(i = from; i < to && !ObjectUnlinkedIteratorNext(&unlinkedIt, &addr, &name, &nameSize); ++i)
+	{
+		assert(!strcmp(name, testSymbols[i].name));
+		assert(addr == testSymbols[i].value);
+	}
+	
 	return i;
 }
 

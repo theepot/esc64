@@ -88,7 +88,7 @@ typedef struct SectionReadBuffer_
 
 #define OBJ_SYM_TABLE_BUF_SIZE			20
 #define OBJ_DATA_BUF_SIZE				(5 * sizeof(UWord_t))
-#define OBJ_UNLINKED_BUF_SIZE			3
+#define OBJ_UNLINKED_BUF_SIZE			20
 
 typedef struct ObjectOutputStream_
 {
