@@ -1,16 +1,5 @@
 `include "../sram/sram.v"
-
-`ifdef GPREGISTER_STRUCT
-`include "../GPRegister/GPRegister_s.v"
-`else
-//`include "../GPRegister/GPRegister.v"
-`endif
-
-`ifdef PC_STRUCT
-`include "../pc/pc_s.v"
-`else
-//`include "../pc/pc.v"
-`endif
+`include "../regFile/regFile.v"
 
 `ifdef STATUS_STRUCT
 `include "../status/status_s.v"
@@ -75,55 +64,8 @@ module cpu(clock, notReset, aBus, yBus, memNotRead, memNotWrite);
 	regSel _regsel(regselOE, regselLoad, regselOESourceSel, regselLoadSourceSel, regselUSeqRegSelOE, regselUSeqRegSelLoad, regselOp0, regselOp1, regselOp2, regselRegOEs, regselRegNotLoads);
 
 	//registers
-	wire r0NotOE; //r0 < regsel
-	wire r0NotLoad; //r0 < regsel
-	assign r0NotOE = regselRegOEs[0];
-	assign r0NotLoad = regselRegNotLoads[0];
-	
-	wire r1NotOE; //r1 < regsel
-	wire r1NotLoad; //r1 < regsel
-	assign r1NotOE = regselRegOEs[1];
-	assign r1NotLoad = regselRegNotLoads[1];
-	
-	wire r2NotOE; //r2 < regsel
-	wire r2NotLoad; //r2 < regsel
-	assign r2NotOE = regselRegOEs[2];
-	assign r2NotLoad = regselRegNotLoads[2];
-	
-	wire r3NotOE; //r3 < regsel
-	wire r3NotLoad; //r3 < regsel
-	assign r3NotOE = regselRegOEs[3];
-	assign r3NotLoad = regselRegNotLoads[3];
-	
-	wire r4NotOE; //r4 < regsel
-	wire r4NotLoad; //r4 < regsel
-	assign r4NotOE = regselRegOEs[4];
-	assign r4NotLoad = regselRegNotLoads[4];
-	
-	wire r5NotOE; //r5 < regsel
-	wire r5NotLoad; //r5 < regsel
-	assign r5NotOE = regselRegOEs[5];
-	assign r5NotLoad = regselRegNotLoads[5];
-	
-	wire lrNotOE; //lr < regsel
-	wire lrNotLoad; //lr < regsel
-	assign lrNotOE = regselRegOEs[6];
-	assign lrNotLoad = regselRegNotLoads[6];
-	
-	wire pcNotOE; //pc < regsel
-	wire pcNotLoad; //pc < regsel
-	assign pcNotOE = regselRegOEs[7];
-	assign pcNotLoad = regselRegNotLoads[7];
-	wire pcInc; //pc < useq
-	
-	GPRegister r0(clock, r0NotLoad, r0NotOE, yBus, aBus);
-	GPRegister r1(clock, r1NotLoad, r1NotOE, yBus, aBus);
-	GPRegister r2(clock, r2NotLoad, r2NotOE, yBus, aBus);
-	GPRegister r3(clock, r3NotLoad, r3NotOE, yBus, aBus);
-	GPRegister r4(clock, r4NotLoad, r4NotOE, yBus, aBus);
-	GPRegister r5(clock, r5NotLoad, r5NotOE, yBus, aBus);
-	GPRegister lr(clock, lrNotLoad, lrNotOE, yBus, aBus);
-	program_counter pc(clock, notReset, pcNotLoad, pcNotOE, pcInc, yBus, aBus);
+	wire pcInc;
+	regFile registers(clock, aBus, yBus, regselRegOEs, regselRegNotLoads, notReset, pcInc);
 
 	//status
 	wire statusCIn; //status < alu
