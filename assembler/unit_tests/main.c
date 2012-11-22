@@ -3,6 +3,8 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "reswords.h"
+
 extern void TestScanner(const char* asmFile);
 extern int TestSymTable(void);
 extern void TestObjFile(const char* path);
@@ -12,7 +14,9 @@ int main(int argc, char** argv)
 {
 	clock_t start = clock();
 
-	TestScanner("/home/lukas/development/esc64/assembler/testfiles/scanner_test.asm");
+	ReservedWordsInit();
+
+	TestScanner("/home/lukas/slowpoke/esc64/assembler/testfiles/scanner_test.asm");
 	TestSymTable();
 	TestObjFile("/home/lukas/Desktop/dump.bin");
 	TestReservedWords();
