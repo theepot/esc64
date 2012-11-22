@@ -1,6 +1,10 @@
 #ifndef TOKENDESCR_INCLUDED
 #define TOKENDESCR_INCLUDED
 
+/*	TODO's
+	- All value type descriptors are lvalue's. That can't be right
+*/
+
 #include <stdlib.h>
 
 #include "esctypes.h"
