@@ -48,6 +48,12 @@ typedef struct Parser_
 	unsigned line;
 } Parser;
 
+typedef struct Instruction_
+{
+	UWord_t opcode;
+	UWord_t operands[3];
+} Instruction;
+
 void ParserInit(Parser* parser, Scanner* scanner);
 
 void Parse(Parser* parser);

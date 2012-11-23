@@ -4,16 +4,27 @@
 
 static const Token* Peek(Parser* parser);
 static const Token* Next(Parser* parser);
+static void Expect(Parser* parser, const TokenDescr* expected);
 
 static int ParseLine(Parser* parser);
 static int ParseLabelDecl(Parser* parser);
 static void ParseCommand(Parser* parser);
 static void ParseDirective(Parser* parser);
 static void ParseInstruction(Parser* parser);
+static void ParseArgList(Parser* parser, const InstructionDescr* iDescr, Instruction* instr);
+static void ParseArg(Parser* parser, Instruction* instr, const ArgDescr* argDescr);
 static void ParsePseudoInstr(Parser* parser);
 
 __attribute__((noreturn)) static void UnexpectedToken(Parser* parser);
 __attribute__((noreturn)) static void ParserError(Parser* parser, const char* errMsg);
+
+static void TEMP_Print(Parser* parser, const char* procName)
+{
+	const Token* t = Peek(parser);
+	printf("%s:\t", procName);
+	ScannerDumpToken(stdout, t);
+	putchar('\n');
+}
 
 void ParserInit(Parser* parser, Scanner* scanner)
 {
@@ -39,25 +50,28 @@ static const Token* Next(Parser* parser)
 	return &parser->curToken;
 }
 
+static void Expect(Parser* parser, const TokenDescr* expected)
+{
+	if(parser->curToken.descr != expected)
+	{
+		UnexpectedToken(parser);
+	}
+}
+
 static int ParseLine(Parser* parser)
 {
 	while(!ParseLabelDecl(parser)) continue;
 	ParseCommand(parser);
 
-	const TokenDescr* descr = Peek(parser)->descr;
-	int r = 0;
-	if(descr == &TOKEN_DESCR_EOF)
+	if(Peek(parser)->descr == &TOKEN_DESCR_EOF)
 	{
-		r = -1;
+		return -1;
 	}
-	else if(descr != &TOKEN_DESCR_EOL)
-	{
-		UnexpectedToken(parser);
-	}
-
+	
+	Expect(parser, &TOKEN_DESCR_EOL);
 	Next(parser);
 	++parser->line;
-	return r;
+	return 0;
 }
 
 static int ParseLabelDecl(Parser* parser)
@@ -69,8 +83,7 @@ static int ParseLabelDecl(Parser* parser)
 	}
 
 	//TODO handle label decl
-	puts("ParseLabelDecl:");
-	ScannerDumpToken(stdout, t);
+	TEMP_Print(parser, "ParseLabelDecl");
 
 	Next(parser);
 	return 0;
@@ -99,8 +112,7 @@ static void TEMP_ConsumeOperands(Parser* parser)
 	const Token* t = Next(parser);
 	while(t->descr->tokenClass == TOKEN_CLASS_LVALUE || t->descr == &TOKEN_DESCR_COMMA)
 	{
-		puts("TEMP_ConsumeOperands:");
-		ScannerDumpToken(stdout, t);
+		TEMP_Print(parser, "ConsumeOperands");
 		t = Next(parser);
 	}
 }
@@ -110,8 +122,7 @@ static void ParseDirective(Parser* parser)
 	const Token* t = Peek(parser);
 	if(t->descr->tokenClass == TOKEN_CLASS_DIRECTIVE)
 	{
-		puts("ParseDirective:");
-		ScannerDumpToken(stdout, t);
+		TEMP_Print(parser, "ParseDirective");
 		TEMP_ConsumeOperands(parser);
 	}
 }
@@ -122,9 +133,11 @@ static void ParseInstruction(Parser* parser)
 	const Token* t = Peek(parser);
 	if(t->descr->tokenClass == TOKEN_CLASS_OPCODE)
 	{
-		puts("ParseInstruction:");
-		ScannerDumpToken(stdout, t);
-		TEMP_ConsumeOperands(parser);
+		TEMP_Print(parser, "ParseInstruction");
+		const InstructionDescr* iDescr = t->descr->instructionDescr;
+		Instruction instr = { iDescr->opcode, { 0, 0, 0 } };
+		Next(parser);
+		ParseArgList(parser, iDescr, &instr);
 	}
 }
 
@@ -134,16 +147,43 @@ static void ParsePseudoInstr(Parser* parser)
 	const Token* t = Peek(parser);
 	if(t->descr->tokenClass == TOKEN_CLASS_PSEUDO_OPCODE)
 	{
-		puts("ParsePseudoInstruction:");
-		ScannerDumpToken(stdout, t);
+		TEMP_Print(parser, "ParsePseudoInstruction");
 		TEMP_ConsumeOperands(parser);
 	}
 }
 
+static void ParseArgList(Parser* parser, const InstructionDescr* iDescr, Instruction* instr)
+{
+	const ArgDescr* args = iDescr->argList.args;
+
+	ParseArg(parser, instr, &args[0]);
+	Next(parser);
+	size_t i;
+	for(i = 1; i < iDescr->argList.argCount; ++i)
+	{
+		Expect(parser, &TOKEN_DESCR_COMMA);
+		Next(parser);
+		ParseArg(parser, instr, &args[i]);
+		Next(parser);
+	}
+}
+
+static void ParseArg(Parser* parser, Instruction* instr, const ArgDescr* argDescr)
+{
+	//TODO
+	TEMP_Print(parser, "ParseArg");
+}
+
 __attribute__((noreturn)) static void UnexpectedToken(Parser* parser)
 {
-	fprintf(stderr, "Unexpected token at line %u:", parser->line);
+	fprintf(stderr, "Unexpected token at line %u: `%s'\n", parser->line, parser->scanner->buf);
+	
+#ifdef ESC_DEBUG
+	fputs("DEBUG: Token dump:\t", stderr);
 	ScannerDumpToken(stderr, Peek(parser));
+	putc('\n', stderr);
+#endif
+	
 	putc('\n', stderr);
 	fflush(stderr);
 	exit(-1);

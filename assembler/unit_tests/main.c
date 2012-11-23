@@ -21,7 +21,7 @@ int main(int argc, char** argv)
 //	TestSymTable();
 //	TestObjFile("/home/lukas/Desktop/dump.bin");
 //	TestReservedWords();
-	TestParser("/home/lukas/development/esc64/assembler/testfiles/scanner_test.asm");
+	TestParser("/home/lukas/slowpoke/esc64/assembler/testfiles/scanner_test.asm");
 
 	clock_t stop = clock();
 	clock_t ms = (stop - start) / 1000;
