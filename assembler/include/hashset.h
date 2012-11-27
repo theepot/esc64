@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define HASHSET_CALC_MEMSIZE(itemSize, itemCount) ((itemSize + sizeof(Hash_t)) * itemCount)
+
 #define HASHSET_ERROR_DUPLICATE (-1)
 #define HASHSET_ERROR_INSUFFICIENT_MEM (-2)
 #define HASHSET_ERROR_NOT_FOUND (-3)
@@ -33,5 +35,7 @@ int HashSetInsert(HashSet* set, const void* value);
 int HashSetFind(HashSet* set, const void* valueFind, void** valueOut);
 
 void HashSetDump(FILE* stream, HashSet* set, HashDumpProc hashDumpProc);
+
+Hash_t HashString(const void* str);
 
 #endif

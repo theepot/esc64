@@ -4,7 +4,7 @@ SHELL = /bin/bash
 
 all:
 	@mkdir -p build
-	pushd build; gcc -Wall -g -I../include  -c ../src/*.c ../unit_tests/*.c; popd
+	pushd build; gcc -Wall -g -DESC_DEBUG  -I../include  -c ../src/*.c ../unit_tests/*.c; popd
 	@mkdir -p bin
 	pushd bin; gcc -Wall -g -I../include ../build/*.o; popd;
 

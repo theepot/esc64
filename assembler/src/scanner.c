@@ -5,13 +5,18 @@
 #include <ctype.h>
 #include <string.h>
 
-typedef struct TokenDescrTable_
+#include "hashset.h"
+#include "reswords.h"
+
+//TODO remove obsolete
+/*typedef struct TokenDescrTable_
 {
 	const char* sym;
 	const TokenDescr* descr;
-} TokenDescrTable;
+} TokenDescrTable;*/
 
-static int DescrTableFind(const TokenDescrTable* table, size_t size, const char* sym, Token* token);
+//TODO remove obsolete
+//static int DescrTableFind(const TokenDescrTable* table, size_t size, const char* sym, Token* token);
 
 static int Peek(Scanner* scanner);
 static int Read(Scanner* scanner);
@@ -58,11 +63,11 @@ void ScannerNext(Scanner* scanner, Token*  token)
 	{
 		token->descr = &TOKEN_DESCR_EOF;
 	}
-	else if(GetComment(scanner))
+	else if(!GetComment(scanner))
 	{
 		token->descr = &TOKEN_DESCR_EOL;
 	}
-	else if(!GetNumber(scanner, token) && !GetSymbol(scanner, token) && !GetReservedChar(scanner, token) && !GetEOL(scanner, token))
+	else if(GetNumber(scanner, token) && GetSymbol(scanner, token) && GetReservedChar(scanner, token) && GetEOL(scanner, token))
 	{
 		ScannerError(scanner, "Invalid sequence of characters");
 	}
@@ -104,6 +109,7 @@ void ScannerDumpPretty(FILE* stream, Scanner* scanner)
 	ScannerDumpToken(stream, &token);
 }
 
+/* TODO remove obsolete
 static int DescrTableFind(const TokenDescrTable* table, size_t size, const char* sym, Token* token)
 {
 	size_t i;
@@ -117,6 +123,7 @@ static int DescrTableFind(const TokenDescrTable* table, size_t size, const char*
 	}
 	return 0;
 }
+*/
 
 static int Peek(Scanner* scanner)
 {
@@ -177,7 +184,7 @@ static int GetNumber(Scanner* scanner, Token* token)
 			c = Read(scanner);
 			if(!isdigit(c) && !(c >= 'a' && c <= 'f') && !(c >= 'A' && c <= 'F'))
 			{
-				return 0;
+				return -1;
 			}
 			GetHex(scanner, token);
 		}
@@ -192,11 +199,11 @@ static int GetNumber(Scanner* scanner, Token* token)
 	}
 	else
 	{
-		return 0;
+		return -1;
 	}
 	
 	token->descr = &TOKEN_DESCR_NUMBER;
-	return 1;
+	return 0;
 }
 
 static void GetHex(Scanner* scanner, Token* token)
@@ -253,14 +260,14 @@ static void GetDec(Scanner* scanner, Token* token)
 
 static int GetSymbol(Scanner* scanner, Token* token)
 {
-	if(!BufferSymbol(scanner))
+	if(BufferSymbol(scanner))
 	{
-		return 0;
+		return -1;
 	}
 
 	if(scanner->buf[0] == '.')
 	{
-		if(!GetDirective(scanner, token))
+		if(GetDirective(scanner, token))
 		{
 			ScannerError(scanner, "Unknown directive");
 		}
@@ -270,13 +277,13 @@ static int GetSymbol(Scanner* scanner, Token* token)
 		Read(scanner);
 		GetLabelDecl(scanner, token);
 	}
-	else if(!GetRegisterRef(scanner, token) && !GetOpcode(scanner, token))
+	else if(GetRegisterRef(scanner, token) && GetOpcode(scanner, token))
 	{
 		GetLabelRef(scanner, token);
 	}
 
 	ClearBuf(scanner);
-	return 1;
+	return 0;
 }
 
 static int BufferSymbol(Scanner* scanner)
@@ -285,7 +292,7 @@ static int BufferSymbol(Scanner* scanner)
 
 	if(c != '_' && !isalpha(c))
 	{
-		return 0;
+		return -1;
 	}
 
 	do
@@ -296,24 +303,46 @@ static int BufferSymbol(Scanner* scanner)
 
 	PushBuf(scanner, '\0');
 
-	return 1;
+	return 0;
 }
 
 static void GetLabelDecl(Scanner* scanner, Token* token)
 {
-	//TODO check that the label is not a reserved word
+	const char* name = scanner->buf;
+	if(FindReservedWord(name) != NULL)
+	{
+		ScannerError(scanner, "Declared label is reserved word");
+	}
+
 	token->descr = &TOKEN_DESCR_LABEL_DECL;
-	token->strValue = scanner->buf;
+	token->strValue = name;
 }
 
 static void GetLabelRef(Scanner* scanner, Token* token)
 {
+	const char* name = scanner->buf;
+	if(FindReservedWord(name) != NULL)
+	{
+		ScannerError(scanner, "Referenced label is reserved word");
+	}
+
 	token->descr = &TOKEN_DESCR_LABEL_REF;
-	token->strValue = scanner->buf;
+	token->strValue = name;
 }
 
 static int GetDirective(Scanner* scanner, Token* token)
 {
+	const char* name = scanner->buf;
+	const TokenDescr* descr = FindReservedWord(name);
+	if(descr == NULL || descr->tokenClass != TOKEN_CLASS_DIRECTIVE)
+	{
+		return -1;
+	}
+
+	token->descr = descr;
+	return 0;
+
+	/* TODO remove obsolete
 	static const TokenDescrTable table[] =
 	{
 		{ "align", &TOKEN_DESCR_DIR_ALIGN },
@@ -324,7 +353,7 @@ static int GetDirective(Scanner* scanner, Token* token)
 		{ "org", &TOKEN_DESCR_DIR_ORG }
 	};
 
-	return DescrTableFind(table, sizeof(table) / sizeof(TokenDescrTable), scanner->buf, token);
+	return DescrTableFind(table, sizeof(table) / sizeof(TokenDescrTable), scanner->buf, token);*/
 }
 
 static int GetRegisterRef(Scanner* scanner, Token* token)
@@ -340,19 +369,19 @@ static int GetRegisterRef(Scanner* scanner, Token* token)
 	{
 		token->descr = &TOKEN_DESCR_REGISTER_REF;
 		token->intValue = REG_PC;
-		return 1;
+		return 0;
 	}
 	else if(!strcasecmp(scanner->buf, "lr"))
 	{
 		token->descr = &TOKEN_DESCR_REGISTER_REF;
 		token->intValue = REG_LR;
-		return 1;
+		return 0;
 	}
 	else if(!strcasecmp(scanner->buf, "sp"))
 	{
 		token->descr = &TOKEN_DESCR_REGISTER_REF;
 		token->intValue = REG_SP;
-		return 1;
+		return 0;
 	}
 
 	return GetRegisterNumeric(scanner, token);
@@ -363,12 +392,12 @@ static int GetRegisterNumeric(Scanner* scanner, Token* token)
 	const size_t sz = scanner->bufIndex - 1; //don't include null-terminator
 	if(sz < 2)
 	{
-		return 0;
+		return -1;
 	}
 
 	if(scanner->buf[0] != 'r' && scanner->buf[0] != 'R')
 	{
-		return 0;
+		return -1;
 	}
 
 	int num = 0;
@@ -385,17 +414,33 @@ static int GetRegisterNumeric(Scanner* scanner, Token* token)
 
 	if(num > REG_MAX)
 	{
-		return 0;
+		return -1;
 	}
 
 	token->descr = &TOKEN_DESCR_REGISTER_REF;
 	token->intValue = num;
 
-	return 1;
+	return 0;
 }
 
 static int GetOpcode(Scanner* scanner, Token* token)
 {
+	const char* name = scanner->buf;
+	const TokenDescr* descr = FindReservedWord(name);
+	if(descr == NULL)
+	{
+		return -1;
+	}
+	
+	if(descr->tokenClass != TOKEN_CLASS_OPCODE && descr->tokenClass != TOKEN_CLASS_PSEUDO_OPCODE)
+	{
+		return -1;
+	}
+
+	token->descr = descr;
+	return 0;
+
+	/* TODO remove obsolete
 	static const TokenDescrTable table[] =
 	{
 			{ "add", &TOKEN_DESCR_OPCODE_ADD },
@@ -414,7 +459,7 @@ static int GetOpcode(Scanner* scanner, Token* token)
 			{ "call", &TOKEN_DESCR_OPCODE_CALL }
 	};
 
-	return DescrTableFind(table, sizeof(table) / sizeof(TokenDescrTable), scanner->buf, token);
+	return DescrTableFind(table, sizeof(table) / sizeof(TokenDescrTable), scanner->buf, token);*/
 }
 
 static int GetComment(Scanner* scanner)
@@ -430,17 +475,17 @@ static int GetComment(Scanner* scanner)
 					{
 						Read(scanner);
 					}
-					return 1;
+					return 0;
 				case '\n':
 					Read(scanner);
-					return 1;
+					return 0;
 				default:
 					break;
 			}
 		}
 	}
 
-	return 0;
+	return -1;
 }
 
 static int GetReservedChar(Scanner* scanner, Token* token)
@@ -461,10 +506,10 @@ static int GetReservedChar(Scanner* scanner, Token* token)
 	{
 		Read(scanner);
 		token->descr = descr;
-		return 1;
+		return 0;
 	}
 	
-	return 0;
+	return -1;
 }
 
 static int GetEOL(Scanner* scanner, Token* token)
@@ -482,11 +527,11 @@ static int GetEOL(Scanner* scanner, Token* token)
 			Read(scanner);
 			break;
 		default:
-			return 0;
+			return -1;
 	}
 	
 	token->descr = &TOKEN_DESCR_EOL;
-	return 1;
+	return 0;
 }
 
 __attribute__((noreturn)) static void ScannerError(Scanner* scanner, const char* errMsg)
