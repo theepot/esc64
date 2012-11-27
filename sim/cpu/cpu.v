@@ -51,17 +51,17 @@ module cpu(clock, notReset, aBus, yBus, memNotRead, memNotWrite);
 	//register selection
 	wire regselOE; //regsel < useq
 	wire regselLoad; //regsel < useq
-	wire [1:0] regselOESourceSel; //regsel < useq
-	wire regselLoadSourceSel; //regsel < useq
-	wire [2:0] regselUSeqRegSelOE; //regsel < useq
-	wire [2:0] regselUSeqRegSelLoad; //regsel < useq
+	wire [1:0] regselOESource; //regsel < useq
+	wire regselLoadSource; //regsel < useq
+	wire [2:0] regselOEuSel; //regsel < useq
+	wire [2:0] regselLoaduSel; //regsel < useq
 	wire [2:0] regselOp0; //regsel < ir
 	wire [2:0] regselOp1; //regsel < ir
 	wire [2:0] regselOp2; //regsel < ir
 	wire [7:0] regselRegOEs; //regsel > r0..r7
 	wire [7:0] regselRegNotLoads; //regsel > r0..r7
 
-	regSel _regsel(regselOE, regselLoad, regselOESourceSel, regselLoadSourceSel, regselUSeqRegSelOE, regselUSeqRegSelLoad, regselOp0, regselOp1, regselOp2, regselRegOEs, regselRegNotLoads);
+	regSel _regsel(regselOE, regselLoad, regselOESource, regselLoadSource, regselOEuSel, regselLoaduSel, regselOp0, regselOp1, regselOp2, regselRegOEs, regselRegNotLoads);
 
 	//registers
 	wire pcInc;
@@ -105,10 +105,10 @@ module cpu(clock, notReset, aBus, yBus, memNotRead, memNotWrite);
 	assign statusNotLoad = control[26]; //1,L
 	assign regselOE = control[25]; //1,H
 	assign regselLoad = control[24]; //1,H
-	assign regselOESourceSel = control[23:22]; //2,H
-	assign regselLoadSourceSel = control[21]; //1,H
-	assign regselUSeqRegSelOE = control[20:18]; //3,H
-	assign regselUSeqRegSelLoad = control[17:15]; //3,H
+	assign regselOESource = control[23:22]; //2,H
+	assign regselLoadSource = control[21]; //1,H
+	assign regselOEuSel = control[20:18]; //3,H
+	assign regselLoaduSel = control[17:15]; //3,H
 	assign pcInc = control[14]; //1,H
 	assign aluBRegNotLoad = control[13]; //1,L
 	assign aluNotALUOE = control[12]; //1,L

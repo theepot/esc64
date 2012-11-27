@@ -1,40 +1,4 @@
 v 20110115 2
-C 9500 11100 1 0 0 GPRegister.sym
-{
-T 11000 18100 5 10 1 1 0 0 1
-device=GPRegister
-}
-C 5000 11100 1 0 0 GPRegister.sym
-{
-T 6500 18100 5 10 1 1 0 0 1
-device=GPRegister
-}
-C 19700 2600 1 0 0 pc.sym
-C 19000 11100 1 0 0 GPRegister.sym
-{
-T 20500 18100 5 10 1 1 0 0 1
-device=GPRegister
-}
-C 14500 11100 1 0 0 GPRegister.sym
-{
-T 16000 18100 5 10 1 1 0 0 1
-device=GPRegister
-}
-C 9500 3600 1 0 0 GPRegister.sym
-{
-T 11000 10500 5 10 1 1 0 0 1
-device=GPRegister
-}
-C 5000 3600 1 0 0 GPRegister.sym
-{
-T 6500 10500 5 10 1 1 0 0 1
-device=GPRegister
-}
-C 14500 3600 1 0 0 GPRegister.sym
-{
-T 16000 10500 5 10 1 1 0 0 1
-device=GPRegister
-}
 C 4500 17700 1 0 0 in-1.sym
 {
 T 4500 18000 5 10 0 0 0 0 1
@@ -3352,4 +3316,60 @@ T 19600 4100 5 10 0 0 0 0 1
 device=INPUT
 T 19000 3800 5 10 1 1 0 0 1
 refdes=PCinc
+}
+C 6200 12100 1 0 0 GPRegister.sym
+{
+T 6500 18100 5 10 1 1 0 0 1
+device=GPRegister
+T 8495 18100 5 10 1 1 0 0 1
+refdes=U1
+}
+C 10700 12100 1 0 0 GPRegister.sym
+{
+T 11000 18100 5 10 1 1 0 0 1
+device=GPRegister
+T 12995 18100 5 10 1 1 0 0 1
+refdes=U2
+}
+C 20200 12100 1 0 0 GPRegister.sym
+{
+T 20500 18100 5 10 1 1 0 0 1
+device=GPRegister
+T 22495 18100 5 10 1 1 0 0 1
+refdes=U4
+}
+C 15700 12100 1 0 0 GPRegister.sym
+{
+T 16000 18100 5 10 1 1 0 0 1
+device=GPRegister
+T 17995 18100 5 10 1 1 0 0 1
+refdes=U3
+}
+C 10700 4600 1 0 0 GPRegister.sym
+{
+T 11000 10600 5 10 1 1 0 0 1
+device=GPRegister
+T 12995 10600 5 10 1 1 0 0 1
+refdes=U6
+}
+C 15700 4600 1 0 0 GPRegister.sym
+{
+T 16000 10600 5 10 1 1 0 0 1
+device=GPRegister
+T 17995 10600 5 10 1 1 0 0 1
+refdes=U7
+}
+C 6200 4600 1 0 0 GPRegister.sym
+{
+T 6500 10600 5 10 1 1 0 0 1
+device=GPRegister
+T 8495 10600 5 10 1 1 0 0 1
+refdes=U5
+}
+C 20200 3700 1 0 0 pc.sym
+{
+T 20500 10600 5 10 1 1 0 0 1
+device=PC
+T 21695 10600 5 10 1 1 0 0 1
+refdes=U8
 }

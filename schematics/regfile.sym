@@ -562,4 +562,4 @@ T 0 500 5 10 0 0 0 6 1
 pinseq=50
 }
 T 295 11100 8 10 1 1 0 0 1
-device=register selection
+device=register file
