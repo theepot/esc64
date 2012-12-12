@@ -1,8 +1,10 @@
 #include "tc.h"
 
 #include <stdlib.h>
-#include <stdio.h>	
+#include <stdio.h>
 #include <string.h>
+#include <avr/io.h>
+#include <avr/delay.h>
 
 Pin* outputPinRoot = NULL;
 static uint8_t outputShadow[OUTPUT_COUNT];
@@ -13,10 +15,9 @@ static uint8_t inputRead[INPUT_COUNT];
 
 unsigned errLine = ~0;
 
-static void InitPins(void);
 static void Set(Pin* pin, const uint8_t* source, uint8_t* dest);
 static void SetAll(Pin* pin, uint8_t source, uint8_t* dest);
-static void SetValue(Pin* pin, uint16_t source, uint8_t* dest);
+//static void SetValue(Pin* pin, uint16_t source, uint8_t* dest);
 static uint16_t GetValue(Pin* pin, uint8_t* source);
 static char BitName(uint8_t x);
 static void DumpPin(Pin* pin, FILE* stream, uint8_t* source);
@@ -33,15 +34,17 @@ void AddPin(Pin* pin, Pin** root, size_t pinCount)
 
 __attribute((noreturn)) void ErrorLine(unsigned line, const char* msg)
 {
-	fprintf(stderr, 	"ERROR:%u: `%s'\n'", line, msg);
+	fprintf(stderr, "ERROR:%u: `%s'\n'", line, msg);
 	exit(-1);
 	for(;;);
 }
 
-static void InitPins(void)
+void InitPins(void)
 {
-	memset(outputShadow, HIGH_IMPEDANCE, OUTPUT_COUNT);
+	memset(outputShadow, DONT_CARE, OUTPUT_COUNT);
 	memset(inputExpected, DONT_CARE, INPUT_COUNT);
+	out_init();
+	in_init();
 }
 
 static void Set(Pin* pin, const uint8_t* source, uint8_t* dest)
@@ -57,7 +60,7 @@ static void SetAll(Pin* pin, uint8_t source, uint8_t* dest)
 static void SetValue(Pin* pin, uint16_t source, uint8_t* dest)
 {
 	size_t i;
-	ASSERT_ERRLINE(pin->width < sizeof(uint16_t), "Unable to set a pin range bigger than 16 bits");
+	ASSERT_ERRLINE(pin->width <= sizeof(uint16_t)*8, "Unable to set a pin range bigger than 16 bits");
 	for(i = 0; i < pin->width; ++i)
 	{
 		size_t j = pin->offset + i;
@@ -65,7 +68,7 @@ static void SetValue(Pin* pin, uint16_t source, uint8_t* dest)
 	}
 }
 
-static uint16_t GetValue(Pin* pin, uint8_t* source)
+/*static uint16_t GetValue(Pin* pin, uint8_t* source)
 {
 	size_t i;
 	uint16_t r = 0;
@@ -75,7 +78,7 @@ static uint16_t GetValue(Pin* pin, uint8_t* source)
 		size_t j = pin->offset + i;
 		
 	}
-}
+}*/
 
 //void SetOutput(OutputPin* pin, const uint8_t data[])
 //{
@@ -132,7 +135,7 @@ static char BitName(uint8_t x)
 
 static void DumpPin(Pin* pin, FILE* stream, uint8_t* source)
 {
-	fprintf(stream, "%s[%u:%u]:\t", pin->name, pin->offset, pin->offset + pin->width);
+	fprintf(stream, "%s[%u:%u]:", pin->name, pin->offset, pin->offset + pin->width);
 	size_t i;
 	for(i = 0; i < pin->width; ++i)
 	{
@@ -182,7 +185,6 @@ void DumpReadInput(InputPin* pin, FILE* stream)
 
 static void CompareInputs(void)
 {
-	static const char* msg = "Mismatched inputs";
 	size_t i;
 	for(i = 0; i < INPUT_COUNT; ++i)
 	{
@@ -192,8 +194,14 @@ static void CompareInputs(void)
 		{
 			continue;
 		}
-		ASSERT_ERRLINE(expected == read, "Mismatched inputs");
+		if(expected != read)
+		{
+			fprintf(stderr, "ERROR:%u: `Input mismatched at pin number %u'\n",errLine, i);
+			DumpPins(stderr);
+			for(;;);
+		}
 	}
+	fprintf(stdout, "OK:%u `Input's matched.\n",errLine);
 }
 
 void Delay(uint16_t delay)
@@ -203,18 +211,115 @@ void Delay(uint16_t delay)
 		_delay_us(10);
 		delay--;
 	}
-	//TODO: use counter.
+	//TODO: use hardware counter.
 }
 
 void TestInputs(void)
 {
-	//TODO
-	//capture input shift registers
+	in_capture();
+	in_pull();
 	CompareInputs();
 }
 
+void FlushOutputs(void)
+{
+	out_push();
+}
 
+void in_init(void)
+{
+	DDRD |= (1 << DDC2) | (1 << DDC3);
+	DDRD &= ~(1 << DDC4);
+	IN_CLOCK_OFF;
+}
 
+inline void in_capture(void)
+{
+	IN_LOAD;
+	_delay_us(10);
+	IN_CLOCK_OFF;
+	_delay_us(10);
+	IN_CLOCK_ON;
+	_delay_us(10);
+	IN_CLOCK_OFF;
+}
 
+void in_pull(void)
+{
+	IN_SHIFT;
+	_delay_us(10);
+	int8_t byte, bit;
+	for(byte = 0; byte < INPUT_COUNT / 8; byte++)
+	{
+		for(bit = 7; bit >= 0; bit--)
+		{
+			if(IN_DATA_IS_HIGH)
+				inputRead[bit + byte*8] = LOGIC_HIGH;
+			else
+				inputRead[bit + byte*8] = LOGIC_LOW;
+			
+			_delay_us(10);
+			IN_CLOCK_ON;
+			_delay_us(10);
+			IN_CLOCK_OFF;
+		}
+	}
+}
 
+void out_init(void)
+{
+	DDRC |= (1 << DDC0) | (1 << DDC1) | (1 << DDC2) | (1 << DDC3) | (1 << DDC4) | (1 << DDC5);
+	OUT_STROBE_OFF;
+	OUT_CLOCK_OFF;
+	OUTOE_STROBE_OFF;
+	OUTOE_CLOCK_OFF;
+}
 
+void out_push(void)
+{
+	//push OE's
+	OUTOE_STROBE_OFF;
+	
+	int8_t byte, bit;
+	uint8_t byte_type;
+	for(byte = (OUTPUT_COUNT / 8) - 1; byte >= 0; byte--)
+	{
+		byte_type = 0; //0, dontcare, 1 is high impedance, 2 is output
+		for(bit = 0; bit < 8; bit++)
+		{
+			if(outputShadow[bit + byte*8] == HIGH_IMPEDANCE)
+			{
+				ASSERT_ERRLINE(byte_type != 2, "Byte contains both high impedance and output bit(s)");
+				byte_type = 1;
+			}
+			else if(outputShadow[bit + byte*8] == LOGIC_HIGH || outputShadow[bit + byte*8] == LOGIC_LOW)
+			{
+				ASSERT_ERRLINE(byte_type != 1, "Byte contains both high impedance and output bit(s)");
+				byte_type = 2;
+			}
+		}
+		
+		if(byte_type == 2)
+		{
+			OUTOE_PUT_1;
+		}
+		else
+		{
+			OUTOE_PUT_0;
+		}
+	}
+	OUTOE_STROBE_ON;
+	
+	OUT_STROBE_OFF;
+	_delay_us(1);
+	int8_t n;
+	for(n = OUTPUT_COUNT - 1; n >= 0; n--)
+	{
+		if(outputShadow[n] == LOGIC_HIGH)
+			OUT_PUT_1;
+		else
+			OUT_PUT_0;
+	}
+	OUT_STROBE_ON;
+
+}
