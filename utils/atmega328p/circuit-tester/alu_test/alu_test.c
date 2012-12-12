@@ -57,19 +57,90 @@ void test(void)
 		
 	///
 	
-	a = 2834;
-	b = 7890;
-	f = ALU_F_ADD;
-	csel = ALU_CSEL_UCIN;
-	ucin = 0;
-	fcin = 1;
-	notALUOE = 0;
-	notShiftOE = 1;
+	struct Test_ { uint16_t a, b, f, shift; } testValues[] =
+	{
+		{ .a = 1, .b = -2, .f = ALU_F_A },
+		{ .a = 2, .b = -3, .f = ALU_F_A },
+		{ .a = 4, .b = -5, .f = ALU_F_A },
+		{ .a = 8, .b = -9, .f = ALU_F_A },
+		{ .a = 16, .b = -17, .f = ALU_F_A },
+		{ .a = 32, .b = -33, .f = ALU_F_A },
+		{ .a = 64, .b = -65, .f = ALU_F_A },
+		{ .a = 128, .b = -129, .f = ALU_F_A },
+		{ .a = 256, .b = -257, .f = ALU_F_A },
+		{ .a = 512, .b = -513, .f = ALU_F_A },
+		{ .a = 1024, .b = -1025, .f = ALU_F_A },
+		{ .a = 2048, .b = -2049, .f = ALU_F_A },
+		{ .a = 4096, .b = -4097, .f = ALU_F_A },
+		{ .a = 8192, .b = -8193, .f = ALU_F_A },
+		{ .a = 16384, .b = -16385, .f = ALU_F_A },
+		{ .a = 32768U, .b = ~32768U, .f = ALU_F_A },
+		
+		{ .a = 1, .b = -2, .f = ALU_F_B },
+		{ .a = 2, .b = -3, .f = ALU_F_B },
+		{ .a = 4, .b = -5, .f = ALU_F_B },
+		{ .a = 8, .b = -9, .f = ALU_F_B },
+		{ .a = 16, .b = -17, .f = ALU_F_B },
+		{ .a = 32, .b = -33, .f = ALU_F_B },
+		{ .a = 64, .b = -65, .f = ALU_F_B },
+		{ .a = 128, .b = -129, .f = ALU_F_B },
+		{ .a = 256, .b = -257, .f = ALU_F_B },
+		{ .a = 512, .b = -513, .f = ALU_F_B },
+		{ .a = 1024, .b = -1025, .f = ALU_F_B },
+		{ .a = 2048, .b = -2049, .f = ALU_F_B },
+		{ .a = 4096, .b = -4097, .f = ALU_F_B },
+		{ .a = 8192, .b = -8193, .f = ALU_F_B },
+		{ .a = 16384, .b = -16385, .f = ALU_F_B },
+		{ .a = 32768U, .b = ~32768U, .f = ALU_F_B },
+		
+		{ .a = 9382, .b = 5346, .f = ALU_F_SUB },
+		{ .a = 123, .b = 5346, .f = ALU_F_SUB }, //underflow
+		{ .a = 5072, .b = 5072, .f = ALU_F_SUB }, //equal
+		{ .a = 4944, .b = 6878, .f = ALU_F_ADD },
+		{ .a = 60575, .b = 24673, .f = ALU_F_ADD }, //overflow
+		{ .a = 5902, .b = 5902, .f = ALU_F_ADD }, //equal
+		{ .a = 5553, .b = 0, .f = ALU_F_NOT },
+		{ .a = 7450, .b = 8021, .f = ALU_F_XOR },
+		{ .a = 3114, .b = 8630, .f = ALU_F_AND },
+		{ .a = 3908, .b = 4528, .f = ALU_F_OR },
+		{ .a = 8874, .b = 7463, .f = ALU_F_SHIFT_LEFT },
+		{ .a = 9810, .b = 8412, .f = ALU_F_SHIFT_RIGHT }
+	};
 	
-	SET_EXPECTED;
-	SET_OUTPUTS;
-	Delay(1);
-	TEST_INPUTS;
+	const size_t testValuesSize = sizeof(testValues) / sizeof(struct Test_);
+	size_t i;
+	
+	for(i = 0; i < testValuesSize; ++i)
+	{
+		a = testValues[i].a;
+		b = testValues[i].b;
+		f = testValues[i].f;
+		switch(f)
+		{
+			case ALU_F_SHIFT_LEFT:
+			case ALU_F_SHIFT_RIGHT:
+				notShiftOE = 0;
+				notALUOE = 1;
+				break;
+			default:
+				notShiftOE = 1;
+				notALUOE = 0;
+				break;
+		}
+		
+		uint8_t x;
+		for(x = 0; x <= 7; ++x) //for each combination of csel, ucin, fcin
+		{
+			csel = x & (1 << 0);
+			ucin = x & (1 << 1);
+			fcin = x & (1 << 2);
+			
+			SET_EXPECTED;
+			SET_OUTPUTS;
+			Delay(1);
+			TEST_INPUTS;
+		}
+	}
 }
 
 static void calc_expected(void)
