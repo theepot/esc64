@@ -1,5 +1,5 @@
 PRG            = romprgm
-OBJ            = romprgm.o main.o
+OBJ            = romprgm.o
 MCU_TARGET      = atmega328p
 OPTIMIZE       = -O2
 DEFS           =
@@ -24,8 +24,7 @@ $(PRG).elf: $(OBJ)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 # dependency:
-romprgm.o: romprgm.c romprgm.h
-main.o: main.c romprgm.h
+romprgm.o: romprgm.c
 
 clean:
 	rm -rf *.o $(PRG).elf *.eps *.png *.pdf *.bak 
