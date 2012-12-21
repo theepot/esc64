@@ -97,6 +97,7 @@ static uint8_t rom_read(uint16_t address);
 static void sr_flush(void);
 static void sr_write(uint16_t value, uint8_t size);
 static void sr_capture(void);
+static uint16_t sr_read(uint16_t size);
 
 int main(void)
 {
@@ -171,9 +172,10 @@ static uint8_t rom_read(uint16_t address)
 	srAddress = address;
 	srControl &= ~ROM_NOT_CE_MASK & ~ROM_NOT_OE_MASK;
 	sr_flush();
-	~delay_us(1);
+	_delay_us(1);
 	sr_capture();
 	srControl |= ROM_NOT_CE_MASK | ROM_NOT_OE_MASK;
+	return srData;
 }
 
 static void sr_flush(void)
@@ -181,7 +183,9 @@ static void sr_flush(void)
 	sr_write(srAddress, ROM_ADDR_WIDTH);
 	sr_write(srControl, ROM_CTRL_COUNT);
 	sr_write(srData, ROM_DATA_WIDTH);
-	OUT_STROBE;
+	OUT_STROBE_ON;
+	_delay_us(1);
+	OUT_STROBE_OFF;
 }
 
 static void sr_capture(void)
@@ -212,6 +216,7 @@ static uint16_t sr_read(uint16_t size)
 		_delay_us(10);
 		IN_CLOCK_PULSE;
 	}
+	return v;
 }
 
 static void sr_write(uint16_t value, uint8_t size)
