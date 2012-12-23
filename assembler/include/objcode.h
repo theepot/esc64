@@ -1,10 +1,6 @@
 #ifndef OBJCODE_INCLUDED
 #define OBJCODE_INCLUDED
 
-/*	TODO's
-	- create procedures for unlinked
-*/
-
 #include <stdio.h>
 
 #include "esctypes.h"
