@@ -53,7 +53,7 @@ typedef struct Parser_
 typedef struct Instruction_
 {
 	UWord_t opcode;
-	UWord_t operands[3];
+	UWord_t operands[4];
 } Instruction;
 
 void ParserInit(Parser* parser, Scanner* scanner, ObjectOutputStream* objStream);

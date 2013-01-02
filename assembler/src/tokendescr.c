@@ -5,111 +5,126 @@
 
 const static InstructionDescr INSTR_DESCR_ADD =
 {
-	0x01,
-	ARGLIST3(
+	.opcode = 0x01,
+	.isWide = 0,
+	.argList = ARGLIST3(
 		ARG(ARG_TYPE_REG, OP0),
 		ARG(ARG_TYPE_REG, OP1),
 		ARG(ARG_TYPE_REG, OP2))
 };
 const static InstructionDescr INSTR_DESCR_SUB =
 {
-	0x02,
-	ARGLIST3(
+	.opcode = 0x02,
+	.isWide = 0,
+	.argList = ARGLIST3(
 		ARG(ARG_TYPE_REG, OP0),
 		ARG(ARG_TYPE_REG, OP1),
 		ARG(ARG_TYPE_REG, OP2))
 };
 const static InstructionDescr INSTR_DESCR_OR =
 {
-	0x03,
-	ARGLIST3(
+	.opcode = 0x03,
+	.isWide = 0,
+	.argList = ARGLIST3(
 		ARG(ARG_TYPE_REG, OP0),
 		ARG(ARG_TYPE_REG, OP1),
 		ARG(ARG_TYPE_REG, OP2))
 };
 const static InstructionDescr INSTR_DESCR_XOR =
 {
-	0x04,
-	ARGLIST3(
+	.opcode = 0x04,
+	.isWide = 0,
+	.argList = ARGLIST3(
 		ARG(ARG_TYPE_REG, OP0),
 		ARG(ARG_TYPE_REG, OP1),
 		ARG(ARG_TYPE_REG, OP2))
 };
 const static InstructionDescr INSTR_DESCR_AND =
 {
-	0x05,
-	ARGLIST3(
+	.opcode = 0x05,
+	.isWide = 0,
+	.argList = ARGLIST3(
 		ARG(ARG_TYPE_REG, OP0),
 		ARG(ARG_TYPE_REG, OP1),
 		ARG(ARG_TYPE_REG, OP2))
 };
 const static InstructionDescr INSTR_DESCR_MOV_WIDE =
 {
-	0x10,
-	ARGLIST2(
+	.opcode = 0x10,
+	.isWide = 1,
+	.argList = ARGLIST2(
 		ARG(ARG_TYPE_REG, OP0),
 		ARG(ARG_TYPE_IMM, OP3))
 };
 const static InstructionDescr INSTR_DESCR_MOV =
 {
-	0x06,
-	ARGLIST2(
+	.opcode = 0x06,
+	.isWide = 0,
+	.argList = ARGLIST2(
 		ARG(ARG_TYPE_REG, OP0),
 		ARG(ARG_TYPE_REG, OP1))
 };
 const static InstructionDescr INSTR_DESCR_MOV_EQ =
 {
-	0x07,
-	ARGLIST2(
+	.opcode = 0x07,
+	.isWide = 0,
+	.argList = 	ARGLIST2(
 		ARG(ARG_TYPE_REG, OP0),
 		ARG(ARG_TYPE_REG, OP1))
 };
 const static InstructionDescr INSTR_DESCR_MOV_NEQ =
 {
-	0x08,
-	ARGLIST2(
+	.opcode = 0x08,
+	.isWide = 0,
+	.argList = 	ARGLIST2(
 		ARG(ARG_TYPE_REG, OP0),
 		ARG(ARG_TYPE_REG, OP1))
 };
 const static InstructionDescr INSTR_DESCR_MOV_LESS =
 {
-	0x09,
-	ARGLIST2(
+	.opcode = 0x09,
+	.isWide = 0,
+	.argList = 	ARGLIST2(
 		ARG(ARG_TYPE_REG, OP0),
 		ARG(ARG_TYPE_REG, OP1))
 };
 const static InstructionDescr INSTR_DESCR_MOV_LESS_EQ =
 {
-	0x0A,
-	ARGLIST2(
+	.opcode = 0x0A,
+	.isWide = 0,
+	.argList = 	ARGLIST2(
 		ARG(ARG_TYPE_REG, OP0),
 		ARG(ARG_TYPE_REG, OP1))
 };
 const static InstructionDescr INSTR_DESCR_CMP =
 {
-	0x0B,
-	ARGLIST2(
+	.opcode = 0x0B,
+	.isWide = 0,
+	.argList = 	ARGLIST2(
 		ARG(ARG_TYPE_REG, OP1),
 		ARG(ARG_TYPE_REG, OP2))
 };
 const static InstructionDescr INSTR_DESCR_LDR =
 {
-	0x0C,
-	ARGLIST2(
+	.opcode = 0x0C,
+	.isWide = 0,
+	.argList = 	ARGLIST2(
 		ARG(ARG_TYPE_REG, OP0),
 		ARG(ARG_TYPE_IMM, OP3))
 };
 const static InstructionDescr INSTR_DESCR_STR =
 {
-	0x0D,
-	ARGLIST2(
+	.opcode = 0x0D,
+	.isWide = 0,
+	.argList = 	ARGLIST2(
 		ARG(ARG_TYPE_IMM, OP3),
 		ARG(ARG_TYPE_REG, OP1))
 };
 const static InstructionDescr INSTR_DESCR_CALL =
 {
-	0x0E,
-	ARGLIST1(
+	.opcode = 0x0E,
+	.isWide = 0,
+	.argList = 	ARGLIST1(
 		ARG(ARG_TYPE_REG, OP1))
 };
 

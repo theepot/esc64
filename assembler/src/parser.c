@@ -7,6 +7,9 @@
 static const Token* Peek(Parser* parser);
 static const Token* Next(Parser* parser);
 static void Expect(Parser* parser, TokenDescrId expected);
+static void EmitWord(Parser* parser, UWord_t word);
+static void EmitInstruction(Parser* parser, const Instruction* instr, int isWide);
+static void EmitUnlinkedWide(Parser* parser, const char* sym, size_t symSize);
 
 static int ParseLine(Parser* parser);
 static int ParseLabelDecl(Parser* parser);
@@ -63,8 +66,37 @@ static void Expect(Parser* parser, TokenDescrId expected)
 	}
 }
 
+static void EmitWord(Parser* parser, UWord_t word)
+{
+	ObjectWriteData(parser->objStream, parser->pc, word);
+	parser->pc += sizeof (UWord_t);
+}
+
+static void EmitInstruction(Parser* parser, const Instruction* instr, int isWide)
+{
+	UWord_t iWord = (instr->opcode << OPCODE_OFFSET)
+			| (instr->operands[0] << OPERAND0_OFFSET)
+			| (instr->operands[1] << OPERAND1_OFFSET)
+			| (instr->operands[2] << OPERAND2_OFFSET);
+	EmitWord(parser, iWord);
+
+	if(isWide)
+	{
+		EmitWord(parser, instr->operands[3]);
+	}
+}
+
+static void EmitUnlinkedWide(Parser* parser, const char* sym, size_t symSize)
+{
+	ObjectWriteUnlinked(parser->objStream, sym, symSize, parser->pc + sizeof (UWord_t));
+}
+
 static int ParseLine(Parser* parser)
 {
+#ifdef ESC_DEBUG
+	printf("ParseLine: starting on line %u; pc=0x%X\n", parser->line, parser->pc);
+#endif
+
 	while(!ParseLabelDecl(parser))
 	{
 		Next(parser);
@@ -95,14 +127,17 @@ static int ParseLabelDecl(Parser* parser)
 	printf("DEBUG: ParseLableDecl: label `%s' declared at 0x%X(%u)\n", t->strValue, parser->pc, parser->pc);
 #endif
 
-	ObjectWriteSymbol(parser->objStream, t->strValue, strlen(t->strValue), parser->pc);
+	//TODO broken :(
+	//ObjectWriteGlobalSymbol(parser->objStream, t->strValue, strlen(t->strValue), parser->pc);
 
 	return 0;
 }
 
 static void ParseCommand(Parser* parser)
 {
-	switch(GetTokenDescr(Peek(parser)->descrId)->tokenClass)
+	const TokenDescr* tDescr = GetTokenDescr(Peek(parser)->descrId);
+
+	switch(tDescr->tokenClass)
 	{
 	case TOKEN_CLASS_DIRECTIVE:
 		ParseDirective(parser);
@@ -132,25 +167,49 @@ static void TEMP_ConsumeOperands(Parser* parser)
 static void ParseDirective(Parser* parser)
 {
 	const Token* t = Peek(parser);
-	(void)t; //suppress warning
-	//todo
+	switch(t->descrId)
+	{
+		case TOKEN_DESCR_DIR_WORD:
+			//TODO
+			break;
+		case TOKEN_DESCR_DIR_ALIGN:
+			//TODO
+			break;
+		case TOKEN_DESCR_DIR_ASCII:
+			//TODO
+			break;
+		case TOKEN_DESCR_DIR_BYTE:
+			//TODO
+			break;
+		case TOKEN_DESCR_DIR_GLOBAL:
+			//TODO
+			break;
+		case TOKEN_DESCR_DIR_ORG:
+			//TODO
+			break;
+		default:
+			ParserError(parser, "ParseDirective: Unexpected token");
+			break;
+	}
 }
 
 static void ParseInstruction(Parser* parser)
 {
 	const Token* t = Peek(parser);
 	const TokenDescr* tDescr = GetTokenDescr(t->descrId);
-	if(tDescr->tokenClass == TOKEN_CLASS_OPCODE)
-	{
-		//TEMP_Print(parser, "ParseInstruction");
-		const InstructionDescr* iDescr = tDescr->instructionDescr;
-		Instruction instr = { iDescr->opcode, { 0, 0, 0 } };
-		Next(parser);
-		ParseArgList(parser, iDescr, &instr);
-		printf("ParseInstruction: opcode=%X; operands=[%X; %X; %X]\n",
-				instr.opcode, instr.operands[0], instr.operands[1], instr.operands[2]);
-		//TODO generate object-code
-	}
+	const InstructionDescr* iDescr = tDescr->instructionDescr;
+
+	Instruction instr = { iDescr->opcode, { 0, 0, 0, 0 } };
+
+	Next(parser);
+	ParseArgList(parser, iDescr, &instr);
+
+#ifdef ESC_DEBUG
+	printf("ParseInstruction: opcode=0x%X; operands=[0x%X; 0x%X; 0x%X]\n",
+			instr.opcode, instr.operands[0], instr.operands[1], instr.operands[2]);
+#endif
+
+	EmitInstruction(parser, &instr, iDescr->isWide);
 }
 
 static void ParsePseudoInstr(Parser* parser)
@@ -197,23 +256,40 @@ static void ParseArg(Parser* parser, Instruction* instr, const ArgDescr* argDesc
 static void ParseImmArg(Parser* parser, Instruction* instr, const ArgDescr* argDescr)
 {
 	const Token* t = Peek(parser);
-//TODO
+
 	switch(t->descrId)
 	{
 	case TOKEN_DESCR_LABEL_REF:
-		printf("ParseImmArg: label-ref=`%s'", t->strValue);
+#ifdef ESC_DEBUG
+		printf("ParseImmArg: label ref=`%s\n'", t->strValue);
+#endif
+		EmitUnlinkedWide(parser, t->strValue, strlen(t->strValue));
 		break;
 	case TOKEN_DESCR_NUMBER:
-		printf("ParseImmArg: number=%d", t->intValue);
+#ifdef ESC_DEBUG
+		printf("ParseImmArg: number=%d\n", t->intValue);
+#endif
+		instr->operands[argDescr->operand] = t->intValue;
 		break;
 	default:
+		UnexpectedToken(parser);
 		break;
 	}
 }
 
 static void ParseRegArg(Parser* parser, Instruction* instr, const ArgDescr* argDescr)
 {
-	//TODO
+	const Token* t = Peek(parser);
+
+	if(t->descrId != TOKEN_DESCR_REGISTER_REF)
+	{
+		UnexpectedToken(parser);
+	}
+
+#ifdef ESC_DEBUG
+	printf("ParseRefArg: register reg=%u\n", t->intValue);
+#endif
+	instr->operands[argDescr->operand] = t->intValue;
 }
 
 __attribute__((noreturn)) static void UnexpectedToken(Parser* parser)

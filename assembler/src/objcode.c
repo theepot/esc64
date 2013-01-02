@@ -78,18 +78,47 @@ void ObjectWriteData(ObjectOutputStream* objStream, UWord_t address, UWord_t dat
 	objStream->dataSize += sizeof(UWord_t);
 }
 
-void ObjectWriteSymbol(ObjectOutputStream* objStream, const char* sym, size_t symSize, UWord_t value)
+//void ObjectWriteSymbol(ObjectOutputStream* objStream, const char* sym, size_t symSize, UWord_t value)
+//{
+//	size_t bufSize = symSize + 1 + sizeof(UWord_t);
+//	char buf[bufSize];
+//
+//	memcpy(buf, sym, symSize + 1); //symbol + null
+//
+//	value = htons(value);
+//	memcpy(&buf[symSize + 1], &value, sizeof(UWord_t)); //value
+//
+//	SectionWrite(objStream, &objStream->symTableBuf, buf, bufSize);
+//	objStream->symTableEntries += bufSize;
+//}
+
+void ObjectWriteGlobalSymbol(ObjectOutputStream* objStream, const Symbol* sym)
 {
-	size_t bufSize = symSize + 1 + sizeof(UWord_t);
+	// nameLen:UWord_t ; name:nameLen ; sectionOffset:ObjSize_t ; address:UWord_t
+	size_t bufSize = sizeof (UWord_t) + sym->nameLen + sizeof (ObjSize_t) + sizeof (UWord_t);
 	char buf[bufSize];
+	char* p = buf;
 
-	memcpy(buf, sym, symSize + 1); //symbol + null
+	//nameLen
+	UWord_t nameLen = htons(sym->nameLen);
+	memcpy(p, &nameLen, sizeof (UWord_t));
+	p += sizeof (UWord_t);
 
-	value = htons(value);
-	memcpy(&buf[symSize + 1], &value, sizeof(UWord_t)); //value
+	//name
+	memcpy(p, sym->name, sym->nameLen);
+	p += sym->nameLen;
+
+	//sectionOffset
+	ObjSize_t sectionOffset = HTON_OBJSIZE_T(sym->sectionOffset);
+	memcpy(p, &sectionOffset, sizeof (ObjSize_t));
+	p += sizeof (ObjSize_t);
+
+	//address
+	UWord_t address = htons(sym->address);
+	memcpy(p, &address, sizeof (UWord_t));
 
 	SectionWrite(objStream, &objStream->symTableBuf, buf, bufSize);
-	objStream->symTableEntries += bufSize;
+	++objStream->symTableEntries;
 }
 
 void ObjectWriteUnlinked(ObjectOutputStream* objStream, const char* sym, size_t symSize, UWord_t address)
@@ -134,7 +163,7 @@ size_t ObjectReadData(ObjectInputStream* objStream)
 	return SectionRead(objStream, &objStream->dataBuf);
 }
 
-size_t ObjectReadSymbol(ObjectInputStream* objStream)
+size_t ObjectReadGlobalSymbol(ObjectInputStream* objStream)
 {
 	return SectionRead(objStream, &objStream->symTableBuf);
 }
@@ -151,11 +180,47 @@ void ObjectSymbolIteratorInit(ObjectSymbolIterator* it, ObjectInputStream* objSt
 	it->size = 0;
 }
 
-int ObjectSymbolIteratorNext(ObjectSymbolIterator* it, ObjSize_t* offset, const char** name, size_t* nameSize, UWord_t* value)
+//int ObjectSymbolIteratorNext(ObjectSymbolIterator* it, ObjSize_t* offset, const char** name, size_t* nameSize, UWord_t* value)
+//{
+//	if(it->index >= it->size)
+//	{
+//		it->size = ObjectReadGlobalSymbol(it->objStream);
+//		it->index = 0;
+//		if(it->size == 0)
+//		{
+//			return -1;
+//		}
+//	}
+//
+//	void* start = it->objStream->symTableBuf.buf + it->index;
+//
+//	//offset
+//	*offset = it->objStream->symTableBuf.curSegOffset + it->index;
+//
+//	//name
+//	char* buf = (char*)start;
+//	*name = buf;
+//	size_t i;
+//	for(i = 0; buf[i] != '\0'; ++i) continue;
+//
+//	//nameSize
+//	*nameSize = i;
+//
+//	//value
+//	++i;
+//	UWord_t* pValue = (UWord_t*)(start + i);
+//	*value = ntohs(*pValue);
+//
+//	it->index += i + sizeof(UWord_t);
+//
+//	return 0;
+//}
+
+int ObjectSymbolIteratorNext(ObjectSymbolIterator* it, ObjSize_t* offset, Symbol* sym)
 {
 	if(it->index >= it->size)
 	{
-		it->size = ObjectReadSymbol(it->objStream);
+		it->size = ObjectReadGlobalSymbol(it->objStream);
 		it->index = 0;
 		if(it->size == 0)
 		{
@@ -163,26 +228,52 @@ int ObjectSymbolIteratorNext(ObjectSymbolIterator* it, ObjSize_t* offset, const 
 		}
 	}
 
-	void* start = it->objStream->symTableBuf.buf + it->index;
+	// nameLen:UWord_t ; name:nameLen ; sectionOffset:ObjSize_t ; address:UWord_t
 
-	//offset
-	*offset = it->objStream->symTableBuf.curSegOffset + it->index;
+	void* start = it->objStream->symTableBuf.buf + it->index;
+	void* p = start;
+
+	//nameLen
+	UWord_t nameLen = *(UWord_t*)p;
+	sym->nameLen = ntohs(nameLen);
+	p += sizeof (UWord_t);
 
 	//name
-	char* buf = (char*)start;
-	*name = buf;
-	size_t i;
-	for(i = 0; buf[i] != '\0'; ++i) continue;
+	memcpy(sym->name, p, sym->nameLen);
+	p += sym->nameLen;
 
-	//nameSize
-	*nameSize = i;
+	//sectionOffset
+	ObjSize_t sectionOffset = *(ObjSize_t*)p;
+	sym->sectionOffset = NTOH_OBJSIZE_T(sectionOffset);
+	p += sizeof (ObjSize_t);
 
-	//value
-	++i;
-	UWord_t* pValue = (UWord_t*)(start + i);
-	*value = ntohs(*pValue);
+	//address
+	UWord_t addr = *(UWord_t*)p;
+	sym->address = ntohs(addr);
+	p += sizeof (UWord_t);
 
-	it->index += i + sizeof(UWord_t);
+	it->index += p - start;
+
+//	void* start = it->objStream->symTableBuf.buf + it->index;
+//
+//	//offset
+//	*offset = it->objStream->symTableBuf.curSegOffset + it->index;
+//
+//	//name
+//	char* buf = (char*)start;
+//	sym->name = buf;
+//	size_t i;
+//	for(i = 0; buf[i] != '\0'; ++i) continue;
+//
+//	//nameSize
+//	sym->nameLen = i;
+//
+//	//value
+//	++i;
+//	UWord_t* pValue = (UWord_t*)(start + i);
+//	sym->address = ntohs(*pValue);
+//
+//	it->index += i + sizeof(UWord_t);
 
 	return 0;
 }

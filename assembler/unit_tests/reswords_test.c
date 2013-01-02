@@ -2,6 +2,7 @@
 #include <assert.h>
 
 #include "reswords.h"
+#include "tokendescr.h"
 
 void TestReservedWords(void)
 {

@@ -663,7 +663,17 @@ static size_t WriteTestSymbolTable(size_t from, size_t to)
 	for(i = from; i < to; ++i)
 	{
 		const char* name = testSymbols[i].name;
-		ObjectWriteSymbol(&oos, name, strlen(name), testSymbols[i].value);
+		//ObjectWriteGlobalSymbol(&oos, name, strlen(name), testSymbols[i].value);
+		Symbol sym;
+		sym.name = name;
+		sym.nameLen = strlen(name);
+		sym.sectionOffset = 0;
+		sym.address = testSymbols[i].value;
+		ObjectWriteGlobalSymbol(&oos, &sym);
+		if(oos.dataBufMem != oos.dataBuf.buf)
+		{
+			fprintf(stderr, "OH SHHIIII...\n");
+		}
 	}
 
 	return i;
@@ -683,15 +693,21 @@ static size_t WriteTestUnlinked(size_t from, size_t to)
 
 static size_t ReadTestSymbolTable(size_t from, size_t to)
 {
+	char buf[128];
 	ObjSize_t offset;
-	const char* name;
-	size_t nameSize;
-	UWord_t value;
+//	const char* name;
+//	size_t nameSize;
+//	UWord_t value;
 	size_t i = 0;
-	for(i = from; i < to && !ObjectSymbolIteratorNext(&symIt, &offset, &name, &nameSize, &value); ++i)
+	Symbol sym = { .name = buf };
+
+	//for(i = from; i < to && !ObjectSymbolIteratorNext(&symIt, &offset, &name, &nameSize, &value); ++i)
+	for(i = from; i < to && !ObjectSymbolIteratorNext(&symIt, &offset, &sym); ++i)
 	{
-		assert(!strcmp(name, testSymbols[i].name));
-		assert(value == testSymbols[i].value);
+		//assert(!strcmp(name, testSymbols[i].name));
+		assert(!strncmp(sym.name, testSymbols[i].name, sym.nameLen));
+		//assert(value == testSymbols[i].value);
+		assert(sym.address == testSymbols[i].value);
 	}
 
 	return i;

@@ -10,7 +10,6 @@
 //TODO use string pool to store strings
 //TODO multiple pages of hashsets are not needed anymore
 
-
 typedef struct SymTableEntry_
 {
 	const char* sym;

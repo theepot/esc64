@@ -123,6 +123,7 @@ typedef struct ArgListDescr_
 typedef struct InstructionDescr_
 {
 	Opcode_t opcode;
+	int isWide;
 	ArgListDescr argList;
 } InstructionDescr;
 
