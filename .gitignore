@@ -1,3 +1,11 @@
 *~
 a.out
 \#*
+.*
+*.srec
+*.hex
+*.bin
+*.o
+*.map
+*.elf
+*.lst

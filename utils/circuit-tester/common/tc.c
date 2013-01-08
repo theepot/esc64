@@ -201,7 +201,7 @@ static void CompareInputs(void)
 			for(;;);
 		}
 	}
-	fprintf(stdout, "OK:%u `Input's matched.\n",errLine);
+	//fprintf(stdout, "OK:%u `Input's matched.\n",errLine);
 }
 
 void Delay(uint16_t delay)

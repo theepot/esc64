@@ -8,6 +8,7 @@ void RingBufInit(volatile RingBuf* rBuf, volatile void* mem, size_t size)
 	rBuf->size = size;
 	rBuf->begin = 0;
 	rBuf->end = 0;
+	rBuf->dataSize = 0;
 }
 
 int RingBufPut(volatile RingBuf* rBuf, const void* data, size_t dataSize)
@@ -34,7 +35,9 @@ void RingBufPutForce(volatile RingBuf* rBuf, const void* data, size_t dataSize)
 	if(rBuf->dataSize > rBuf->size)
 	{
 		rBuf->dataSize = rBuf->size;
-		rBuf->begin = rBuf->end;
+		rBuf->begin = rBuf->end - 1;
+		if(rBuf->begin > rBuf->size - 1)
+			rBuf->begin = rBuf->size - 1;
 	}
 }
 

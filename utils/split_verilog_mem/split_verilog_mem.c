@@ -65,7 +65,7 @@ int main(int argc, char** argv)
 		
 			fputc(c, outputs[output_n].file);
 			
-			if((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'))
+			if((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F') || c == 'x' || c == 'X')
 				index++;
 			if(index == outputs[output_n].width && output_n != (outputs_amount-1))
 			{
