@@ -1,10 +1,12 @@
-PRG            = romprgm
-OBJ            = romprgm.o
-MCU_TARGET      = atmega328p
+COMMON_DIR     = ../common
+PRG            = alu_with_breg_test
+OBJ            = $(COMMON_DIR)/main.o $(COMMON_DIR)/tc.o $(PRG).o
+MCU_TARGET     = atmega328p
+MCU_FREQ       = 8000000UL
 OPTIMIZE       = -O2
+
 DEFS           =
 LIBS           =
-CPU_FREQ       = 8000000UL
 
 # You should not have to change anything below here.
 
@@ -12,7 +14,7 @@ CC             = avr-gcc
 
 # Override is only needed by avr-lib build system.
 
-override CFLAGS        = -g -Wall $(OPTIMIZE) -mmcu=$(MCU_TARGET) $(DEFS) -DF_CPU=$(CPU_FREQ)
+override CFLAGS        = -g -Wall $(OPTIMIZE) -mmcu=$(MCU_TARGET) $(DEFS) -DF_CPU=$(MCU_FREQ) -I$(COMMON_DIR)
 override LDFLAGS       = -Wl,-Map,$(PRG).map
 
 OBJCOPY        = avr-objcopy
@@ -24,7 +26,9 @@ $(PRG).elf: $(OBJ)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 # dependency:
-romprgm.o: romprgm.c
+$(COMMON_DIR)/main.o: $(COMMON_DIR)/main.c
+$(COMMON_DIR)/tc.o : $(COMMON_DIR)/tc.c
+$(PRG) : $(PRG).o
 
 clean:
 	rm -rf *.o $(PRG).elf *.eps *.png *.pdf *.bak 

@@ -114,33 +114,33 @@ void TestInputs(void);
 
 #define OUT_PUT_1 do {\
 	OUT_DATA_ON;\
-	/*_delay_us(10);*/\
+	_delay_us(5);\
 	OUT_CLOCK_ON;\
-	/*_delay_us(10);*/\
+	_delay_us(5);\
 	OUT_CLOCK_OFF;\
 } while(0)
 
 #define OUT_PUT_0 do {\
 	OUT_DATA_OFF;\
-	/*_delay_us(10);*/\
+	_delay_us(5);\
 	OUT_CLOCK_ON;\
-	/*_delay_us(10);*/\
+	_delay_us(5);\
 	OUT_CLOCK_OFF;\
 } while(0)
 
 #define OUTOE_PUT_1 do {\
 	OUTOE_DATA_ON;\
-	/*_delay_us(10);*/\
+	_delay_us(5);\
 	OUTOE_CLOCK_ON;\
-	/*_delay_us(10);*/\
+	_delay_us(5);\
 	OUTOE_CLOCK_OFF;\
 } while(0)
 
 #define OUTOE_PUT_0 do {\
 	OUTOE_DATA_OFF;\
-	/*_delay_us(10);*/\
+	_delay_us(5);\
 	OUTOE_CLOCK_ON;\
-	/*_delay_us(10);*/\
+	_delay_us(5);\
 	OUTOE_CLOCK_OFF;\
 } while(0)
 
