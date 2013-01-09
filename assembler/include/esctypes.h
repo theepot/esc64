@@ -6,6 +6,9 @@
 typedef int16_t Word_t;
 typedef uint16_t UWord_t;
 
+#define NTOH_WORD(x)	ntohs((x))
+#define HTON_WORD(x)	htons((x))
+
 //TODO find better place for these
 #define OPCODE_OFFSET	9
 #define OPCODE_MASK		0x7F
