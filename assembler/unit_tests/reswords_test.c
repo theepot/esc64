@@ -2,15 +2,16 @@
 #include <assert.h>
 
 #include "reswords.h"
+#include "tokendescr.h"
 
 void TestReservedWords(void)
 {
 	size_t i;
 	for(i = 0; i < RESERVED_WORDS_SIZE; ++i)
 	{
-		const TokenDescr* descr = FindReservedWord(gReservedWords[i].name);
-		assert(descr == gReservedWords[i].descr);
+		TokenDescrId descrId = FindReservedWord(gReservedWords[i].name);
+		assert(descrId == gReservedWords[i].descrId);
 	}
 
-	assert(FindReservedWord("this should not exist") == NULL);
+	assert(FindReservedWord("this should not exist") == TOKEN_DESCR_INVALID);
 }

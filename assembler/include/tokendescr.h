@@ -9,6 +9,7 @@
 
 #include "esctypes.h"
 
+//TODO wtf is this doing here?
 #define SCANNER_BUF_SIZE 64
 
 #define REG_MAX	7
@@ -32,6 +33,46 @@
 #define OP2		(OP(2))
 #define OP3		(OP(3))
 
+typedef enum TokenDescrId_
+{
+	TOKEN_DESCR_NUMBER = 0,
+	TOKEN_DESCR_LABEL_DECL,
+	TOKEN_DESCR_LABEL_REF,
+	TOKEN_DESCR_REGISTER_REF,
+	TOKEN_DESCR_COMMA,
+
+	TOKEN_DESCR_OPCODE_ADD,
+	TOKEN_DESCR_OPCODE_SUB,
+	TOKEN_DESCR_OPCODE_OR,
+	TOKEN_DESCR_OPCODE_XOR,
+	TOKEN_DESCR_OPCODE_AND,
+	TOKEN_DESCR_PSEUDO_OPCODE_MOV,
+	TOKEN_DESCR_OPCODE_MOV,
+	TOKEN_DESCR_OPCODE_MOV_WIDE,
+	TOKEN_DESCR_OPCODE_MOV_EQ,
+	TOKEN_DESCR_OPCODE_MOV_NEQ,
+	TOKEN_DESCR_OPCODE_MOV_LESS,
+	TOKEN_DESCR_OPCODE_MOV_LESS_EQ,
+	TOKEN_DESCR_OPCODE_CMP,
+	TOKEN_DESCR_OPCODE_LDR,
+	TOKEN_DESCR_OPCODE_STR,
+	TOKEN_DESCR_OPCODE_CALL,
+
+	TOKEN_DESCR_DIR_WORD,
+	TOKEN_DESCR_DIR_ALIGN,
+	TOKEN_DESCR_DIR_ASCII,
+	TOKEN_DESCR_DIR_BYTE,
+	TOKEN_DESCR_DIR_GLOBAL,
+	TOKEN_DESCR_DIR_ORG,
+
+	TOKEN_DESCR_EOL,
+	TOKEN_DESCR_EOF,
+
+	TOKEN_DESCR_TABLE_SIZE,
+
+	TOKEN_DESCR_INVALID
+} TokenDescrId;
+
 typedef unsigned Operand_t;
 
 typedef enum TokenClass_
@@ -40,7 +81,7 @@ typedef enum TokenClass_
 	TOKEN_CLASS_OPCODE,
 	TOKEN_CLASS_PSEUDO_OPCODE,
 	TOKEN_CLASS_LABEL_DECL,
-	TOKEN_CLASS_LVALUE,
+	TOKEN_CLASS_VALUE,
 	TOKEN_CLASS_PUNCTUATION
 } TokenClass;
 
@@ -55,7 +96,7 @@ typedef UWord_t Opcode_t;
 
 typedef enum ArgDescrType_
 {
-	ARG_TYPE_REF,
+	ARG_TYPE_REG,
 	ARG_TYPE_IMM
 } ArgDescrType;
 
@@ -82,6 +123,7 @@ typedef struct ArgListDescr_
 typedef struct InstructionDescr_
 {
 	Opcode_t opcode;
+	int isWide;
 	ArgListDescr argList;
 } InstructionDescr;
 
@@ -93,54 +135,6 @@ typedef struct TokenDescr_
 	const InstructionDescr* instructionDescr;
 } TokenDescr;
 
-extern const TokenDescr TOKEN_DESCR_NUMBER;
-extern const TokenDescr TOKEN_DESCR_LABEL_DECL;
-extern const TokenDescr TOKEN_DESCR_LABEL_REF;
-extern const TokenDescr TOKEN_DESCR_REGISTER_REF;
-extern const TokenDescr TOKEN_DESCR_COMMA;
-
-extern const TokenDescr TOKEN_DESCR_OPCODE_ADD;
-extern const TokenDescr TOKEN_DESCR_OPCODE_SUB;
-extern const TokenDescr TOKEN_DESCR_OPCODE_OR;
-extern const TokenDescr TOKEN_DESCR_OPCODE_XOR;
-extern const TokenDescr TOKEN_DESCR_OPCODE_AND;
-extern const TokenDescr TOKEN_DESCR_PSEUDO_OPCODE_MOV;
-extern const TokenDescr TOKEN_DESCR_OPCODE_MOV;
-extern const TokenDescr TOKEN_DESCR_OPCODE_MOV_WIDE;
-extern const TokenDescr TOKEN_DESCR_OPCODE_MOV_EQ;
-extern const TokenDescr TOKEN_DESCR_OPCODE_MOV_NEQ;
-extern const TokenDescr TOKEN_DESCR_OPCODE_MOV_LESS;
-extern const TokenDescr TOKEN_DESCR_OPCODE_MOV_LESS_EQ;
-extern const TokenDescr TOKEN_DESCR_OPCODE_CMP;
-extern const TokenDescr TOKEN_DESCR_OPCODE_LDR;
-extern const TokenDescr TOKEN_DESCR_OPCODE_STR;
-extern const TokenDescr TOKEN_DESCR_OPCODE_CALL;
-
-extern const TokenDescr TOKEN_DESCR_DIR_WORD;
-extern const TokenDescr TOKEN_DESCR_DIR_ALIGN;
-extern const TokenDescr TOKEN_DESCR_DIR_ASCII;
-extern const TokenDescr TOKEN_DESCR_DIR_BYTE;
-extern const TokenDescr TOKEN_DESCR_DIR_GLOBAL;
-extern const TokenDescr TOKEN_DESCR_DIR_ORG;
-
-extern const TokenDescr TOKEN_DESCR_EOL;
-extern const TokenDescr TOKEN_DESCR_EOF;
-
-//TODO should these be public?
-extern const InstructionDescr INSTR_DESCR_ADD;
-extern const InstructionDescr INSTR_DESCR_SUB;
-extern const InstructionDescr INSTR_DESCR_OR;
-extern const InstructionDescr INSTR_DESCR_XOR;
-extern const InstructionDescr INSTR_DESCR_AND;
-extern const InstructionDescr INSTR_DESCR_MOV;
-extern const InstructionDescr INSTR_DESCR_MOV_WIDE;
-extern const InstructionDescr INSTR_DESCR_MOV_EQ;
-extern const InstructionDescr INSTR_DESCR_MOV_NEQ;
-extern const InstructionDescr INSTR_DESCR_MOV_LESS;
-extern const InstructionDescr INSTR_DESCR_MOV_LESS_EQ;
-extern const InstructionDescr INSTR_DESCR_CMP;
-extern const InstructionDescr INSTR_DESCR_LDR;
-extern const InstructionDescr INSTR_DESCR_STR;
-extern const InstructionDescr INSTR_DESCR_CALL;
+const TokenDescr* GetTokenDescr(TokenDescrId id);
 
 #endif

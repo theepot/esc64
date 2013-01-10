@@ -7,10 +7,8 @@
 #include "esctypes.h"
 #include "hashset.h"
 
-/*	TODO's
-	- use string pool to store strings
-	- multiple pages of hashsets are not needed anymore
-*/
+//TODO use string pool to store strings
+//TODO multiple pages of hashsets are not needed anymore
 
 typedef struct SymTableEntry_
 {

@@ -8,16 +8,6 @@
 #include "hashset.h"
 #include "reswords.h"
 
-//TODO remove obsolete
-/*typedef struct TokenDescrTable_
-{
-	const char* sym;
-	const TokenDescr* descr;
-} TokenDescrTable;*/
-
-//TODO remove obsolete
-//static int DescrTableFind(const TokenDescrTable* table, size_t size, const char* sym, Token* token);
-
 static int Peek(Scanner* scanner);
 static int Read(Scanner* scanner);
 
@@ -61,11 +51,11 @@ void ScannerNext(Scanner* scanner, Token*  token)
 	IgnoreWhitespaces(scanner);
 	if(Peek(scanner) == EOF)
 	{
-		token->descr = &TOKEN_DESCR_EOF;
+		token->descrId = TOKEN_DESCR_EOF;
 	}
 	else if(!GetComment(scanner))
 	{
-		token->descr = &TOKEN_DESCR_EOL;
+		token->descrId = TOKEN_DESCR_EOL;
 	}
 	else if(GetNumber(scanner, token) && GetSymbol(scanner, token) && GetReservedChar(scanner, token) && GetEOL(scanner, token))
 	{
@@ -75,16 +65,17 @@ void ScannerNext(Scanner* scanner, Token*  token)
 
 void ScannerDumpToken(FILE* stream, const Token* token)
 {
-	switch(token->descr->valueType)
+	const TokenDescr* tDescr = GetTokenDescr(token->descrId);
+	switch(tDescr->valueType)
 	{
 		case TOKEN_VALUE_TYPE_STRING:
-			fprintf(stream, "[%s:%s]", token->descr->name, token->strValue);
+			fprintf(stream, "[%s:%s]", tDescr->name, token->strValue);
 			break;
 		case TOKEN_VALUE_TYPE_NUMBER:
-			fprintf(stream, "[%s:%d]", token->descr->name, token->intValue);
+			fprintf(stream, "[%s:%d]", tDescr->name, token->intValue);
 			break;
 		default:
-			fprintf(stream, "[%s]", token->descr->name);
+			fprintf(stream, "[%s]", tDescr->name);
 			break;
 	}
 }
@@ -95,11 +86,11 @@ void ScannerDumpPretty(FILE* stream, Scanner* scanner)
 	Token token;
 	fprintf(stream, "line %04d:", line);
 	ScannerNext(scanner, &token);
-	while(token.descr != &TOKEN_DESCR_EOF)
+	while(token.descrId != TOKEN_DESCR_EOF)
 	{
 		putc(' ', stream);
 		ScannerDumpToken(stream, &token);
-		if(token.descr == &TOKEN_DESCR_EOL)
+		if(token.descrId == TOKEN_DESCR_EOL)
 		{
 			fprintf(stream, "\nline %04d:", ++line);
 		}
@@ -108,22 +99,6 @@ void ScannerDumpPretty(FILE* stream, Scanner* scanner)
 	putc(' ', stream);
 	ScannerDumpToken(stream, &token);
 }
-
-/* TODO remove obsolete
-static int DescrTableFind(const TokenDescrTable* table, size_t size, const char* sym, Token* token)
-{
-	size_t i;
-	for(i = 0; i < size; ++i)
-	{
-		if(!strcasecmp(table[i].sym, sym))
-		{
-			token->descr = table[i].descr;
-			return 1;
-		}
-	}
-	return 0;
-}
-*/
 
 static int Peek(Scanner* scanner)
 {
@@ -202,7 +177,7 @@ static int GetNumber(Scanner* scanner, Token* token)
 		return -1;
 	}
 	
-	token->descr = &TOKEN_DESCR_NUMBER;
+	token->descrId = TOKEN_DESCR_NUMBER;
 	return 0;
 }
 
@@ -309,37 +284,38 @@ static int BufferSymbol(Scanner* scanner)
 static void GetLabelDecl(Scanner* scanner, Token* token)
 {
 	const char* name = scanner->buf;
-	if(FindReservedWord(name) != NULL)
+	if(FindReservedWord(name) != TOKEN_DESCR_INVALID)
 	{
 		ScannerError(scanner, "Declared label is reserved word");
 	}
 
-	token->descr = &TOKEN_DESCR_LABEL_DECL;
+	token->descrId = TOKEN_DESCR_LABEL_DECL;
 	token->strValue = name;
 }
 
 static void GetLabelRef(Scanner* scanner, Token* token)
 {
 	const char* name = scanner->buf;
-	if(FindReservedWord(name) != NULL)
+	if(FindReservedWord(name) != TOKEN_DESCR_INVALID)
 	{
 		ScannerError(scanner, "Referenced label is reserved word");
 	}
 
-	token->descr = &TOKEN_DESCR_LABEL_REF;
+	token->descrId = TOKEN_DESCR_LABEL_REF;
 	token->strValue = name;
 }
 
 static int GetDirective(Scanner* scanner, Token* token)
 {
 	const char* name = scanner->buf;
-	const TokenDescr* descr = FindReservedWord(name);
-	if(descr == NULL || descr->tokenClass != TOKEN_CLASS_DIRECTIVE)
+
+	TokenDescrId descrId = FindReservedWord(name);
+	if(descrId == TOKEN_DESCR_INVALID || GetTokenDescr(descrId)->tokenClass != TOKEN_CLASS_DIRECTIVE)
 	{
 		return -1;
 	}
 
-	token->descr = descr;
+	token->descrId = descrId;
 	return 0;
 
 	/* TODO remove obsolete
@@ -367,19 +343,19 @@ static int GetRegisterRef(Scanner* scanner, Token* token)
 
 	if(!strcasecmp(scanner->buf, "pc"))
 	{
-		token->descr = &TOKEN_DESCR_REGISTER_REF;
+		token->descrId = TOKEN_DESCR_REGISTER_REF;
 		token->intValue = REG_PC;
 		return 0;
 	}
 	else if(!strcasecmp(scanner->buf, "lr"))
 	{
-		token->descr = &TOKEN_DESCR_REGISTER_REF;
+		token->descrId = TOKEN_DESCR_REGISTER_REF;
 		token->intValue = REG_LR;
 		return 0;
 	}
 	else if(!strcasecmp(scanner->buf, "sp"))
 	{
-		token->descr = &TOKEN_DESCR_REGISTER_REF;
+		token->descrId = TOKEN_DESCR_REGISTER_REF;
 		token->intValue = REG_SP;
 		return 0;
 	}
@@ -417,7 +393,7 @@ static int GetRegisterNumeric(Scanner* scanner, Token* token)
 		return -1;
 	}
 
-	token->descr = &TOKEN_DESCR_REGISTER_REF;
+	token->descrId = TOKEN_DESCR_REGISTER_REF;
 	token->intValue = num;
 
 	return 0;
@@ -426,40 +402,21 @@ static int GetRegisterNumeric(Scanner* scanner, Token* token)
 static int GetOpcode(Scanner* scanner, Token* token)
 {
 	const char* name = scanner->buf;
-	const TokenDescr* descr = FindReservedWord(name);
-	if(descr == NULL)
+	TokenDescrId descrId = FindReservedWord(name);
+	if(descrId == TOKEN_DESCR_INVALID)
 	{
 		return -1;
 	}
 	
-	if(descr->tokenClass != TOKEN_CLASS_OPCODE && descr->tokenClass != TOKEN_CLASS_PSEUDO_OPCODE)
+	const TokenDescr* tDescr = GetTokenDescr(descrId);
+
+	if(tDescr->tokenClass != TOKEN_CLASS_OPCODE && tDescr->tokenClass != TOKEN_CLASS_PSEUDO_OPCODE)
 	{
 		return -1;
 	}
 
-	token->descr = descr;
+	token->descrId = descrId;
 	return 0;
-
-	/* TODO remove obsolete
-	static const TokenDescrTable table[] =
-	{
-			{ "add", &TOKEN_DESCR_OPCODE_ADD },
-			{ "sub", &TOKEN_DESCR_OPCODE_SUB },
-			{ "or", &TOKEN_DESCR_OPCODE_OR },
-			{ "xor", &TOKEN_DESCR_OPCODE_XOR },
-			{ "and", &TOKEN_DESCR_OPCODE_AND },
-			{ "mov", &TOKEN_DESCR_PSEUDO_OPCODE_MOV },
-			{ "moveq", &TOKEN_DESCR_OPCODE_MOV_EQ },
-			{ "movnq", &TOKEN_DESCR_OPCODE_MOV_NEQ },
-			{ "movls", &TOKEN_DESCR_OPCODE_MOV_LESS },
-			{ "movlq", &TOKEN_DESCR_OPCODE_MOV_LESS_EQ },
-			{ "cmp", &TOKEN_DESCR_OPCODE_CMP },
-			{ "ldr", &TOKEN_DESCR_OPCODE_LDR },
-			{ "str", &TOKEN_DESCR_OPCODE_STR },
-			{ "call", &TOKEN_DESCR_OPCODE_CALL }
-	};
-
-	return DescrTableFind(table, sizeof(table) / sizeof(TokenDescrTable), scanner->buf, token);*/
 }
 
 static int GetComment(Scanner* scanner)
@@ -490,22 +447,22 @@ static int GetComment(Scanner* scanner)
 
 static int GetReservedChar(Scanner* scanner, Token* token)
 {
-	const TokenDescr* descr = NULL;
+	TokenDescrId descrId = TOKEN_DESCR_INVALID;
 	
 	switch(Peek(scanner))
 	{
 		case ',':
-			descr = &TOKEN_DESCR_COMMA;
+			descrId = TOKEN_DESCR_COMMA;
 			break;
 		case ':':
 		default:
 			break;
 	}
 	
-	if(descr)
+	if(descrId != TOKEN_DESCR_INVALID)
 	{
 		Read(scanner);
-		token->descr = descr;
+		token->descrId = descrId;
 		return 0;
 	}
 	
@@ -530,7 +487,7 @@ static int GetEOL(Scanner* scanner, Token* token)
 			return -1;
 	}
 	
-	token->descr = &TOKEN_DESCR_EOL;
+	token->descrId = TOKEN_DESCR_EOL;
 	return 0;
 }
 

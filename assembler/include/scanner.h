@@ -1,10 +1,6 @@
 #ifndef SCANNER_INCLUDED
 #define SCANNER_INCLUDED
 
-/*	TODO's:
-	- Create more elaborate unit-test
-*/
-
 #include <stdio.h>
 #include "tokendescr.h"
 
@@ -52,7 +48,8 @@ typedef struct Scanner_
 
 typedef struct Token_
 {
-	const TokenDescr* descr;
+	//const TokenDescr* descr;
+	TokenDescrId descrId;
 	union
 	{
 		const char* strValue;

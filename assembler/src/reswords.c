@@ -11,34 +11,34 @@ static Hash_t Hash(const void* str);
 
 ReservedWord gReservedWords[] =
 {
-	{ "align", &TOKEN_DESCR_DIR_ALIGN },
-	{ "ascii", &TOKEN_DESCR_DIR_ASCII },
-	{ "byte", &TOKEN_DESCR_DIR_BYTE },
-	{ "word", &TOKEN_DESCR_DIR_WORD },
-	{ "global", &TOKEN_DESCR_DIR_GLOBAL },
-	{ "org", &TOKEN_DESCR_DIR_ORG },
-	{ "add", &TOKEN_DESCR_OPCODE_ADD },
-	{ "sub", &TOKEN_DESCR_OPCODE_SUB },
-	{ "or", &TOKEN_DESCR_OPCODE_OR },
-	{ "xor", &TOKEN_DESCR_OPCODE_XOR },
-	{ "and", &TOKEN_DESCR_OPCODE_AND },
-	{ "mov", &TOKEN_DESCR_PSEUDO_OPCODE_MOV },
-	{ "moveq", &TOKEN_DESCR_OPCODE_MOV_EQ },
-	{ "movnq", &TOKEN_DESCR_OPCODE_MOV_NEQ },
-	{ "movls", &TOKEN_DESCR_OPCODE_MOV_LESS },
-	{ "movlq", &TOKEN_DESCR_OPCODE_MOV_LESS_EQ },
-	{ "cmp", &TOKEN_DESCR_OPCODE_CMP },
-	{ "ldr", &TOKEN_DESCR_OPCODE_LDR },
-	{ "str", &TOKEN_DESCR_OPCODE_STR },
-	{ "call", &TOKEN_DESCR_OPCODE_CALL }
+	{ "align", TOKEN_DESCR_DIR_ALIGN },
+	{ "ascii", TOKEN_DESCR_DIR_ASCII },
+	{ "byte", TOKEN_DESCR_DIR_BYTE },
+	{ "word", TOKEN_DESCR_DIR_WORD },
+	{ "global", TOKEN_DESCR_DIR_GLOBAL },
+	{ "org", TOKEN_DESCR_DIR_ORG },
+	{ "add", TOKEN_DESCR_OPCODE_ADD },
+	{ "sub", TOKEN_DESCR_OPCODE_SUB },
+	{ "or", TOKEN_DESCR_OPCODE_OR },
+	{ "xor", TOKEN_DESCR_OPCODE_XOR },
+	{ "and", TOKEN_DESCR_OPCODE_AND },
+	{ "mov", TOKEN_DESCR_PSEUDO_OPCODE_MOV },
+	{ "moveq", TOKEN_DESCR_OPCODE_MOV_EQ },
+	{ "movnq", TOKEN_DESCR_OPCODE_MOV_NEQ },
+	{ "movls", TOKEN_DESCR_OPCODE_MOV_LESS },
+	{ "movlq", TOKEN_DESCR_OPCODE_MOV_LESS_EQ },
+	{ "cmp", TOKEN_DESCR_OPCODE_CMP },
+	{ "ldr", TOKEN_DESCR_OPCODE_LDR },
+	{ "str", TOKEN_DESCR_OPCODE_STR },
+	{ "call", TOKEN_DESCR_OPCODE_CALL }
 };
 
 const size_t RESERVED_WORDS_SIZE = sizeof(gReservedWords) / sizeof(ReservedWord);
 
-#define RESWORDS_MEM_REAL_SIZE (HASHSET_CALC_MEMSIZE(sizeof(ReservedWord), sizeof(gReservedWords) / sizeof(ReservedWord)))
-#define RESWORDS_MEM_SIZE (RESWORDS_MEM_REAL_SIZE + RESWORDS_MEM_REAL_SIZE / 3)
-static char mem[RESWORDS_MEM_SIZE];
+#define RESWORDS_MEM_REAL_SIZE	(HASHSET_CALC_MEMSIZE(sizeof(ReservedWord), sizeof(gReservedWords) / sizeof(ReservedWord)))
+#define RESWORDS_MEM_SIZE		(RESWORDS_MEM_REAL_SIZE + RESWORDS_MEM_REAL_SIZE / 3)
 
+static char mem[RESWORDS_MEM_SIZE];
 static HashSet set;
 
 void ReservedWordsInit(void)
@@ -51,12 +51,15 @@ void ReservedWordsInit(void)
 	}
 }
 
-const TokenDescr* FindReservedWord(const char* name)
+TokenDescrId FindReservedWord(const char* name)
 {
-	const ReservedWord find = { name, NULL };
+	const ReservedWord find = { name, 0 };
 	ReservedWord* word = NULL;
-	HashSetFind(&set, &find, (void**)&word);
-	return word ? word->descr : NULL;
+	if(!HashSetFind(&set, &find, (void**)&word))
+	{
+		return word->descrId;
+	}
+	return TOKEN_DESCR_INVALID;
 }
 
 void ReservedWordsDump(FILE* stream)

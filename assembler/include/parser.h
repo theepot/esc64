@@ -2,6 +2,7 @@
 #define PARSER_INCLUDED
 
 #include "scanner.h"
+#include "objcode.h"
 
 /*
 GRAMMER:
@@ -43,6 +44,7 @@ Number:
 typedef struct Parser_
 {
 	Scanner* scanner;
+	ObjectOutputStream* objStream;
 	Token curToken;
 	UWord_t pc;
 	unsigned line;
@@ -51,10 +53,10 @@ typedef struct Parser_
 typedef struct Instruction_
 {
 	UWord_t opcode;
-	UWord_t operands[3];
+	UWord_t operands[4];
 } Instruction;
 
-void ParserInit(Parser* parser, Scanner* scanner);
+void ParserInit(Parser* parser, Scanner* scanner, ObjectOutputStream* objStream);
 
 void Parse(Parser* parser);
 
