@@ -1,40 +1,35 @@
-#include <uassembler.h>
-#include "../cpu/cpu.h"
+#include "uassembler.h"
+#include "bin_table.h"
+//#include "../cpu/cpu.h"
 
-field_description field_descrps[] = {
-	{.name = "nextsel", .index = 0, .width = 1, .active = 1},
-	{.name = "next", .index = 1, .width = UROM_ADDR_WIDTH, .active = 1},
-	{.name = "statusNotLoad", .index = (26 + 1 + UROM_ADDR_WIDTH), .width = 1, .active = L},
-	{.name = "regselOE", .index = (25 + 1 + UROM_ADDR_WIDTH), .width = 1, .active = H},
-	{.name = "regselLoad", .index = (24 + 1 + UROM_ADDR_WIDTH), .width = 1, .active = H},
-	{.name = "regselOESource", .index = (22 + 1 + UROM_ADDR_WIDTH), .width = (23-22+1), .active = H},
-	{.name = "regselLoadSource", .index = (21 + 1 + UROM_ADDR_WIDTH), .width = 1, .active = H},
-	{.name = "regselOEuSel", .index = (18 + 1 + UROM_ADDR_WIDTH), .width = (20-18+1), .active = H},
-	{.name = "regselLoaduSel", .index = (15 + 1 + UROM_ADDR_WIDTH), .width = (17-15+1), .active = H},
-	{.name = "pcInc", .index = (14 + 1 + UROM_ADDR_WIDTH), .width = 1, .active = H},
-	{.name = "aluBRegNotLoad", .index = (13 + 1 + UROM_ADDR_WIDTH), .width = 1, .active = L},
-	{.name = "aluNotALUOE", .index = (12 + 1 + UROM_ADDR_WIDTH), .width = 1, .active = L},
-	{.name = "aluF", .index = (7 + 1 + UROM_ADDR_WIDTH), .width = (11-7+1), .active = H},
-	{.name = "aluNotShiftOE", .index = (6 + 1 + UROM_ADDR_WIDTH), .width = 1, .active = L},
-	{.name = "aluCSel", .index = (5 + 1 + UROM_ADDR_WIDTH), .width = 1, .active = H},
-	{.name = "aluUCIn", .index = (4 + 1 + UROM_ADDR_WIDTH), .width = 1, .active = H},
-	{.name = "memNotRead", .index = (3 + 1 + UROM_ADDR_WIDTH), .width = 1, .active = L},
-	{.name = "memNotWrite", .index = (2 + 1 + UROM_ADDR_WIDTH), .width = 1, .active = L},
-	{.name = "memNotCS", .index = (1 + 1 + UROM_ADDR_WIDTH), .width = 1, .active = L}, //this line is not used anymore
-	{.name = "irNotLoad", .index = (0 + 1 + UROM_ADDR_WIDTH), .width = 1, .active = L}
+#define UROM_ADDR_WIDTH 13
+
+bin_table_collumn_description field_descrps[] = {
+	{.name = "statusNotLoad", .width = 1, .active_high = L},
+	{.name = "regselOE", .width = 1, .active_high = H},
+	{.name = "regselLoad", .width = 1, .active_high = H},
+	{.name = "regselOESource", .width = 2, .active_high = H},
+	{.name = "regselLoadSource", .width = 1, .active_high = H},
+	{.name = "regselOEuSel", .width = 3, .active_high = H},
+	{.name = "regselLoaduSel", .width = 3, .active_high = H},
+	{.name = "pcInc", .width = 1, .active_high = H},
+	{.name = "aluBRegNotLoad", .width = 1, .active_high = L},
+	{.name = "aluNotALUOE", .width = 1, .active_high = L},
+	{.name = "aluF", .width = 5, .active_high = H},
+	{.name = "aluNotShiftOE", .width = 1, .active_high = L},
+	{.name = "aluCSel", .width = 1, .active_high = H},
+	{.name = "aluUCIn", .width = 1, .active_high = H},
+	{.name = "memNotRead", .width = 1, .active_high = L},
+	{.name = "memNotWrite", .width = 1, .active_high = L},
+	{.name = "irNotLoad", .width = 1, .active_high = L}
+	{.name = "next", .width = UROM_ADDR_WIDTH, .active_high = H},
+	{.name = "nextsel", .width = 1, .active_high_high = H}
 };
 
 int main(int argc, char** argv)
 {
-	field_descriptions = field_descrps;
-	fields_amount = sizeof(field_descrps) / sizeof(field_description);
-	addr_width = UROM_ADDR_WIDTH;
-	data_width = UROM_DATA_WIDTH;
-	opcode_width = OPCODE_WIDTH;
-	
-	init();
-	fetch_index = pow(2, opcode_width + 2);
-	next_uop_index = fetch_index;
+	uassembler uasm;
+	uassembler_init(&uasm, field_descr, , UROM_ADDR_WIDTH, "next", "nextsel", 7, 512);
 	
 	//ucode
 	//init
