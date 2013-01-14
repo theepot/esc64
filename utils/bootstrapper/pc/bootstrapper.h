@@ -2,6 +2,7 @@
 #define __EEPROM_FEEDER_H
 
 #include <stdint.h>
+#include <common.h>
 
 typedef enum ACTION_t {
 	ACTION_not_defined,
@@ -20,12 +21,6 @@ typedef enum SRAM_t {
 	SRAM_low,
 	SRAM_dontcare
 } SRAM_t;
-
-#define SRAM_WIDTH				16
-#define SRAM_DEPTH				(1 << 15)
-#define SRAM_BLOCK_SIZE			128
-#define SRAM_BLOCKS				(SRAM_DEPTH / SRAM_BLOCK_SIZE)
-#define SRAM_WORD_SIZE			(SRAM_WIDTH / 8)
 
 void init_SRAM_mem(SRAM_t* mem);
 void print_SRAM(FILE* f, const SRAM_t* const mem);

@@ -14,4 +14,6 @@
 #define HANDSHAKE_OUTGOING		0xB4 //handshake byte to microcontroller
 #define HANDSHAKE_INCOMMING		0x3A //handshake byte to pc
 
+#define MAX_MCU_BUF_SIZE		1024
+
 #endif

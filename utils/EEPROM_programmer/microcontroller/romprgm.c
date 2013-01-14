@@ -263,6 +263,11 @@ void command_write(void)
 		return;
 
 	const uint16_t len = n_pages*PAGE_SIZE;
+	if(len > MAX_MCU_BUF_SIZE)
+	{
+		usart_send(REPLY_ACTION_FAILED);
+		return;
+	}
 	uint8_t data[len];
 	uint16_t n;
 	for(n = 0; n < len; ++n)

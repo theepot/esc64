@@ -395,7 +395,7 @@ void write_eeprom(const EEPROM_t* const mem)
 			continue;
 		}
 		end = start + 1;
-		while(end < EEPROM_BLOCKS)
+		while(end < EEPROM_BLOCKS && (end - start)*EEPROM_BLOCK_SIZE < MAX_MCU_BUF_SIZE)
 		{
 			if(!block_is_empty(mem, end))
 				end++;

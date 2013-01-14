@@ -5,163 +5,207 @@
 #include <avr/io.h>
 #include <avr/delay.h>
 #include <avr/crc16.h>
-#include "../common.h"
+#include <common.h>
 
-/*
-connections:
+#define OUTOE_STROBE_ON (PORTC |= 1 << PORTC5)
+#define OUTOE_STROBE_OFF (PORTC &= ~(1 << PORTC5))
+#define OUTOE_DATA_ON (PORTC |= 1 << PORTC4)
+#define OUTOE_DATA_OFF (PORTC &= ~(1 << PORTC4))
+#define OUTOE_CLOCK_ON (PORTC |= 1 << PORTC3)
+#define OUTOE_CLOCK_OFF (PORTC &= ~(1 << PORTC3))
+#define OUTOE_NUM_BYTES 1
 
-eeprom address width: 13 bits
-eeprom page size: 64 (6 bits)
-eeprom page address width: 13-6=7 bits
+#define OUT_STROBE_ON (PORTC |= 1 << PORTC2)
+#define OUT_STROBE_OFF (PORTC &= ~(1 << PORTC2))
+#define OUT_DATA_ON (PORTC |= 1 << PORTC1)
+#define OUT_DATA_OFF (PORTC &= ~(1 << PORTC1))
+#define OUT_CLOCK_ON (PORTC |= 1 << PORTC0)
+#define OUT_CLOCK_OFF (PORTC &= ~(1 << PORTC0))
+#define OUT_NUM_BYTES 6
 
-eeprom page address is feeded by shift register: strobe(PD2), data(PD3), clock(PD4). First bit shifted is the LSB
-rest of address bits are directly feeded by ucontroller: 6 bits (PC0-PC5)
-eeprom data is directly feeded by ucontroller: 8 bits (PB0 - PB7)
-eeprom control signals are feeded directly by ucontroller: CE(PD5), OE(PD6), WE(PD7)
-*/
+#define IN_SHIFT (PORTD |= 1 << PORTD2)
+#define IN_LOAD (PORTD &= ~(1 << PORTD2))
+#define IN_CLOCK_ON (PORTD |= 1 << PORTD3)
+#define IN_CLOCK_OFF (PORTD &= ~(1 << PORTD3))
+#define IN_DATA_IS_HIGH (PIND & (1 << PIND4))
+#define IN_NUM_BYTES 5
 
-#define PAGEADDR_WIDTH				7
-#define PAGE_SIZE					64
-#define ADDR_MASK					0x7F
-
-#define PAGEADDR_SHIFTR_INIT		(DDRD |= (1 << DDD2) | (1 << DDD3) | (1 << DDD4))
-#define PAGEADDR_SHIFTR_STROBE_ON	(PORTD |= 1 << PORTD2)
-#define PAGEADDR_SHIFTR_STROBE_OFF	(PORTD &= ~(1 << PORTD2))
-#define PAGEADDR_SHIFTR_DATA_ON		(PORTD |= 1 << PORTD3)
-#define PAGEADDR_SHIFTR_DATA_OFF	(PORTD &= ~(1 << PORTD3))
-#define PAGEADDR_SHIFTR_CLOCK_ON	(PORTD |= 1 << PORTD4)
-#define PAGEADDR_SHIFTR_CLOCK_OFF	(PORTD &= ~(1 << PORTD4))
-
-
-#define ADDR_INIT					(DDRC |= 0x7F)
-#define ADDR_SET(n)					(PORTC = n)
-
-#define DATA_MAKE_INPUT				(DDRB = 0)
-#define DATA_MAKE_OUTPUT			(DDRB = 0xFF)
-#define DATA_SET(x)					(PORTB = (x))
-#define DATA_GET					(PINB)
-
-#define EEPROM_CTRL_INIT			(DDRD |= (1 << DDD5) | (1 << DDD6) | (1 << DDD7))
-#define EEPROM_CE_SET				(PORTD |= 1 << PORTD5)
-#define EEPROM_CE_CLR				(PORTD &= ~(1 << PORTD5))
-#define EEPROM_OE_SET				(PORTD |= 1 << PORTD6)
-#define EEPROM_OE_CLR				(PORTD &= ~(1 << PORTD6))
-#define EEPROM_WE_SET				(PORTD |= 1 << PORTD7)
-#define EEPROM_WE_CLR				(PORTD &= ~(1 << PORTD7))
-
-
-#define PAGEADDR_SHIFTR_PUSH_1 do {\
-	PAGEADDR_SHIFTR_DATA_ON;\
-	/*_delay_us(10);*/\
-	PAGEADDR_SHIFTR_CLOCK_ON;\
-	/*_delay_us(10);*/\
-	PAGEADDR_SHIFTR_CLOCK_OFF;\
-} while(0)
-
-#define PAGEADDR_SHIFTR_PUSH_0 do {\
-	PAGEADDR_SHIFTR_DATA_OFF;\
-	/*_delay_us(10);*/\
-	PAGEADDR_SHIFTR_CLOCK_ON;\
-	/*_delay_us(10);*/\
-	PAGEADDR_SHIFTR_CLOCK_OFF;\
-} while(0)
-
-#define PAGEADDR_SHIFTR_STROBE do {\
-	PAGEADDR_SHIFTR_STROBE_ON;\
+#define OUT_PUT_1 do {\
+	OUT_DATA_ON;\
 	_delay_us(10);\
-	PAGEADDR_SHIFTR_STROBE_OFF;\
+	OUT_CLOCK_ON;\
+	_delay_us(10);\
+	OUT_CLOCK_OFF;\
 } while(0)
 
-static void write_wait(void);
+#define OUT_PUT_0 do {\
+	OUT_DATA_OFF;\
+	_delay_us(10);\
+	OUT_CLOCK_ON;\
+	_delay_us(10);\
+	OUT_CLOCK_OFF;\
+} while(0)
+
+#define OUTOE_PUT_1 do {\
+	OUTOE_DATA_ON;\
+	_delay_us(10);\
+	OUTOE_CLOCK_ON;\
+	_delay_us(10);\
+	OUTOE_CLOCK_OFF;\
+} while(0)
+
+#define OUTOE_PUT_0 do {\
+	OUTOE_DATA_OFF;\
+	_delay_us(10);\
+	OUTOE_CLOCK_ON;\
+	_delay_us(10);\
+	OUTOE_CLOCK_OFF;\
+} while(0)
+
+uint8_t outoe_data[OUTOE_NUM_BYTES];
+uint8_t out_data[OUT_NUM_BYTES];
+uint8_t in_data[IN_NUM_BYTES];
+
+void outoe_push(void);
+void out_init(void);
+void outoe_init(void);
+void out_push(void);
+
+void in_init(void);
+void in_pull(void);
+inline void in_capture(void);
+
+void in_init(void)
+{
+	DDRD |= (1 << DDC2) | (1 << DDC3);
+	DDRD &= ~(1 << DDC4);
+	IN_CLOCK_OFF;
+}
+
+inline void in_capture(void)
+{
+	IN_LOAD;
+	_delay_us(10);
+	IN_CLOCK_OFF;
+	_delay_us(10);
+	IN_CLOCK_ON;
+	_delay_us(10);
+	IN_CLOCK_OFF;
+}
+
+void in_pull(void)
+{
+	IN_SHIFT;
+	_delay_us(10);
+	uint8_t * data = in_data;
+	uint8_t byte, bit;
+	for(byte = 0; byte < IN_NUM_BYTES; byte++)
+	{
+		data[byte] = 0;
+		for(bit = 0; bit < 8; bit++)
+		{
+			data[byte] <<= 1;
+
+			if(IN_DATA_IS_HIGH)
+				data[byte] |= 1;
+
+			_delay_us(10);
+			IN_CLOCK_ON;
+			_delay_us(10);
+			IN_CLOCK_OFF;
+		}
+	}
+
+}
+
+void out_init(void)
+{
+	DDRC |= (1 << DDC0) | (1 << DDC1) | (1 << DDC2) | (1 << DDC3) | (1 << DDC4) | (1 << DDC5);
+	OUT_STROBE_OFF;
+	OUT_CLOCK_OFF;
+	outoe_init();
+
+	//set all outputs to 0
+	int n;
+	for(n = 0; n < OUT_NUM_BYTES; n++)
+	{
+		out_data[n] = 0;
+	}
+}
+
+void outoe_init(void)
+{
+	OUTOE_STROBE_OFF;
+	OUTOE_CLOCK_OFF;
+
+	//set all outputs to high impedance
+	int n;
+	for(n = 0; n < OUTOE_NUM_BYTES; n++)
+	{
+		outoe_data[n] = 0;
+	}
+	outoe_push();
+}
+
+void outoe_push(void)
+{
+	uint8_t const * data = outoe_data;
+	OUTOE_STROBE_OFF;
+	_delay_us(10);
+	uint8_t byte;
+	for(byte = 0; byte < OUTOE_NUM_BYTES; byte++)
+	{
+		uint8_t mask;
+		for(mask = 1 << 7; mask != 0; mask >>= 1)
+		{
+			if(*data & mask)
+				OUTOE_PUT_1;
+			else
+				OUTOE_PUT_0;
+		}
+		data++;
+	}
+	OUTOE_STROBE_ON;
+}
+
+void out_push(void)
+{
+	uint8_t* data = out_data;
+	OUT_STROBE_OFF;
+	_delay_us(10);
+	uint8_t byte;
+	for(byte = 0; byte < OUT_NUM_BYTES; byte++)
+	{
+		uint8_t mask;
+		for(mask = 1 << 7; mask != 0; mask >>= 1)
+		{
+			if(*data & mask)
+				OUT_PUT_1;
+			else
+				OUT_PUT_0;
+		}
+		data++;
+	}
+	OUT_STROBE_ON;
+}
+
+void set_address(uint16_t address)
+{
+	out_data[2] = address & 0xFF;
+	out_data[3] = address >> 8;
+}
+
+void set_data(uint16_t data)
+{
+	out_data[0] = address & 0xFF;
+	out_data[1] = address >> 8;
+}
 
 void io_init(void)
 {
-	PAGEADDR_SHIFTR_INIT;
-	PAGEADDR_SHIFTR_STROBE_OFF;
-	PAGEADDR_SHIFTR_CLOCK_OFF;
-	ADDR_INIT;
-	DATA_MAKE_INPUT;
-	EEPROM_CTRL_INIT;
-	EEPROM_CE_SET;
-	EEPROM_OE_SET;
-	EEPROM_WE_SET;
-}
+	in_init();
+	out_init();
 
-void set_page_address(uint8_t addr)
-{
-	int n;
-	for(n = 0; n < PAGEADDR_WIDTH; n++)
-	{
-		if(addr & 1)
-			PAGEADDR_SHIFTR_PUSH_1;
-		else
-			PAGEADDR_SHIFTR_PUSH_0;
-		addr >>= 1;
-	}
-	PAGEADDR_SHIFTR_STROBE;
-}
-
-void write_page(uint8_t page_addr, const uint8_t* data)
-{
-	set_page_address(page_addr);
-	EEPROM_CE_CLR;
-	EEPROM_OE_SET;
-	EEPROM_WE_SET;
-	DATA_MAKE_OUTPUT;
-	
-	uint8_t n;
-	for(n = 0; n < PAGE_SIZE; ++n)
-	{
-		ADDR_SET(n);
-		DATA_SET(data[n]);
-		_delay_us(5);
-		EEPROM_WE_CLR;
-		_delay_us(5);
-		EEPROM_WE_SET;
-	}
-	
-	DATA_MAKE_INPUT;
-	EEPROM_CE_SET;
-	EEPROM_OE_SET;
-	EEPROM_WE_SET;
-}
-
-void read_page(uint8_t page_addr, uint8_t* data)
-{
-	set_page_address(page_addr);
-	DATA_MAKE_INPUT;
-	EEPROM_CE_CLR;
-	EEPROM_OE_CLR;
-	EEPROM_WE_SET;
-	
-	uint8_t n;
-	for(n = 0; n < PAGE_SIZE; ++n)
-	{
-		ADDR_SET(n);
-		_delay_us(5);
-		data[n] = DATA_GET;
-	}
-	
-	EEPROM_CE_SET;
-	EEPROM_OE_SET;
-	EEPROM_WE_SET;
-}
-
-uint8_t verify_page(uint8_t page_addr, const uint8_t* data)
-{
-	uint8_t eeprom_data[PAGE_SIZE];
-	read_page(page_addr, eeprom_data);
-	
-	uint8_t n;
-	for(n = 0; n < PAGE_SIZE; ++n)
-	{
-		if(data[n] != eeprom_data[n])
-		{
-			return 0;
-		}
-	}
-	
-	return 1;
 }
 
 uint8_t usart_receive(void)
@@ -228,32 +272,13 @@ uint16_t crc16(uint16_t crc_in, const uint8_t* data, uint16_t len)
 	return crc_in;
 }
 
-void command_read(void)
+void command_upload(void)
 {
-	uint8_t page;
-	uint8_t byte;
-	uint8_t data[64];
-	uint16_t crc = CRC_INITIAL_VALUE;
-	for(page = 0; page < 128; ++page)
-	{
-		read_page(page, data);
-		for(byte = 0; byte < 64; ++byte)
-		{
-			usart_send(data[byte]);
-		}
-		crc = crc16(crc, data, 64);
-	}
-	usart_send(crc & 0xFF);
-	usart_send((crc >> 8) & 0xFF);
-}
-
-void command_write(void)
-{
-	uint8_t start, n_pages, crcL, crcH;
+	uint8_t start, n_blocks, crcL, crcH;
 	if(!usart_timed_receive(5, &start))
 		return;
 
-	if(!usart_timed_receive(5, &n_pages))
+	if(!usart_timed_receive(5, &n_blocks))
 		return;
 
 	if(!usart_timed_receive(5, &crcL))
@@ -262,7 +287,12 @@ void command_write(void)
 	if(!usart_timed_receive(5, &crcH))
 		return;
 
-	const uint16_t len = n_pages*PAGE_SIZE;
+	const uint16_t len = n_blocks*SRAM_BLOCK_SIZE*SRAM_WORD_SIZE;
+	if(len > MAX_MCU_BUF_SIZE)
+	{
+		usart_send(REPLY_ACTION_FAILED);
+		return;
+	}
 	uint8_t data[len];
 	uint16_t n;
 	for(n = 0; n < len; ++n)
@@ -278,18 +308,58 @@ void command_write(void)
 		return;
 	}
 
-	for(n = 0; n < n_pages; ++n)
+	for(n = 0; n < n_blocks; ++n)
 	{
-		write_page(start + n, &data[n*PAGE_SIZE]);
+		/*write_page(start + n, &data[n*PAGE_SIZE]);
 		_delay_ms(100);
 		if(!verify_page(start + n, &data[n*PAGE_SIZE]))
 		{
 			usart_send(REPLY_ACTION_FAILED);
 			return;
-		}
+		}*/
 	}
 
 	usart_send(REPLY_OK);
+}
+
+void command_download(void)
+{
+
+}
+
+void command_start(void)
+{
+
+}
+
+void command_stop(void)
+{
+
+}
+
+void command_set_clock(void)
+{
+
+}
+
+void command_reset(void)
+{
+
+}
+
+void command_step(void)
+{
+
+}
+
+void command_step_instr(void)
+{
+
+}
+
+void command_write(void)
+{
+
 }
 
 
@@ -318,11 +388,29 @@ int main(void)
 		}
 		switch(cmd)
 		{
-			case COMMAND_WRITE:
-				command_write();
+			case COMMAND_UPLOAD:
+				command_upload();
 				break;
-			case COMMAND_READ:
-				command_read();
+			case COMMAND_DOWNLOAD:
+				command_download();
+				break;
+			case COMMAND_START:
+				command_start();
+				break;
+			case COMMAND_STOP:
+				command_stop();
+				break;
+			case COMMAND_SET_CLOCK:
+				command_set_clock();
+				break;
+			case COMMAND_RESET:
+				command_reset();
+				break;
+			case COMMAND_STEP:
+				command_step();
+				break;
+			case COMMAND_STEP_INSTR:
+				command_step_instr();
 				break;
 		}
 	}
@@ -330,40 +418,3 @@ int main(void)
 	for(;;) continue;
 	return 0;
 }
-/*
-static void write_wait(void)
-{
-	DATA_MAKE_INPUT;
-	EEPROM_CE_CLR;
-	EEPROM_WE_SET;
-
-	EEPROM_OE_SET;
-	EEPROM_CE_SET;
-	_delay_us(1);
-	EEPROM_OE_CLR;
-	EEPROM_CE_CLR;
-	uint8_t prev = DATA_GET & (1 << 6);
-	_delay_us(5);
-
-	EEPROM_OE_SET;
-	EEPROM_CE_SET;
-	_delay_us(1);
-	EEPROM_OE_CLR;
-	EEPROM_CE_CLR;
-	uint8_t cur = DATA_GET & (1 << 6);
-	while(prev != cur)
-	{
-		prev = cur;
-		_delay_us(5);
-
-		EEPROM_OE_SET;
-		_delay_us(1);
-		EEPROM_OE_CLR;
-		cur = DATA_GET & (1 << 6);
-	}
-
-	EEPROM_CE_SET;
-	EEPROM_OE_SET;
-	EEPROM_WE_SET;
-}
-*/

@@ -21,4 +21,12 @@
 #define HANDSHAKE_OUTGOING		0xB4 //handshake byte to microcontroller
 #define HANDSHAKE_INCOMMING		0x3A //handshake byte to pc
 
+#define SRAM_WIDTH				16
+#define SRAM_DEPTH				(1 << 15)
+#define SRAM_BLOCK_SIZE			128
+#define SRAM_BLOCKS				(SRAM_DEPTH / SRAM_BLOCK_SIZE)
+#define SRAM_WORD_SIZE			(SRAM_WIDTH / 8)
+
+#define MAX_MCU_BUF_SIZE		1024
+
 #endif

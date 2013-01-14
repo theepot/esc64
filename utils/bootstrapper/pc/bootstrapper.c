@@ -10,7 +10,7 @@
 #include <ctype.h>
 #include <serial.h>
 #include "bootstrapper.h"
-#include "../common.h"
+#include <common.h>
 #include "crc.h"
 #include <argp.h>
 
@@ -523,7 +523,7 @@ void action_upload_sram(const char* file_path)
 			continue;
 		}
 		end = start + 1;
-		while(end < SRAM_BLOCKS)
+		while(end < SRAM_BLOCKS && (end - start)*SRAM_BLOCK_SIZE*SRAM_WORD_SIZE < MAX_MCU_BUF_SIZE)
 		{
 			if(!sram_block_is_empty(mem, end))
 				end++;
