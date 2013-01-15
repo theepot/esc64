@@ -38,14 +38,25 @@ module alu_test();
 			expected_y = 16'bzzzzzzzzzzzzzzzz;
 		end
 		else if(~notShiftOE && notALUOE) begin
-			if(f[0]) begin
+			/*if(f[0]) begin
 				expected_cout = a >> 15;
 				expected_y = a << 1;
 			end
 			else begin
 				expected_cout = a & 1;
 				expected_y = a >> 1;
-			end
+			end*/
+			case(f)
+				`ALU_F_SHIFT_LEFT: begin
+					expected_cout = a >> 15;
+					expected_y = a << 1;
+				end
+				`ALU_F_SHIFT_RIGHT: begin
+					expected_cout = a & 1;
+					expected_y = a >> 1;
+				end
+				default:$display("Warning in ALU test. Illegal shift instruction");
+			endcase
 		end
 		else if(~notALUOE && notShiftOE) begin
 			case(f)

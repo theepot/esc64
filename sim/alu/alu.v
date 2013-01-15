@@ -33,7 +33,7 @@ module alu(a, b, yout, f, csel, ucin, fcin, cout, zout, notALUOE, notShiftOE);
 	
 	always @ ( * )
 	begin
-		if(f[0] === 1'b1) begin
+		/*if(f[0] === 1'b1) begin
 			if(!notShiftOE) begin
 				cout = a >> 15;
 			end
@@ -44,6 +44,19 @@ module alu(a, b, yout, f, csel, ucin, fcin, cout, zout, notALUOE, notShiftOE);
 				cout = a & 1;
 			end
 			yshift = a >> 1;
+		end*/
+		if(!notShiftOE) begin		
+			case(f)
+				`ALU_F_SHIFT_RIGHT: begin
+					cout = a & 1;
+					yshift = a >> 1;
+				end
+				`ALU_F_SHIFT_LEFT: begin
+					cout = a >> 15;
+					yshift = a << 1;
+				end
+				default: $display("Warning in ALU: Illegal shift instruction %X", f);
+			endcase
 		end
 
 		case(f)
