@@ -31,12 +31,15 @@ int bin_table_new(bin_table* table, bin_table_collumn_description* collumn_descr
 void bin_table_free(bin_table* table);
 
 int bin_table_set_cell_value(bin_table* table, int collumn_index, int row, int value);
-int bin_table_get_cell_value(bin_table* table, int collumn_index, int row);
+int bin_table_get_cell_value(bin_table* table, int collumn_index, int row, int* out_val);
 int bin_table_change_row_by_string(bin_table* table, const char* cell_values, int row);
+int bin_table_set_row_inactive(bin_table* table, int row);
+
+int bin_table_copy_row(bin_table* table, int dest, int src);
 
 int bin_table_collumn_by_name(bin_table* table, const char* name);
 
-void bin_table_print_binverilog(bin_table* table, FILE* f);
+void bin_table_print_binverilog(bin_table* table, FILE* f, int comments);
 
 
 

@@ -1,5 +1,5 @@
 `include "register.v"
-`include "../globals.v"
+`include "globals.v"
 
 module register_test();
 	wire [15:0] data_bus;

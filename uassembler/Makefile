@@ -1,17 +1,17 @@
 .PHONY: all
 all: urom_stable.lst
 
-CFLAGS				= -Wall -g
+CFLAGS				= -Wall -g -I../common
 LFLAGS				= -Wall -g
 
 bin_table.o: bin_table.c bin_table.h
-	gcc -o $@ $(CFLAGS) $<
+	gcc -c -o $@ $(CFLAGS) $<
 
 uassembler.o: uassembler.c uassembler.h bin_table.h
-	gcc -o $@ $(CFLAGS) $<
+	gcc -c -o $@ $(CFLAGS) $<
 
 gen_%.o: gen_%.c bin_table.h uassembler.h
-	gcc -o $@ $(CFLAGS) $<
+	gcc -c -o $@ $(CFLAGS) $<
 
 %.lst: gen_%
 	./$< > $@

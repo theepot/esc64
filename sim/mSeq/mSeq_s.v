@@ -10,7 +10,7 @@ module mSeq(clock, notReset, opcode, carry, zero, control);
 	
 	input clock, notReset, carry, zero;
 	input [6:0] opcode;
-	output [26:0] control;
+	output [33:0] control;
 
 	wire [15:0] roms_addr;
 	wire [(8*6)-1:0] roms_data;
@@ -38,7 +38,7 @@ module mSeq(clock, notReset, opcode, carry, zero, control);
 	
 	
 	//load all the ROM chips with the right part from the signle rom image
-	reg [40:0] tmp_mem[0:(1<<13)-1];
+	reg [47:0] tmp_mem[0:(1<<13)-1];
 	integer n;
 	initial begin
 		$readmemb(ROM_FILENAME, tmp_mem);
@@ -49,7 +49,7 @@ module mSeq(clock, notReset, opcode, carry, zero, control);
 			rom2.mem[n] = tmp_mem[n][23:16];
 			rom3.mem[n] = tmp_mem[n][31:24];
 			rom4.mem[n] = tmp_mem[n][39:32];
-			rom5.mem[n] = {7'b0000000, tmp_mem[n][40]};
+			rom5.mem[n] = tmp_mem[n][47:40];
 		end
 		
 	end

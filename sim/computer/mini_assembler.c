@@ -2,19 +2,19 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
-#include "../cpu/cpu.h"
+#include <cpu.h>
 
 #define MEM_SIZE (2048)
 #define LABELS_MAX (256)
 
-#define GP0	0
-#define GP1	1
-#define GP2	2
-#define GP3 3
-#define GP4	4
-#define GP5	5
-#define LR	6
-#define PC	7
+#define GP0	RGS_GP0
+#define GP1	RGS_GP1
+#define GP2	RGS_GP2
+#define GP3 	RGS_GP3
+#define GP4	RGS_GP4
+#define GP5	RGS_GP5
+#define LR	RGS_GP6
+#define PC	RGS_PC
 
 typedef struct {
 	int opcode;

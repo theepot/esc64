@@ -1,5 +1,7 @@
 #include <stdlib.h>
+#include <string.h>
 #include <stdio.h>
+#include <ctype.h>
 
 #include "bin_table.h"
 
@@ -7,20 +9,21 @@
 #define ERROR(table, fmt, ...) do {\
 	if(table->print_on_error)\
 	{\
-		fprintf(stderr, "error: bin_table: " __function__": "fmt"\n", __VA_ARGS__);\
+		fprintf(stderr, "ERROR: bin_table: "fmt"\n", ##__VA_ARGS__);\
 	}\
 	if(table->exit_on_error)\
 	{\
-		exit(1);
+		exit(1);\
 	}\
-	}while(0)
+	} while(0)
+
 
 //static forward declarations
-static void set_collumn_indices(bin_table_collumn_description* collumn_descriptions, int collumns);
+//static void set_collumn_indices(bin_table_collumn_description* collumn_descriptions, int collumns);
 static void initialize_table(bin_table* table);
 static char* strip_string(char* string);
 
-static void set_collumn_indices(bin_table_collumn_description* collumn_descriptions, int collumns)
+/*static void set_collumn_indices(bin_table_collumn_description* collumn_descriptions, int collumns)
 {
 	int i;
 	int index = 0;
@@ -30,7 +33,7 @@ static void set_collumn_indices(bin_table_collumn_description* collumn_descripti
 		index += collumn_descriptions[i].width;
 	}
 
-}
+}*/
 
 static char* strip_string(char* string)
 {
@@ -39,13 +42,15 @@ static char* strip_string(char* string)
 		return 0;
 
 	char* start = string;
-	while(isblank(*start)){
+	while(isblank(*start))
+	{
 		start++;
 	}
 
 	char* end = string + len - 1;
 
-	while(isblank(*end) && end != string){
+	while(isblank(*end) && end != string)
+	{
 		end--;
 	}
 	end++;
@@ -83,10 +88,10 @@ int bin_table_new(bin_table* table, bin_table_collumn_description* collumn_descr
 	table->cells = malloc(cells_size);
 	if(table->cells == NULL)
 	{
-		ERROR("could not allocate %d bytes for table", cells_size); return 0;
+		ERROR(table, "could not allocate %zu bytes for table", cells_size); return 0;
 	}
 	
-	set_collumn_indices(collumn_descriptions, collumns);
+	//set_collumn_indices(collumn_descriptions, collumns);
 	initialize_table(table);
 	
 	return 1;
@@ -98,30 +103,50 @@ void bin_table_free(bin_table* table)
 	free(table->collumn_descriptions);
 }
 
-void bin_table_set_cell_value(bin_table* table, int collumn_index, int row, int value)
+int bin_table_set_cell_value(bin_table* table, int collumn_index, int row, int value)
 {
 	if(row >= table->rows)
 	{
-		ERROR(table, "row > number of rows in table"); return;
+		ERROR(table, "row > number of rows in table"); return 0;
 	}
 
 	if(collumn_index >= table->collumns)
 	{
-		ERROR(table, "collumn_index > number of collumns in table"); return;
+		ERROR(table, "collumn_index > number of collumns in table"); return 0;
 	}
 	if(value >= (1 << table->collumn_descriptions[collumn_index].width))
 	{
 		ERROR(table, "value %d does not fit in collumn %s with width %d", value,
 				table->collumn_descriptions[collumn_index].name,
 				table->collumn_descriptions[collumn_index].width);
-		return;
+		return 0;
 	}
 
 	table->cells[row*table->collumns + collumn_index] = (bin_table_cell){.value = value, .is_known = 1};
 
+	return 1;
 }
 
-int bin_table_get_cell_value(bin_table* table, int collumn_index, int row)
+int bin_table_set_row_inactive(bin_table* table, int row)
+{
+	int n;
+	for(n = 0; n < table->collumns; ++n)
+	{
+		if(table->collumn_descriptions[n].active_high)
+		{
+			if(!bin_table_set_cell_value(table, n, row, 0))
+				return 0;
+		}
+		else
+		{
+			if(!bin_table_set_cell_value(table, n, row, (1 << table->collumn_descriptions[n].width) - 1))
+				return 0;
+		}
+	}
+	return 1;
+}
+
+int bin_table_get_cell_value(bin_table* table, int collumn_index, int row, int* out_val)
 {
 	if(row >= table->rows)
 	{
@@ -133,17 +158,35 @@ int bin_table_get_cell_value(bin_table* table, int collumn_index, int row)
 		ERROR(table, "collumn_index > number of collumns in table"); return 0;
 	}
 
-	if(table->cells[row*table->collumns + collumn_index].is_known)
-		return table->cells[row*table->collumns + collumn_index].value;
-	else
-		return -1;
+	if(!table->cells[row*table->collumns + collumn_index].is_known)
+		return 0;
+	*out_val = table->cells[row*table->collumns + collumn_index].value;
+
+	return 1;
 }
 
-void bin_table_change_row_by_string(bin_table* table, const char* cell_values, int row)
+int bin_table_copy_row(bin_table* table, int dest, int src)
+{
+	if(dest >= table->rows)
+	{
+		ERROR(table, "dest row > number of rows"); return 0;
+	}
+
+	if(src >= table->rows)
+	{
+		ERROR(table, "src row > number of rows"); return 0;
+	}
+
+	memcpy(&table->cells[dest*table->collumns], &table->cells[src*table->collumns], sizeof(bin_table_cell) * table->collumns);
+
+	return 1;
+}
+
+int bin_table_change_row_by_string(bin_table* table, const char* cell_values, int row)
 {
 	const int len = strlen(cell_values);
 	if(len == 0)
-		return;
+		return 1;
 
 	const char* start;
 	const char* end = cell_values;
@@ -165,14 +208,14 @@ void bin_table_change_row_by_string(bin_table* table, const char* cell_values, i
 			memcpy(tmp, start, end-start);
 			tmp[end-start] = '\0';
 			char* tmp2 = strip_string(tmp);
-			int collumn_number = find_field_by_name(tmp2);
+			int collumn_number = bin_table_collumn_by_name(table, tmp2);
 			if(collumn_number == -1)
 			{
 				exit(1);
 			}
 			if(table->collumn_descriptions[collumn_number].width != 1)
 			{
-				ERROR("specified multibit value without explicit assignment.");
+				ERROR(table, "specified multibit value without explicit assignment."); return 0;
 			}
 			//change_field(field_number, table->collumn_descriptions[field_number].active_high, row);
 			bin_table_set_cell_value(table, collumn_number, row, table->collumn_descriptions[collumn_number].active_high);
@@ -207,6 +250,7 @@ void bin_table_change_row_by_string(bin_table* table, const char* cell_values, i
 		}
 	}
 
+	return 1;
 }
 
 int bin_table_collumn_by_name(bin_table* table, const char* name)
@@ -228,13 +272,13 @@ void bin_table_print_binverilog(bin_table* table, FILE* f, int comments)
 	if(comments)
 	{
 		fprintf(f, "//");
-		for(i = table->collumns - 1; i >= 0; i--)
+		for(i = 0; i < table->collumns; ++i)
 		{
 			fprintf(f, "%s:%d", table->collumn_descriptions[i].name, table->collumn_descriptions[i].width);
 			if(i != 0)
 				putchar(' ');
 		}
-		fputc(f, '\n');
+		fputc('\n', f);
 	}
 
 	int row, collumn, bit;
@@ -247,10 +291,10 @@ void bin_table_print_binverilog(bin_table* table, FILE* f, int comments)
 				int value = table->cells[row*table->collumns + collumn].value;
 				for(bit = 0; bit < table->collumn_descriptions[collumn].width; ++bit)
 				{
-					if(value & (1 << table->collumn_descriptions[collumn].width - 1))
-						fputc(f, '1');
+					if(value & (1 << (table->collumn_descriptions[collumn].width - 1)))
+						fputc('1', f);
 					else
-						fputc(f, '0');
+						fputc('0', f);
 					value <<= 1;
 				}
 			}
@@ -258,12 +302,12 @@ void bin_table_print_binverilog(bin_table* table, FILE* f, int comments)
 			{
 				for(bit = 0; bit < table->collumn_descriptions[collumn].width; ++bit)
 				{
-					fputc(f, 'x');
+					fputc('x', f);
 				}
 			}
 			if(collumn != (table->collumns - 1))
 			{
-				fputc(f, '_');
+				fputc('_', f);
 			}
 
 		}

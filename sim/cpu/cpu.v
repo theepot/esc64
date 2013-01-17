@@ -99,26 +99,25 @@ module cpu(clock, notReset, aBus, yBus, memNotRead, memNotWrite);
 	instructionRegister ir(clock, irNotLoad, yBus, irOpcode, regselOp0, regselOp1, regselOp2);
 		
 	//micro sequencer
-	wire [26:0] control;
+	wire [33:0] control;
 	mSeq #(.ROM_FILENAME("urom.lst")) _mSeq(clock, notReset, irOpcode, statusCOut, statusZOut, control);
 	
-	assign statusNotLoad = control[26]; //1,L
-	assign regselOE = control[25]; //1,H
-	assign regselLoad = control[24]; //1,H
-	assign regselOESource = control[23:22]; //2,H
-	assign regselLoadSource = control[21]; //1,H
-	assign regselOEuSel = control[20:18]; //3,H
-	assign regselLoaduSel = control[17:15]; //3,H
-	assign pcInc = control[14]; //1,H
-	assign aluBRegNotLoad = control[13]; //1,L
-	assign aluNotALUOE = control[12]; //1,L
-	assign aluF = control[11:7]; //5,H
-	assign aluNotShiftOE = control[6]; //1,L
-	assign aluCSel = control[5]; //1,H
-	assign aluUCIn = control[4]; //1,H
-	assign memNotRead = control[3]; //1,L
-	assign memNotWrite = control[2]; //1,L
-//	assign memNotCS = control[1]; //1,L //TODO: remove this control line.
+	assign statusNotLoad = control[25]; //1,L
+	assign regselOE = control[24]; //1,H
+	assign regselLoad = control[23]; //1,H
+	assign regselOESource = control[22:21]; //2,H
+	assign regselLoadSource = control[20]; //1,H
+	assign regselOEuSel = control[19:17]; //3,H
+	assign regselLoaduSel = control[16:14]; //3,H
+	assign pcInc = control[13]; //1,H
+	assign aluBRegNotLoad = control[12]; //1,L
+	assign aluNotALUOE = control[11]; //1,L
+	assign aluF = control[10:6]; //5,H
+	assign aluNotShiftOE = control[5]; //1,L
+	assign aluCSel = control[4]; //1,H
+	assign aluUCIn = control[3]; //1,H
+	assign memNotRead = control[2]; //1,L
+	assign memNotWrite = control[1]; //1,L
 	assign irNotLoad = control[0]; //1,L
 
 endmodule
