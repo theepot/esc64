@@ -10,7 +10,8 @@ void SymTableInit(SymTable* table, size_t setSize)
 {
 	size_t memSize = setSize * (sizeof(SymTableEntry) + sizeof(Hash_t));
 	table->rootSet = malloc(sizeof(SymTableSet));
-	table->rootSet->next = NULL;
+	//TODO remove obsolete
+	//table->rootSet->next = NULL;
 	HashSetInit(&table->rootSet->set, malloc(memSize), memSize, sizeof(SymTableEntry), HashEntry, CompareEntry); //TODO remove temp memory fix
 }
 

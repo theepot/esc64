@@ -1,182 +1,171 @@
 #ifndef OBJCODE_INCLUDED
 #define OBJCODE_INCLUDED
 
-//TODO implement data segments. a good code placement algorithm would be to sort all section ranges in a list, then checking for collisions.
-//TODO first thing is to alter object file format so that it stores section count information.
-//TODO serialize entire expressions to be resolved at link-time
-//TODO right now, when data is written to a record and it doesn't fit, a new record is started and the data written, even if it still doesn't fit!
-
 #include <stdio.h>
 
 #include "esctypes.h"
+#include "objrecord.h"
 
-typedef uint32_t ObjSize_t;
-
-#define HTON_OBJSIZE_T(x)	htonl((x))
-#define NTOH_OBJSIZE_T(x)	ntohl((x))
-
-struct ObjectOutputStream_;
-struct ObjectInputStream_;
-
-typedef void (*SectionFlushProc)(struct ObjectOutputStream_*);
-typedef void (*SectionReadProc)(struct ObjectInputStream_*);
-
-typedef struct SectionWriteBuffer_
+enum SectionType_
 {
-	void* buf;
-	size_t bufSize;
-	size_t bufIndex;
-	ObjSize_t headerFieldOffset;
-	ObjSize_t headNextOffset;
-	SectionFlushProc flushProc;
-} SectionWriteBuffer;
+	SECTION_TYPE_DATA	= 0,
+	SECTION_TYPE_BSS	= 1,
+	SECTION_TYPE_NONE	= 0xFF
+};
 
-typedef struct SectionReadBuffer_
+//	object file structure
+//		- header
+//		- section []
+
+//	header structure
+//		- local symbol count	: UWord_t
+//		- global symbol count	: UWord_t
+//		- abs section count		: UWord_t
+//		- reloc section count	: UWord_t
+//		- abs section offset	: ObjSize_t
+//		- reloc section offset	: ObjSize_t
+#define OBJ_HEADER_LOCAL_SYM_COUNT_OFFSET		0
+#define OBJ_HEADER_GLOBAL_SYM_COUNT_OFFSET		(OBJ_HEADER_LOCAL_SYM_COUNT_OFFSET + sizeof (UWord_t))
+#define OBJ_HEADER_ABS_SECTION_COUNT_OFFSET		(OBJ_HEADER_GLOBAL_SYM_COUNT_OFFSET + sizeof (UWord_t))
+#define OBJ_HEADER_RELOC_SECTION_COUNT_OFFSET	(OBJ_HEADER_ABS_SECTION_COUNT_OFFSET + sizeof (UWord_t))
+#define OBJ_HEADER_ABS_SECTION_OFFSET_OFFSET	(OBJ_HEADER_RELOC_SECTION_COUNT_OFFSET + sizeof (UWord_t))
+#define OBJ_HEADER_RELOC_SECTION_OFFSET_OFFSET	(OBJ_HEADER_ABS_SECTION_OFFSET_OFFSET + sizeof (ObjSize_t))
+#define OBJ_HEADER_SIZE							(OBJ_HEADER_RELOC_SECTION_OFFSET_OFFSET + sizeof (ObjSize_t))
+
+typedef struct ObjectHeader_
 {
-	void* buf;
-	size_t bufSize;
-	//size_t segRemaining;
-	ObjSize_t curSegOffset;
-	ObjSize_t headerFieldOffset;
-	ObjSize_t nextSegOffset;
-	SectionReadProc readProc;
-} SectionReadBuffer;
+	UWord_t localSymCount;
+	UWord_t globalSymCount;
+	UWord_t absSectionCount;
+	UWord_t relocSectionCount;
+	ObjSize_t absSectionOffset;
+	ObjSize_t relocSectionOffset;
+} ObjectHeader;
 
-//	header structure:
-//		size				: 2
-//		symtable symcount	: 2
-//		symtable offset		: 2
-//		data offset			: 2
-//		data segment count	: 2
-//		unlinked offset		: 2
-#define OBJ_HEADER_DATA_SIZE_OFFSET				(0 * sizeof (UWord_t))
-#define OBJ_HEADER_SYM_TABLE_ENTRIES_OFFSET		(1 * sizeof (UWord_t))
-#define OBJ_HEADER_SYM_TABLE_POS_OFFSET			(2 * sizeof (UWord_t))
-#define OBJ_HEADER_DATA_POS_OFFSET				(3 * sizeof (UWord_t))
-#define OBJ_HEADER_DATA_SEGMENT_COUNT_OFFSET	(4 * sizeof (UWord_t))
-#define OBJ_HEADER_UNLINKED_POS_OFFSET			(5 * sizeof (UWord_t))
-#define OBJ_HEADER_SIZE							(6 * sizeof (UWord_t))
-#define OBJ_HEADER_START						0
+//	section structure
+//		- type							: Byte_t
+//		- next							: ObjSize_t
+//		- address						: UWord_t
+//		- size							: UWord_t
+//		- local symbol record offset	: ObjSize_t
+//		- global symbol record offset	: ObjSize_t
+//		<<if type = data>>
+//		- unlinked exp record offset	: ObjSize_t
+//		- data record offset			: ObjSize_t
+//		<<end type = data>>
+#define OBJ_SECTION_TYPE_OFFSET					0
+#define OBJ_SECTION_NEXT_OFFSET					(OBJ_SECTION_TYPE_OFFSET + sizeof (Byte_t))
+#define OBJ_SECTION_ADDRESS_OFFSET				(OBJ_SECTION_NEXT_OFFSET + sizeof (ObjSize_t))
+#define OBJ_SECTION_SIZE_OFFSET					(OBJ_SECTION_ADDRESS_OFFSET + sizeof (UWord_t))
+#define OBJ_SECTION_LOCAL_SYM_RECORD_OFFSET		(OBJ_SECTION_SIZE_OFFSET + sizeof (UWord_t))
+#define OBJ_SECTION_GLOBAL_SYM_RECORD_OFFSET	(OBJ_SECTION_LOCAL_SYM_RECORD_OFFSET + sizeof (ObjSize_t))
+//data section specific
+#define OBJ_SECTION_EXPR_RECORD_OFFSET			(OBJ_SECTION_GLOBAL_SYM_RECORD_OFFSET + sizeof (ObjSize_t))
+#define OBJ_SECTION_DATA_RECORD_OFFSET			(OBJ_SECTION_EXPR_RECORD_OFFSET + sizeof (ObjSize_t))
 
-//	section common headers
-//		size	: 2
-//		next	: 2
-#define OBJ_SECTION_SIZE_OFFSET			(0 * sizeof (UWord_t))
-#define OBJ_SECTION_NEXT_OFFSET 		(1 * sizeof (UWord_t))
+//	instruction structure
+//		16       9     6     3     0  [ 16    0 ]
+//		| opcode | op0 | op1 | op2 |  [ | op3 | ]
+#define OPCODE_OFFSET	9
+#define OPCODE_MASK		0x7F
+#define OPERAND0_OFFSET	6
+#define OPERAND0_MASK	0x7
+#define OPERAND1_OFFSET	3
+#define OPERAND1_MASK	0x7
+#define OPERAND2_OFFSET	0
+#define OPERAND2_MASK	0x7
 
-//	data section structure:
-//		size	: 2
-//		next	: 2
-//		address	: 2
-//		data	: size
-#define OBJ_DATA_SECTION_ADDR_OFFSET	(2 * sizeof (UWord_t))
-#define OBJ_DATA_SECTION_DATA_OFFSET	(3 * sizeof (UWord_t))
-
-//	symbol section structure:
-//		size	: 2
-//		next	: 2
-//		data	: size
-//
-//	symbol.data:
-//		nameLen			: 2
-//		name			: string
-//		sectionOffset	: 4
-//		value			: 2
-#define OBJ_SYM_SECTION_DATA_OFFSET		(2 * sizeof (UWord_t))
-
-//	unlinked section structure:
-//		size	: 2
-//		next	: 2
-//		data	: size
-//
-//	unlinked.data:
-//		address	: 2
-//		symbol	: string
-#define OBJ_UNLINKED_SECTION_DATA_OFFSET	(2 * sizeof (UWord_t))
-
-#define OBJ_SYM_TABLE_BUF_SIZE			30
-#define OBJ_DATA_BUF_SIZE				(5 * sizeof (UWord_t))
-#define OBJ_UNLINKED_BUF_SIZE			30
-
-typedef struct ObjectOutputStream_
+typedef struct Instruction_
 {
-	FILE* stream;
-	UWord_t dataSize;
-	UWord_t symTableEntries;
+	Byte_t opcode;
+	Byte_t operands[3];
+	UWord_t exOperand;
+	Byte_t wide;
+} Instruction;
 
-	SectionWriteBuffer symTableBuf;
-	unsigned char symTableMem[OBJ_SYM_TABLE_BUF_SIZE];
-
-	SectionWriteBuffer dataBuf;
-	unsigned char dataBufMem[OBJ_DATA_BUF_SIZE];
-	UWord_t dataBaseAddr;
-
-	SectionWriteBuffer unlinkedBuf;
-	unsigned char unlinkedBufMem[OBJ_UNLINKED_BUF_SIZE];
-} ObjectOutputStream;
-
-typedef struct ObjectInputStream_
-{
-	FILE* stream;
-
-	SectionReadBuffer symTableBuf;
-	unsigned char symTableMem[OBJ_SYM_TABLE_BUF_SIZE];
-
-	SectionReadBuffer dataBuf;
-	unsigned char dataBufMem[OBJ_DATA_BUF_SIZE];
-	UWord_t dataBaseAddr;
-
-	SectionReadBuffer unlinkedBuf;
-	unsigned char unlinkedBufMem[OBJ_UNLINKED_BUF_SIZE];
-} ObjectInputStream;
+//	symbol structure
+//		nameSize	: UWord_t
+//		name		: <nameSize>
+//		value		: UWord_t
 
 typedef struct Symbol_
 {
-	char* name;
-	size_t nameLen;
-	ObjSize_t sectionOffset;
-	UWord_t address;
+	const char* name;
+	UWord_t nameLen;
+	UWord_t value;
 } Symbol;
 
-typedef struct ObjectSymbolIterator_
+//	expressions structure
+//		nameSize	: UWord_t
+//		name		: <nameSize>
+//		value		: UWord_t
+
+typedef struct Expression_
 {
-	ObjectInputStream* objStream;
-	size_t index;
-	size_t size;
-} ObjectSymbolIterator;
+	ObjSize_t address;	///< address of unlinked word
+	const char* name;	///< name of unlinked symbol
+	size_t nameLen;
+} Expression;
 
-typedef struct ObjectUnlinkedIterator_
+#define DATA_WRITER_BUF_SIZE		32
+#define LOCAL_SYM_WRITER_BUF_SIZE	32
+#define GLOBAL_SYM_WRITER_BUF_SIZE	32
+#define EXPR_WRITER_BUF_SIZE		32
+
+#define OBJ_RELOC	0
+#define OBJ_ABS		1
+
+typedef struct ObjectWriter_
 {
-	ObjectInputStream* objStream;
-	size_t index;
-	size_t size;
-} ObjectUnlinkedIterator;
+	FILE* stream;
 
-int ObjectOutputStreamOpen(ObjectOutputStream* objStream, const char* path);
-void ObjectOutputStreamClose(ObjectOutputStream* objStream);
+	UWord_t localSymCount;
+	UWord_t globalSymCount;
+	UWord_t absSectionCount;
+	UWord_t relocSectionCount;
 
-void ObjectWriteData(ObjectOutputStream* objStream, UWord_t address, UWord_t data);
-//void ObjectWriteSymbol(ObjectOutputStream* objStream, const char* sym, size_t symSize, UWord_t value);
-void ObjectWriteGlobalSymbol(ObjectOutputStream* objStream, const Symbol* sym);
-void ObjectWriteUnlinked(ObjectOutputStream* objStream, const char* sym, size_t symSize, UWord_t address);
+	ObjSize_t relocPrevNextOffset;	///< offset of next-field of the previous relocatable section
+	ObjSize_t absPrevNextOffset;	///< offset of next-field of the previous absolute section
 
-int ObjectInputStreamOpen(ObjectInputStream* objStream, const char* path, UWord_t* dataSize, UWord_t* symTableEntries);
-void ObjectInputStreamClose(ObjectInputStream* objStream);
+	Byte_t type;					///< type of current section
+	Byte_t placement;				///< placement type of current section (absolute or relocatable)
+	ObjSize_t offset;				///< offset of current section
 
-size_t ObjectReadData(ObjectInputStream* objStream);
-size_t ObjectReadGlobalSymbol(ObjectInputStream* objStream);
-size_t ObjectReadUnlinked(ObjectInputStream* objStream);
+	UWord_t dataSize;				///< total size of data record (if in data section)
 
-void ObjectSymbolIteratorInit(ObjectSymbolIterator* it, ObjectInputStream* objStream);
-//int ObjectSymbolIteratorNext(ObjectSymbolIterator* it, ObjSize_t* offset, const char** name, size_t* nameSize, UWord_t* value);
-int ObjectSymbolIteratorNext(ObjectSymbolIterator* it, ObjSize_t* offset, Symbol* sym);
+	Byte_t dataWriterBuf[DATA_WRITER_BUF_SIZE];
+	RecordWriter dataWriter;		///< to write data in data section
+	Byte_t localSymWriterBuf[LOCAL_SYM_WRITER_BUF_SIZE];
+	RecordWriter localSymWriter;
+	Byte_t globalSymWriterBuf[GLOBAL_SYM_WRITER_BUF_SIZE];
+	RecordWriter globalSymWriter;
+	Byte_t exprWriterBuf[EXPR_WRITER_BUF_SIZE];
+	RecordWriter exprWriter;
+} ObjectWriter;
 
-void ObjectUnlinkedIteratorInit(ObjectUnlinkedIterator* it, ObjectInputStream* objStream);
-int ObjectUnlinkedIteratorNext(ObjectUnlinkedIterator* it, UWord_t* address, const char** sym, size_t* symSize);
+void ObjectWriterInit(ObjectWriter* writer, const char* path);
+void ObjectWriterClose(ObjectWriter*writer);
+
+void ObjWriteDataSection(ObjectWriter* writer, Byte_t placement, UWord_t address);
+void ObjWriteBssSection(ObjectWriter* writer, Byte_t placement, UWord_t address, UWord_t size);
+void ObjWriteData(ObjectWriter* writer, const void* data, size_t dataSize);
+void ObjWriteInstr(ObjectWriter* writer, const Instruction* instr);
+void ObjWriteLocalSym(ObjectWriter* writer, const Symbol* sym);
+void ObjWriteGlobalSym(ObjectWriter* writer, const Symbol* sym);
+void ObjWriteExpr(ObjectWriter* writer, const Expression* expr);
+
+typedef struct ObjectReader_
+{
+	FILE* stream;
+
+	Byte_t type;			///< type of current section
+	ObjSize_t offset;		///< offset of current section
+} ObjectReader;
+
+void ObjectReaderInit(ObjectReader* reader, const char* path, ObjectHeader* header);
+void ObjectReaderStart(ObjectReader* reader, ObjSize_t firstOffset);
+void ObjectReaderClose(ObjectReader* reader);
+
+int ObjReaderNextSection(ObjectReader* reader);
 
 #endif
-
-
-
-
-

@@ -11,6 +11,7 @@ extern void TestObjFile(const char* path);
 extern void TestReservedWords(void);
 extern void TestParser(const char* testFile);
 extern void TestRecords(const char* filePath);
+extern void TestObjCode(const char* fileName);
 
 int main(int argc, char** argv)
 {
@@ -23,7 +24,8 @@ int main(int argc, char** argv)
 //	TestObjFile("/home/lukas/Desktop/dump.bin");
 //	TestReservedWords();
 //	TestParser("/home/lukas/development/esc64/assembler/testfiles/scanner_test.asm");
-	TestRecords("/home/lukas/Desktop/records.bin");
+//	TestRecords("/home/lukas/Desktop/records.bin");
+	TestObjCode("/home/lukas/Desktop/test.o");
 
 	clock_t stop = clock();
 	clock_t ms = (stop - start) / 1000;

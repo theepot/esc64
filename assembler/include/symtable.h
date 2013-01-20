@@ -19,7 +19,8 @@ typedef struct SymTableEntry_
 typedef struct SymTableSet_
 {
 	HashSet set;
-	struct SymTableSet_* next;
+	//TODO remove, obsolete
+	//struct SymTableSet_* next;
 } SymTableSet;
 
 typedef struct SymTable_

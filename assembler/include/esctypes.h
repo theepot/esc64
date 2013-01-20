@@ -3,23 +3,17 @@
 
 #include <stdint.h>
 
+typedef unsigned char Byte_t;
+
 typedef int16_t Word_t;
 typedef uint16_t UWord_t;
 
 #define NTOH_WORD(x)	ntohs((x))
 #define HTON_WORD(x)	htons((x))
 
-//TODO find better place for these
-#define OPCODE_OFFSET	9
-#define OPCODE_MASK		0x7F
+typedef uint32_t ObjSize_t;
 
-#define OPERAND0_OFFSET	6
-#define OPERAND0_MASK	0x7
-
-#define OPERAND1_OFFSET	3
-#define OPERAND1_MASK	0x7
-
-#define OPERAND2_OFFSET	0
-#define OPERAND2_MASK	0x7
+#define HTON_OBJSIZE(x)	htonl((x))
+#define NTOH_OBJSIZE(x)	ntohl((x))
 
 #endif

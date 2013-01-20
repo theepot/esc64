@@ -6,14 +6,17 @@
 #include <string.h>
 #include <arpa/inet.h>
 
-static ObjSize_t GetFilePos(FILE* stream);
-static void SetFilePos(FILE* stream, ObjSize_t offset);
-static void WriteWord(FILE* stream, UWord_t word);
-static UWord_t ReadWord(FILE* stream);
-static void WriteObjSize(FILE* stream, ObjSize_t objSize);
-static ObjSize_t ReadObjSize(FILE* stream);
-static void Write(FILE* stream, const void* data, size_t dataSize);
-static void Read(FILE* stream, void* data, size_t dataSize);
+#include "ioutils.h"
+
+//TODO remove, obsolete
+//static ObjSize_t GetFilePos(FILE* stream);
+//static void SetFilePos(FILE* stream, ObjSize_t offset);
+//static void WriteWord(FILE* stream, UWord_t word);
+//static UWord_t ReadWord(FILE* stream);
+//static void WriteObjSize(FILE* stream, ObjSize_t objSize);
+//static ObjSize_t ReadObjSize(FILE* stream);
+//static void Write(FILE* stream, const void* data, size_t dataSize);
+//static void Read(FILE* stream, void* data, size_t dataSize);
 static void BufferRecordData(RecordWriter* writer, const void* data, size_t dataSize);
 static void FlushRecordData(RecordWriter* writer, FILE* stream, const void* extra, size_t extraSize);
 static void GetRecordData(RecordReader* reader, FILE* stream, void* buf, size_t amount);
@@ -85,8 +88,8 @@ static void GetRecordData(RecordReader* reader, FILE* stream, void* buf, size_t 
 #ifdef ESC_DEBUG
 	assert(reader->dataIndex + amount <= reader->dataSize);
 #endif
-	SetFilePos(stream, reader->dataOffset + reader->dataIndex);
-	Read(stream, buf, amount);
+	IOSetFilePos(stream, reader->dataOffset + reader->dataIndex);
+	IORead(stream, buf, amount);
 	reader->dataIndex += amount;
 }
 
@@ -94,11 +97,11 @@ static void LoadRecord(RecordReader* reader, FILE* stream)
 {
 	assert(reader->nextOffset != OBJ_RECORD_ILLEGAL_OFFSET);
 
-	SetFilePos(stream, reader->nextOffset);
+	IOSetFilePos(stream, reader->nextOffset);
 
 	reader->dataOffset = reader->nextOffset + OBJ_RECORD_DATA_OFFSET;
-	reader->dataSize = ReadWord(stream);		//size
-	reader->nextOffset = ReadObjSize(stream);	//next
+	reader->dataSize = IOReadWord(stream);		//size
+	reader->nextOffset = IOReadObjSize(stream);	//next
 	reader->dataIndex = 0;
 }
 
@@ -115,84 +118,80 @@ static void FlushRecordData(RecordWriter* writer, FILE* stream, const void* extr
 		return; //no data to flush
 	}
 
-	ObjSize_t recordStart = GetFilePos(stream);
-
-	//FIXME should always seek to end, this is/was for debugging
-	{
-		fseek(stream, 0, SEEK_END);
-		assert(GetFilePos(stream) == recordStart);
-	}
+	IOSeekEnd(stream);
+	ObjSize_t recordStart = IOGetFilePos(stream);
 
 	//write record
-	WriteWord(stream, writer->bufIndex + extraSize);	//size
-	WriteObjSize(stream, OBJ_RECORD_ILLEGAL_OFFSET);	//next (uninitialized)
+	IOWriteWord(stream, writer->bufIndex + extraSize);	//size
+	IOWriteObjSize(stream, OBJ_RECORD_ILLEGAL_OFFSET);	//next (uninitialized)
 	if(writer->bufIndex > 0)
 	{
-		Write(stream, writer->buf, writer->bufIndex);	//data
+		IOWrite(stream, writer->buf, writer->bufIndex);	//data
 	}
 	if(extraSize > 0)
 	{
-		Write(stream, extra, extraSize);				//data (extra)
+		IOWrite(stream, extra, extraSize);				//data (extra)
 	}
 
 	//update previous next-field
-	ObjSize_t head = GetFilePos(stream);
-	SetFilePos(stream, writer->prevNextOffset);
-	WriteObjSize(stream, recordStart);
-	SetFilePos(stream, head);
+	ObjSize_t head = IOGetFilePos(stream);
+	IOSetFilePos(stream, writer->prevNextOffset);
+	IOWriteObjSize(stream, recordStart);
+	IOSetFilePos(stream, head);
 
 	//reset writer
 	writer->bufIndex = 0;
 	writer->prevNextOffset = recordStart + OBJ_RECORD_NEXT_OFFSET;
 }
 
-static ObjSize_t GetFilePos(FILE* stream)
-{
-	ObjSize_t offset = ftell(stream);
-	assert(offset != -1L);
-	return offset;
-}
-
-static void SetFilePos(FILE* stream, ObjSize_t offset)
-{
-	assert(!fseek(stream, offset, SEEK_SET));
-}
-
-static void WriteWord(FILE* stream, UWord_t word)
-{
-	UWord_t x = HTON_WORD(word);
-	Write(stream, &x, sizeof x);
-}
-
-static UWord_t ReadWord(FILE* stream)
-{
-	UWord_t x;
-	Read(stream, &x, sizeof x);
-	return NTOH_WORD(x);
-}
-
-static void WriteObjSize(FILE* stream, ObjSize_t objSize)
-{
-	ObjSize_t x = HTON_OBJSIZE(objSize);
-	Write(stream, &x, sizeof x);
-}
-
-static ObjSize_t ReadObjSize(FILE* stream)
-{
-	ObjSize_t x;
-	Read(stream, &x, sizeof x);
-	return NTOH_OBJSIZE(x);
-}
-
-static void Write(FILE* stream, const void* data, size_t dataSize)
-{
-	assert(fwrite(data, dataSize, 1, stream) == 1);
-#ifdef ESC_DEBUG
-	fflush(stream);
-#endif
-}
-
-static void Read(FILE* stream, void* data, size_t dataSize)
-{
-	assert(fread(data, dataSize, 1, stream) == 1);
-}
+//TODO remove, obsolete
+//static ObjSize_t GetFilePos(FILE* stream)
+//{
+//	ObjSize_t offset = ftell(stream);
+//	assert(offset != -1L);
+//	return offset;
+//}
+//
+//static void SetFilePos(FILE* stream, ObjSize_t offset)
+//{
+//	assert(!fseek(stream, offset, SEEK_SET));
+//}
+//
+//static void WriteWord(FILE* stream, UWord_t word)
+//{
+//	UWord_t x = HTON_WORD(word);
+//	Write(stream, &x, sizeof x);
+//}
+//
+//static UWord_t ReadWord(FILE* stream)
+//{
+//	UWord_t x;
+//	Read(stream, &x, sizeof x);
+//	return NTOH_WORD(x);
+//}
+//
+//static void WriteObjSize(FILE* stream, ObjSize_t objSize)
+//{
+//	ObjSize_t x = HTON_OBJSIZE(objSize);
+//	Write(stream, &x, sizeof x);
+//}
+//
+//static ObjSize_t ReadObjSize(FILE* stream)
+//{
+//	ObjSize_t x;
+//	Read(stream, &x, sizeof x);
+//	return NTOH_OBJSIZE(x);
+//}
+//
+//static void Write(FILE* stream, const void* data, size_t dataSize)
+//{
+//	assert(fwrite(data, dataSize, 1, stream) == 1);
+//#ifdef ESC_DEBUG
+//	fflush(stream);
+//#endif
+//}
+//
+//static void Read(FILE* stream, void* data, size_t dataSize)
+//{
+//	assert(fread(data, dataSize, 1, stream) == 1);
+//}
