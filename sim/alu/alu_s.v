@@ -20,27 +20,32 @@ module alu(a, b, y, f, csel, ucin, fcin, cout, zout, notALUOE, notShiftOE);
 	output	cout, zout;
 	
 	//carry in selection
-	wire [3:0] cinMuxOut;
+	/*wire [3:0] cinMuxOut;
 	wire aluCin;
 	assign aluCin = cinMuxOut[3];
-	Quad2To1Mux_74157 cinMux(0, csel, {ucin,3'bxxx}, {fcin,3'bxxx}, cinMuxOut);
+	Quad2To1Mux_74157 cinMux(0, csel, {ucin,3'bxxx}, {fcin,3'bxxx}, cinMuxOut);*/
+	
 	
 	//carry out selection
 	wire coutLeft, coutRight;
 	wire [1:0] coutMuxOut;
-	Dual4To1Mux_74153 coutMux(0, {f[0], notShiftOE}, {coutRight, 1'bx}, {alu3cout, 1'bx}, {coutLeft, 1'bx}, {alu3cout, 1'bx}, coutMuxOut);
+	Dual4To1Mux_74153 coutMux(0, {f[2], notShiftOE}, {coutRight, 1'bx}, {alu3cout, 1'bx}, {coutLeft, 1'bx}, {alu3cout, 1'bx}, coutMuxOut);
 	assign cout = coutMuxOut[1];
 	
 	
 	//inverting some signals
 	wire alu3cout;
-	wire aluNotCin;
+	wire not_ucin_and_not_csel;
+	wire not_fcin_and_csel;
+	wire not_csel;
 	wire [5:0] miscInverterOut;
-	wire f0Inverted;
-	assign f0Inverted = miscInverterOut[3];
+	assign not_csel = miscInverterOut[2];
+	assign not_fcin_and_csel = miscInverterOut[3];
 	assign alu3cout = miscInverterOut[4];
-	assign aluNotCin = miscInverterOut[5];
-	HexInverter_7404 miscInverter({aluCin, alu3NotCout, f[0], 3'bxxx}, miscInverterOut);
+	assign not_ucin_and_not_csel = miscInverterOut[5];
+	HexInverter_7404 miscInverter({ucin_and_not_csel, alu3NotCout, fcin_and_csel, csel, 2'bxx}, miscInverterOut);
+	
+	
 	
 	//74181 alu
 	wire [15:0] aluOutInt;
@@ -60,8 +65,8 @@ module alu(a, b, y, f, csel, ucin, fcin, cout, zout, notALUOE, notShiftOE);
 	wire [15:0] aShiftedLeft;
 	assign aShiftedLeft = {a[14:0], 1'b0};
 	assign coutLeft = a[15];
-	OctThreeState_74541 shiftLeftOutputBuffer0(notShiftOE, f0Inverted, aShiftedLeft[7:0],  y[7:0]); //LS
-	OctThreeState_74541 shiftLeftOutputBuffer1(notShiftOE, f0Inverted, aShiftedLeft[15:8], y[15:8]); //MS
+	OctThreeState_74541 shiftLeftOutputBuffer0(notShiftOE, f[1], aShiftedLeft[7:0],  y[7:0]); //LS
+	OctThreeState_74541 shiftLeftOutputBuffer1(notShiftOE, f[1], aShiftedLeft[15:8], y[15:8]); //MS
 	OctThreeState_74541 shiftRightOutputBuffer0(notShiftOE, f[0], aShiftedRight[7:0],  y[7:0]); //LS
 	OctThreeState_74541 shiftRightOutputBuffer1(notShiftOE, f[0], aShiftedRight[15:8], y[15:8]); //MS
 
@@ -69,9 +74,20 @@ module alu(a, b, y, f, csel, ucin, fcin, cout, zout, notALUOE, notShiftOE);
 	wire notZero0Out, notZero1Out;
 	OctInputOrNor_744078 zero0(y[7:0],  /*NC*/, notZero0Out); //LS
 	OctInputOrNor_744078 zero1(y[15:8], /*NC*/, notZero1Out); //MS
-	wire [3:0] notZeroesAndOut;
-	assign zout = notZeroesAndOut[3];
-	Quad2InputAnd_7408 notZeroesAnd({notZero0Out,3'b000}, {notZero1Out,3'b000}, notZeroesAndOut);
+	
+	//and0
+	wire [3:0] and0_out;
+	assign zout = and0_out[3];
+	
+	wire fcin_and_csel;
+	assign fcin_and_csel = and0_out[2];
+	
+	wire ucin_and_not_csel;
+	assign ucin_and_not_csel = and0_out[1];
+	
+	wire aluNotCin;
+	assign aluNotCin = and0_out[0];
+	Quad2InputAnd_7408 and0({notZero0Out,fcin,ucin,not_ucin_and_not_csel}, {notZero1Out,csel,not_csel,not_fcin_and_csel}, and0_out);
 	
 	
 	endmodule

@@ -38,14 +38,25 @@ module alu_test();
 			expected_y = 16'bzzzzzzzzzzzzzzzz;
 		end
 		else if(~notShiftOE && notALUOE) begin
-			if(f[0]) begin
+			/*if(f[0]) begin
 				expected_cout = a >> 15;
 				expected_y = a << 1;
 			end
 			else begin
 				expected_cout = a & 1;
 				expected_y = a >> 1;
-			end
+			end*/
+			case(f)
+				`ALU_F_SHIFT_LEFT: begin
+					expected_cout = a >> 15;
+					expected_y = a << 1;
+				end
+				`ALU_F_SHIFT_RIGHT: begin
+					expected_cout = a & 1;
+					expected_y = a >> 1;
+				end
+				default:$display("Warning in ALU test. Illegal shift instruction");
+			endcase
 		end
 		else if(~notALUOE && notShiftOE) begin
 			case(f)
@@ -365,8 +376,8 @@ module alu_test();
 		$display("Testing: carry in from microsequencer");
 		# `TEST_DELAY a = 16'HF031;
 		b = 16'H0010;
-		notALUOE = 1;
-		notShiftOE = 0;
+		notALUOE = 0;
+		notShiftOE = 1;
 		csel = `ALU_CSEL_UCIN;
 		ucin = 1;
 		fcin = 0;

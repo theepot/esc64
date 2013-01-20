@@ -292,7 +292,7 @@ void out_push(void)
 				ASSERT_ERRLINE(byte_type != 2, "Byte contains both high impedance and output bit(s)");
 				byte_type = 1;
 			}
-			else if(outputShadow[bit + byte*8] == LOGIC_HIGH || outputShadow[bit + byte*8] == LOGIC_LOW)
+			else if((outputShadow[bit + byte*8] == LOGIC_HIGH) || (outputShadow[bit + byte*8] == LOGIC_LOW))
 			{
 				ASSERT_ERRLINE(byte_type != 1, "Byte contains both high impedance and output bit(s)");
 				byte_type = 2;

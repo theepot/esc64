@@ -34,7 +34,7 @@ void test(void)
 	Delay(1);
 	
 	uint16_t n;
-	for(n = 0; n < 0x9A; n++)
+	for(n = 0; n < 0xFFFF; n++)
 	{
 		OUT(clock, 1);
 		FLUSH_OUTPUTS;
