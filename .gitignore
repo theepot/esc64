@@ -2,6 +2,7 @@
 a.out
 \#*
 .*
+!.gitignore
 *.srec
 *.hex
 *.bin
