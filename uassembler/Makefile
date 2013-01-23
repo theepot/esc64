@@ -18,4 +18,3 @@ gen_%.o: gen_%.c bin_table.h uassembler.h
 
 gen_%: gen_%.o uassembler.o bin_table.o
 	gcc -o $@ $(LFLAGS) $^
-

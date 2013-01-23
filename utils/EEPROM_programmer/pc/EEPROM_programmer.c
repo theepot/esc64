@@ -262,7 +262,7 @@ void send_command(uint8_t command)
 
 void prepare_data(const EEPROM_t* const mem, uint8_t* const buf, const int start, const int length)
 {
-	assert(start >= 0 && length > 0 && (start+length) < EEPROM_BLOCKS && start < 0xFF && length < 0xFF);
+	assert(start >= 0 && length > 0 && (start+length) <= EEPROM_BLOCKS && start <= 0xFF && length <= 0xFF);
 	int byte, bit;
 	for(byte = 0; byte < length*EEPROM_BLOCK_SIZE; byte++)
 	{

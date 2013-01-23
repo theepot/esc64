@@ -107,12 +107,16 @@ void set_next(uassembler* uasm, next_sel nxt)
 			set_field(uasm, uasm->nextsel_collumn_name, NEXT_SEL_UCODE);
 			set_field(uasm, uasm->next_addr_collumn_name, uasm->addr_fetch);
 		break;
-		case next_sel_next:
+		case next_sel_next_free:
 			set_field(uasm, uasm->nextsel_collumn_name, NEXT_SEL_UCODE);
 			set_field(uasm, uasm->next_addr_collumn_name, uasm->addr_free);
 		break;
 		case next_sel_op_entry:
 			set_field(uasm, uasm->nextsel_collumn_name, NEXT_SEL_OPCODE);
+		break;
+		case next_sel_current:
+			set_field(uasm, uasm->nextsel_collumn_name, NEXT_SEL_UCODE);
+			set_field(uasm, uasm->next_addr_collumn_name, uasm->addr_current);
 		break;
 		default:
 			fprintf(stderr, "error: unkown next_sel\n");
@@ -180,9 +184,9 @@ void copy_fields_from_previous(uassembler* uasm)
 
 void uassembler_init(uassembler* uasm, bin_table_collumn_description* field_descriptions, int number_of_fields,
 		int rom_addr_with, char* next_addr_collumn_name, char* nextsel_addr_collumn_name,
-		int opcode_width)
+		int opcode_width, int urom_width)
 {
-	bin_table_new(&(uasm->table), field_descriptions, number_of_fields, 1 << rom_addr_with , 1, 1);
+	bin_table_new(&(uasm->table), field_descriptions, number_of_fields, 1 << rom_addr_with, urom_width, 1, 1);
 	uasm->next_addr_collumn_name = next_addr_collumn_name;
 	uasm->nextsel_collumn_name = nextsel_addr_collumn_name;
 	uasm->opcode_width = opcode_width;
@@ -198,6 +202,7 @@ void uassembler_init(uassembler* uasm, bin_table_collumn_description* field_desc
 	uasm->addr_previous = -1;
 	uasm->addr_reset = 0;
 	uasm->addr_free = uasm->addr_fetch + 1;
+	uasm->current_at_op_entry = 0;
 
 }
 

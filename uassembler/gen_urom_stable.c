@@ -4,6 +4,8 @@
 #include "bin_table.h"
 
 bin_table_collumn_description field_descrps[] = {
+	{.name = "padding", .width = -1, .active_high = H},
+	{.name = "error", .width = 2, .active_high = H},
 	{.name = "statusNotLoad", .width = 1, .active_high = L},
 	{.name = "regselOE", .width = 1, .active_high = H},
 	{.name = "regselLoad", .width = 1, .active_high = H},
@@ -174,12 +176,17 @@ void mem(mem_action action)
 	}
 }
 
+void error(int error_code)
+{
+	set_field(u, "error", error_code);
+}
+
 void create_2op_alu_instruction(enum opcode op, int alu_fun, carry_sel c)
 {
 	goto_op_entry(u, op, ALWAYS);
 		breg_ld();
 		gpreg_oe(gpreg_oe_sel_op2);
-	set_next(u, next_sel_next);
+	set_next(u, next_sel_next_free);
 	goto_next(u);
 		alu_enable(alu_fun);
 		carry_set(c);
@@ -195,6 +202,13 @@ void create_nop_instruction(opcode op, int condition)
 	set_next(u, next_sel_fetch);
 }
 
+void create_illegal_instruction(opcode op)
+{
+	goto_op_entry(u, op, ALWAYS);
+	error(ERROR_WIRE_ILLEGAL_OPCODE);
+	set_next(u, next_sel_current);
+}
+
 void create_conditional_mov_instruction(opcode op, int condition)
 {
 	create_nop_instruction(op, ~condition);
@@ -205,15 +219,41 @@ void create_conditional_mov_instruction(opcode op, int condition)
 	set_next(u, next_sel_fetch);
 }
 
+void fill_opcode_entrys_with_illegal_instructions(void)
+{
+	int n;
+	for(n = 0; n < (1 << OPCODE_WIDTH); ++n)
+	{
+		create_illegal_instruction(n);
+	}
+}
+
+void fill_whole_memory_with_illegal_state(void)
+{
+	int n;
+	for(n = 0; n < (1 << UROM_ADDR_WIDTH); ++n)
+	{
+		u->current_at_op_entry = 0;
+		goto_address(u, n);
+		error(ERROR_WIRE_ILLEGAL_STATE);
+		set_next(u, next_sel_current);
+	}
+}
+
 int main(int argc, char** argv)
 {
 	uassembler uasm;
 	u = & uasm;
-	uassembler_init(u, field_descrps, field_descrps_n, UROM_ADDR_WIDTH, "next", "nextsel", 7);
+	uassembler_init(u, field_descrps, field_descrps_n, UROM_ADDR_WIDTH, "next", "nextsel", 7, 8*6);
+
+	//illegal state
+	fill_whole_memory_with_illegal_state();
+
+	//illegal instructions
+	fill_opcode_entrys_with_illegal_instructions();
 
 	//reset
 	goto_reset(u);
-
 	set_next(u, next_sel_fetch);
 
 	//fetch
@@ -222,7 +262,7 @@ int main(int argc, char** argv)
 	mem(mem_action_read);
 	pc_inc();
 	ir_ld();
-	set_next(u, next_sel_next);
+	set_next(u, next_sel_next_free);
 
 	goto_next(u);
 	set_next(u, next_sel_op_entry);
@@ -292,12 +332,12 @@ int main(int argc, char** argv)
 	goto_op_entry(u, op_store, ALWAYS);
 	gpreg_oe(gpreg_oe_sel_op2);
 	breg_ld();
-	set_next(u, next_sel_next);
+	set_next(u, next_sel_next_free);
 	goto_next(u);
 	alu_enable(ALU_F_B);
 	gpreg_oe(gpreg_oe_sel_op1);
 	mem(mem_action_write);
-	set_next(u, next_sel_next);
+	set_next(u, next_sel_next_free);
 	goto_next(u);
 	gpreg_oe(gpreg_oe_sel_op1);
 	set_next(u, next_sel_fetch);
@@ -306,7 +346,7 @@ int main(int argc, char** argv)
 	goto_op_entry(u, op_cmp, ALWAYS);
 	breg_ld();
 	gpreg_oe(gpreg_oe_sel_op2);
-	set_next(u, next_sel_next);
+	set_next(u, next_sel_next_free);
 	goto_next(u);
 	alu_enable(ALU_F_SUB);
 	status_ld();
@@ -318,7 +358,7 @@ int main(int argc, char** argv)
 	gpreg_oe(gpreg_oe_sel_pc);
 	alu_enable(ALU_F_A);
 	gpreg_ld(gpreg_ld_sel_6);
-	set_next(u, next_sel_next);
+	set_next(u, next_sel_next_free);
 	goto_next(u);
 	gpreg_oe(gpreg_oe_sel_op1);
 	alu_enable(ALU_F_A);

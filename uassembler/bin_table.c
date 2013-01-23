@@ -19,21 +19,9 @@
 
 
 //static forward declarations
-//static void set_collumn_indices(bin_table_collumn_description* collumn_descriptions, int collumns);
 static void initialize_table(bin_table* table);
 static char* strip_string(char* string);
 
-/*static void set_collumn_indices(bin_table_collumn_description* collumn_descriptions, int collumns)
-{
-	int i;
-	int index = 0;
-	for(i = 0; i < collumns; i++)
-	{
-		collumn_descriptions[i].index = index;
-		index += collumn_descriptions[i].width;
-	}
-
-}*/
 
 static char* strip_string(char* string)
 {
@@ -68,7 +56,7 @@ static void initialize_table(bin_table* table)
 	}
 }
 
-int bin_table_new(bin_table* table, bin_table_collumn_description* collumn_descriptions, int collumns, int rows, int print_on_error, int exit_on_error)
+int bin_table_new(bin_table* table, bin_table_collumn_description* collumn_descriptions, int collumns, int rows, int max_total_width, int print_on_error, int exit_on_error)
 {
 	table->print_on_error = print_on_error;
 	table->exit_on_error = exit_on_error;
@@ -91,6 +79,54 @@ int bin_table_new(bin_table* table, bin_table_collumn_description* collumn_descr
 		ERROR(table, "could not allocate %zu bytes for table", cells_size); return 0;
 	}
 	
+	if(max_total_width < 0)
+	{
+		ERROR(table, "max_total_width can not be less than zero. zero means no maximum."); return 0;
+	}
+
+	int n;
+	int padding_collumn = -1;
+	int total_width = 0;
+	for(n = 0; n < collumns; ++n)
+	{
+		if(table->collumn_descriptions[n].width == -1)
+		{
+			if(padding_collumn == -1)
+			{
+				if(max_total_width != 0)
+				{
+					padding_collumn = n;
+				}
+				else
+				{
+					ERROR(table, "table has padding collumn but no max total width is specified"); return 0;
+				}
+			}
+			else
+			{
+				ERROR(table, "table can only have one padding collumn"); return 0;
+			}
+		}
+		else if(table->collumn_descriptions[n].width <= 0)
+		{
+			ERROR(table, "width of collumn can only be -1 of greater than zero"); return 0;
+		}
+		else
+		{
+			total_width += table->collumn_descriptions[n].width;
+		}
+
+		if(total_width > max_total_width)
+		{
+			ERROR(table, "total width of collumns is greater than the maximum total width"); return 0;
+		}
+	}
+
+	if(padding_collumn != -1)
+	{
+		table->collumn_descriptions[padding_collumn].width = max_total_width - total_width;
+	}
+
 	//set_collumn_indices(collumn_descriptions, collumns);
 	initialize_table(table);
 	
@@ -182,7 +218,7 @@ int bin_table_copy_row(bin_table* table, int dest, int src)
 	return 1;
 }
 
-int bin_table_change_row_by_string(bin_table* table, const char* cell_values, int row)
+/*int bin_table_change_row_by_string(bin_table* table, const char* cell_values, int row)
 {
 	const int len = strlen(cell_values);
 	if(len == 0)
@@ -251,7 +287,7 @@ int bin_table_change_row_by_string(bin_table* table, const char* cell_values, in
 	}
 
 	return 1;
-}
+}*/
 
 int bin_table_collumn_by_name(bin_table* table, const char* name)
 {
@@ -274,9 +310,7 @@ void bin_table_print_binverilog(bin_table* table, FILE* f, int comments)
 		fprintf(f, "//");
 		for(i = 0; i < table->collumns; ++i)
 		{
-			fprintf(f, "%s:%d", table->collumn_descriptions[i].name, table->collumn_descriptions[i].width);
-			if(i != 0)
-				putchar(' ');
+			fprintf(f, "%s:%d ", table->collumn_descriptions[i].name, table->collumn_descriptions[i].width);
 		}
 		fputc('\n', f);
 	}

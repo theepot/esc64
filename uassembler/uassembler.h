@@ -39,8 +39,9 @@ typedef struct
 typedef enum next_sel
 {
 	next_sel_fetch,
-	next_sel_next,
-	next_sel_op_entry
+	next_sel_next_free,
+	next_sel_op_entry,
+	next_sel_current
 } next_sel;
 
 typedef enum flag_condition
@@ -52,7 +53,7 @@ typedef enum flag_condition
 
 void uassembler_init(uassembler* uasm, bin_table_collumn_description* field_descriptions, int number_of_fields,
 		int rom_addr_with, char* next_addr_collumn_name, char* nextsel_addr_collumn_name,
-		int opcode_width);
+		int opcode_width, int urom_width);
 void fprint_urom(FILE* f, uassembler* uasm);
 void assert_signal(uassembler* uasm, const char* field_name);
 void set_field(uassembler* uasm, const char* field_name, int value);

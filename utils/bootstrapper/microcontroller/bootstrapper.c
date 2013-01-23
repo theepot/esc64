@@ -6,83 +6,22 @@
 #include <avr/delay.h>
 #include <avr/crc16.h>
 #include <common.h>
+#include "bootstrapper.h"
 
-#define OUTOE_STROBE_ON (PORTC |= 1 << PORTC5)
-#define OUTOE_STROBE_OFF (PORTC &= ~(1 << PORTC5))
-#define OUTOE_DATA_ON (PORTC |= 1 << PORTC4)
-#define OUTOE_DATA_OFF (PORTC &= ~(1 << PORTC4))
-#define OUTOE_CLOCK_ON (PORTC |= 1 << PORTC3)
-#define OUTOE_CLOCK_OFF (PORTC &= ~(1 << PORTC3))
-#define OUTOE_NUM_BYTES 1
-
-#define OUT_STROBE_ON (PORTC |= 1 << PORTC2)
-#define OUT_STROBE_OFF (PORTC &= ~(1 << PORTC2))
-#define OUT_DATA_ON (PORTC |= 1 << PORTC1)
-#define OUT_DATA_OFF (PORTC &= ~(1 << PORTC1))
-#define OUT_CLOCK_ON (PORTC |= 1 << PORTC0)
-#define OUT_CLOCK_OFF (PORTC &= ~(1 << PORTC0))
-#define OUT_NUM_BYTES 6
-
-#define IN_SHIFT (PORTD |= 1 << PORTD2)
-#define IN_LOAD (PORTD &= ~(1 << PORTD2))
-#define IN_CLOCK_ON (PORTD |= 1 << PORTD3)
-#define IN_CLOCK_OFF (PORTD &= ~(1 << PORTD3))
-#define IN_DATA_IS_HIGH (PIND & (1 << PIND4))
-#define IN_NUM_BYTES 5
-
-#define OUT_PUT_1 do {\
-	OUT_DATA_ON;\
-	_delay_us(10);\
-	OUT_CLOCK_ON;\
-	_delay_us(10);\
-	OUT_CLOCK_OFF;\
-} while(0)
-
-#define OUT_PUT_0 do {\
-	OUT_DATA_OFF;\
-	_delay_us(10);\
-	OUT_CLOCK_ON;\
-	_delay_us(10);\
-	OUT_CLOCK_OFF;\
-} while(0)
-
-#define OUTOE_PUT_1 do {\
-	OUTOE_DATA_ON;\
-	_delay_us(10);\
-	OUTOE_CLOCK_ON;\
-	_delay_us(10);\
-	OUTOE_CLOCK_OFF;\
-} while(0)
-
-#define OUTOE_PUT_0 do {\
-	OUTOE_DATA_OFF;\
-	_delay_us(10);\
-	OUTOE_CLOCK_ON;\
-	_delay_us(10);\
-	OUTOE_CLOCK_OFF;\
-} while(0)
-
-uint8_t outoe_data[OUTOE_NUM_BYTES];
-uint8_t out_data[OUT_NUM_BYTES];
+uint8_t outoe_data[OUTOE_SHIFTR_NUM_BYTES];
+uint8_t out_data[OUT_SHIFTR_NUM_BYTES];
 uint8_t in_data[IN_NUM_BYTES];
 
-void outoe_push(void);
-void out_init(void);
-void outoe_init(void);
-void out_push(void);
+volatile uint32_t clock_freq;
+volatile uint8_t clock_running;
 
-void in_init(void);
-void in_pull(void);
-inline void in_capture(void);
-
-void in_init(void)
+void in_shiftr_init(void)
 {
-	DDRD |= (1 << DDC2) | (1 << DDC3);
-	DDRD &= ~(1 << DDC4);
+	IN_SHIFTR_IO_INIT;
 	IN_CLOCK_OFF;
 }
 
-inline void in_capture(void)
+void in_shiftr_capture(void)
 {
 	IN_LOAD;
 	_delay_us(10);
@@ -93,7 +32,7 @@ inline void in_capture(void)
 	IN_CLOCK_OFF;
 }
 
-void in_pull(void)
+void in_shiftr_pull(void)
 {
 	IN_SHIFT;
 	_delay_us(10);
@@ -118,94 +57,308 @@ void in_pull(void)
 
 }
 
-void out_init(void)
+void out_shiftr_init(void)
 {
-	DDRC |= (1 << DDC0) | (1 << DDC1) | (1 << DDC2) | (1 << DDC3) | (1 << DDC4) | (1 << DDC5);
-	OUT_STROBE_OFF;
-	OUT_CLOCK_OFF;
-	outoe_init();
+	outoe_shiftr_init();
+
+	OUT_SHIFTR_IO_INIT;
+	OUT_SHIFTR_STROBE_OFF;
+	OUT_SHIFTR_CLOCK_OFF;
 
 	//set all outputs to 0
 	int n;
-	for(n = 0; n < OUT_NUM_BYTES; n++)
+	for(n = 0; n < OUT_SHIFTR_NUM_BYTES; n++)
 	{
 		out_data[n] = 0;
 	}
 }
 
-void outoe_init(void)
+void outoe_shiftr_init(void)
 {
-	OUTOE_STROBE_OFF;
-	OUTOE_CLOCK_OFF;
+	OUTOE_SHIFTR_IO_INIT;
+	OUTOE_SHIFTR_STROBE_OFF;
+	OUTOE_SHIFTR_CLOCK_OFF;
 
 	//set all outputs to high impedance
 	int n;
-	for(n = 0; n < OUTOE_NUM_BYTES; n++)
+	for(n = 0; n < OUTOE_SHIFTR_NUM_BYTES; n++)
 	{
 		outoe_data[n] = 0;
 	}
-	outoe_push();
+	outoe_shiftr_push();
 }
 
-void outoe_push(void)
+void outoe_shiftr_push(void)
 {
-	uint8_t const * data = outoe_data;
-	OUTOE_STROBE_OFF;
+	uint8_t const * data = outoe_data + OUTOE_SHIFTR_NUM_BYTES - 1;
+	OUTOE_SHIFTR_STROBE_OFF;
 	_delay_us(10);
 	uint8_t byte;
-	for(byte = 0; byte < OUTOE_NUM_BYTES; byte++)
+	for(byte = 0; byte < OUTOE_SHIFTR_NUM_BYTES; byte++)
 	{
 		uint8_t mask;
 		for(mask = 1 << 7; mask != 0; mask >>= 1)
 		{
 			if(*data & mask)
-				OUTOE_PUT_1;
+				OUTOE_SHIFTR_PUT_1;
 			else
-				OUTOE_PUT_0;
+				OUTOE_SHIFTR_PUT_0;
 		}
-		data++;
+		data--;
 	}
-	OUTOE_STROBE_ON;
+	OUTOE_SHIFTR_STROBE_ON;
 }
 
-void out_push(void)
+void out_shiftr_push(void)
 {
-	uint8_t* data = out_data;
-	OUT_STROBE_OFF;
+	uint8_t* data = out_data + OUT_SHIFTR_NUM_BYTES - 1;
+	OUT_SHIFTR_STROBE_OFF;
 	_delay_us(10);
 	uint8_t byte;
-	for(byte = 0; byte < OUT_NUM_BYTES; byte++)
+	for(byte = 0; byte < OUT_SHIFTR_NUM_BYTES; byte++)
 	{
 		uint8_t mask;
 		for(mask = 1 << 7; mask != 0; mask >>= 1)
 		{
 			if(*data & mask)
-				OUT_PUT_1;
+				OUT_SHIFTR_PUT_1;
 			else
-				OUT_PUT_0;
+				OUT_SHIFTR_PUT_0;
 		}
-		data++;
+		data--;
 	}
-	OUT_STROBE_ON;
+	OUT_SHIFTR_STROBE_ON;
 }
 
 void set_address(uint16_t address)
 {
-	out_data[2] = address & 0xFF;
-	out_data[3] = address >> 8;
+	out_data[OUT_SHIFTR_ADDRESS_L] = address & 0xFF;
+	out_data[OUT_SHIFTR_ADDRESS_H] = address >> 8;
 }
 
 void set_data(uint16_t data)
 {
-	out_data[0] = address & 0xFF;
-	out_data[1] = address >> 8;
+	out_data[OUT_SHIFTR_DATA_L] = data & 0xFF;
+	out_data[OUT_SHIFTR_DATA_H] = data >> 8;
+}
+
+void data_oe(void)
+{
+	outoe_data[0] |= (1 << OUT_SHIFTR_DATA_L) | (1 << OUT_SHIFTR_DATA_H);
+}
+
+void data_hi(void)
+{
+	outoe_data[0] &= ~((1 << OUT_SHIFTR_DATA_L) | (1 << OUT_SHIFTR_DATA_H));
+}
+
+void address_oe(void)
+{
+	outoe_data[0] |= (1 << OUT_SHIFTR_ADDRESS_L) | (1 << OUT_SHIFTR_ADDRESS_H);
+}
+
+void address_hi(void)
+{
+	outoe_data[0] &= ~((1 << OUT_SHIFTR_ADDRESS_L) | (1 << OUT_SHIFTR_ADDRESS_H));
+}
+
+uint16_t get_data(void)
+{
+	return in_data[IN_DATA_L] | (in_data[IN_DATA_H] << 8);
+}
+
+uint16_t get_address(void)
+{
+	return in_data[IN_ADDRESS_L] | (in_data[IN_ADDRESS_H] << 8);
 }
 
 void io_init(void)
 {
-	in_init();
-	out_init();
+	in_shiftr_init();
+	out_shiftr_init();
+	
+	clock_init();
 
+	RESET_INIT;
+	RESET_HIGH;
+	MEMOE_HI;
+	MEMWR_HI;
+}
+
+void sram_write(const uint8_t* data, uint16_t start, uint16_t length)
+{
+	if(clock_running)
+		return;
+	MEMOE_HIGH;
+	MEMWR_HIGH;
+	MEMOE_OE;
+	MEMWR_OE;
+	RESET_LOW;
+
+	address_oe();
+	data_oe();
+	outoe_shiftr_push();
+
+	uint16_t n;
+	for(n = 0; n < length; ++n)
+	{
+		set_address(start + n);
+		set_data(data[n*SRAM_WORD_SIZE] | (data[n*SRAM_WORD_SIZE+1] << 8));
+		out_shiftr_push();
+		_delay_us(1);
+		MEMWR_LOW;
+		_delay_us(1);
+		MEMWR_HIGH;
+		_delay_us(1);
+	}
+
+	address_hi();
+	data_hi();
+	outoe_shiftr_push();
+	MEMOE_HI;
+	MEMWR_HI;
+	RESET_HIGH;
+}
+
+void sram_read(uint8_t* data, uint16_t start, uint16_t length)
+{
+	if(clock_running)
+		return;
+	MEMOE_HIGH;
+	MEMWR_HIGH;
+	MEMOE_OE;
+	MEMWR_OE;
+	RESET_LOW;
+
+	address_oe();
+	outoe_shiftr_push();
+
+	uint16_t n;
+	uint16_t d;
+	for(n = 0; n < length; ++n)
+	{
+		set_address(start + n);
+		out_shiftr_push();
+
+		_delay_us(1);
+		MEMOE_LOW;
+		_delay_us(1);
+		in_shiftr_capture();
+		in_shiftr_pull();
+		MEMWR_HIGH;
+
+		d = get_data();
+		data[n*SRAM_WORD_SIZE] = d & 0xFF;
+		data[n*SRAM_WORD_SIZE + 1] = (d >> 8) & 0xFF;
+	}
+
+	address_hi();
+	outoe_shiftr_push();
+	MEMOE_HI;
+	MEMWR_HI;
+	RESET_HIGH;
+}
+
+uint8_t sram_verify(uint8_t* data, uint16_t start, uint16_t length)
+{
+	uint8_t data_in_sram[length*SRAM_WORD_SIZE];
+	sram_read(data_in_sram, start, length);
+	uint16_t n;
+	for(n = 0; n < length*SRAM_WORD_SIZE; ++n)
+	{
+		if(data[n] != data_in_sram[n])
+		{
+			usart_send(REPLY_VERIFY_FAILED);
+			usart_send(n & 0xFF);
+			usart_send((n >> 8) & 0xFF);
+			return 0;
+		}
+
+	}
+	return 1;
+}
+
+void clock_init(void)
+{
+	CLOCK_INIT;
+	CLOCK_LOW;
+	clock_stop();
+	clock_freq = 1*FREQ_DIVIDER;
+}
+
+void clock_stop(void)
+{
+	TCCR1A = 0;
+	TCCR1B = 0;
+	clock_running = 0;
+}
+
+uint8_t clock_set_freq_and_start(uint32_t freq)
+{
+	TCCR1A = (1 << COM1A0);
+	TCCR1B = (1 << WGM12);
+
+	if(freq/FREQ_DIVIDER > F_CPU)
+	{
+		clock_running = 0;
+		return 0;
+	}
+
+	uint32_t ticks = (FREQ_DIVIDER*F_CPU) / freq / 2;
+	uint8_t success = 0;
+
+	if(ticks <= 0xFFFF)
+	{
+		OCR1A = ticks;
+		TCCR1B |= (1 << CS10);
+		success = 1;
+	}
+	else if(ticks / 8 <= 0xFFFF)
+	{
+		OCR1A = ticks / 8;
+		TCCR1B |= (1 << CS11);
+		success = 1;
+	}
+	else if(ticks / 64 <= 0xFFFF)
+	{
+		OCR1A = ticks / 64;
+		TCCR1B |= (1 << CS11) | (1 << CS10);
+		success = 1;
+	}
+	else if(ticks / 256 <= 0xFFFF)
+	{
+		OCR1A = ticks / 256;
+		TCCR1B |= (1 << CS12);
+		success = 1;
+	}
+	else if(ticks / 1024 <= 0xFFFF)
+	{
+		OCR1A = ticks / 1024;
+		TCCR1B |= (1 << CS12) | (1 << CS10);
+		success = 1;
+	}
+
+	clock_running = 1;
+	return success;
+}
+
+void reset(void)
+{
+	CLOCK_LOW;
+
+	uint8_t clock_was_running = clock_running;
+	if(clock_running)
+		clock_stop();
+
+	RESET_LOW;
+	_delay_us(100);
+	CLOCK_HIGH;
+	_delay_us(100);
+	RESET_HIGH;
+	CLOCK_LOW;
+
+	if(clock_was_running)
+		clock_set_freq_and_start(clock_freq);
 }
 
 uint8_t usart_receive(void)
@@ -216,15 +369,16 @@ uint8_t usart_receive(void)
 
 uint8_t usart_timed_receive(uint8_t sec, uint8_t* result)
 {
-	TCNT1 = 0;
+	sec *= (F_CPU / 1024 / 250);
+	TCNT0 = 0;
 	while(!(UCSR0A & (1 << RXC0)))
 	{
-		if(TCNT1 >= (8000000 / 1024))
+		if(TCNT0 >= 250)
 		{
 			sec--;
 			if(sec == 0)
 				return 0;
-			TCNT1 = 0;
+			TCNT0 = 0;
 		}
 	}
 	*result = UDR0;
@@ -239,8 +393,8 @@ void usart_send(uint8_t d)
 
 void timeout_timer_init(void)
 {
-	//timer 1: normal operation. prescale = 1024
-	TCCR1B = 0x05;
+	//timer 0: normal operation. prescale = 1024
+	TCCR0B = 0x05;
 }
 
 void usart_init(void)
@@ -274,31 +428,54 @@ uint16_t crc16(uint16_t crc_in, const uint8_t* data, uint16_t len)
 
 void command_upload(void)
 {
-	uint8_t start, n_blocks, crcL, crcH;
-	if(!usart_timed_receive(5, &start))
+	if(clock_running)
+	{
+		usart_send(REPLY_CLOCK_IS_RUNNING);
 		return;
+	}
+
+	uint8_t start, n_blocks, crcL, crcH;
+	uint16_t n;
+	if(!usart_timed_receive(5, &start))
+	{
+		usart_send(REPLY_TIME_OUT);
+		return;
+	}
 
 	if(!usart_timed_receive(5, &n_blocks))
+	{
+		usart_send(REPLY_TIME_OUT);
 		return;
+	}
 
 	if(!usart_timed_receive(5, &crcL))
+	{
+		usart_send(REPLY_TIME_OUT);
 		return;
+	}
 
 	if(!usart_timed_receive(5, &crcH))
+	{
+		usart_send(REPLY_TIME_OUT);
 		return;
+	}
 
 	const uint16_t len = n_blocks*SRAM_BLOCK_SIZE*SRAM_WORD_SIZE;
 	if(len > MAX_MCU_BUF_SIZE)
 	{
-		usart_send(REPLY_ACTION_FAILED);
+		usart_send(REPLY_BUF_TO_BIG);
 		return;
 	}
+
 	uint8_t data[len];
-	uint16_t n;
 	for(n = 0; n < len; ++n)
 	{
 		if(!usart_timed_receive(5, &data[n]))
+		{
+			usart_send(REPLY_TIME_OUT);
 			return;
+		}
+
 	}
 
 	uint16_t crc_local = crc16(CRC_INITIAL_VALUE, data, len);
@@ -308,15 +485,17 @@ void command_upload(void)
 		return;
 	}
 
+	sram_write(data, start*SRAM_BLOCK_SIZE, n_blocks*SRAM_BLOCK_SIZE);
 	for(n = 0; n < n_blocks; ++n)
 	{
-		/*write_page(start + n, &data[n*PAGE_SIZE]);
-		_delay_ms(100);
-		if(!verify_page(start + n, &data[n*PAGE_SIZE]))
+		if(!sram_verify(data + SRAM_WORD_SIZE*SRAM_BLOCK_SIZE*n, SRAM_BLOCK_SIZE*(start + n), SRAM_BLOCK_SIZE))
 		{
-			usart_send(REPLY_ACTION_FAILED);
+
+			usart_send(n & 0xFF);
+			usart_send((n >> 8) & 0xFF);
+
 			return;
-		}*/
+		}
 	}
 
 	usart_send(REPLY_OK);
@@ -324,45 +503,93 @@ void command_upload(void)
 
 void command_download(void)
 {
+	uint16_t block;
+	uint8_t data[SRAM_BLOCK_SIZE*SRAM_WORD_SIZE];
+	uint16_t crc = CRC_INITIAL_VALUE;
+	uint16_t n;
+	for(block = 0; block < SRAM_DEPTH; block += SRAM_BLOCK_SIZE)
+	{
+		sram_read(data, block, SRAM_BLOCK_SIZE);
+		crc = crc16(crc, data, SRAM_BLOCK_SIZE*SRAM_WORD_SIZE);
+		for(n = 0; n < SRAM_BLOCK_SIZE*SRAM_WORD_SIZE; ++n)
+		{
+			usart_send(data[n]);
+		}
+	}
+
+	usart_send(crc & 0xFF);
+	usart_send((crc >> 8) & 0xFF);
 
 }
 
 void command_start(void)
 {
-
+	if(!clock_set_freq_and_start(clock_freq))
+	{
+		usart_send(REPLY_ACTION_FAILED);
+	}
+	else
+	{
+		usart_send(REPLY_OK);
+	}
 }
 
 void command_stop(void)
 {
-
+	clock_stop();
+	usart_send(REPLY_OK);
 }
 
 void command_set_clock(void)
 {
+	uint8_t freq[4];
+	uint8_t n;
+	for(n = 0; n < 4; ++n)
+	{
+		if(!usart_timed_receive(5, &freq[n]))
+			return;
+	}
+	clock_freq = (uint32_t)freq[0] |
+			((uint32_t)freq[1] << 8) |
+			((uint32_t)freq[2] << 16) |
+			((uint32_t)freq[3] << 24);
+	if(clock_running)
+	{
+		if(!clock_set_freq_and_start(clock_freq))
+		{
+			usart_send(REPLY_ACTION_FAILED);
+			return;
+		}
+	}
 
+	usart_send(REPLY_OK);
 }
 
 void command_reset(void)
 {
-
+	reset();
+	usart_send(REPLY_OK);
 }
 
 void command_step(void)
 {
+	if(clock_running)
+	{
+		usart_send(REPLY_CLOCK_IS_RUNNING);
+		return;
+	}
 
+	CLOCK_HIGH;
+	_delay_ms(10);
+	CLOCK_LOW;
+
+	usart_send(REPLY_OK);
 }
 
 void command_step_instr(void)
 {
-
+	usart_send(REPLY_ACTION_FAILED);
 }
-
-void command_write(void)
-{
-
-}
-
-
 
 int main(void)
 {
@@ -372,7 +599,7 @@ int main(void)
 	
 	io_init();
 	usart_init();
-	
+
 	uint8_t cmd, cmd_XORed;
 	for(;;)
 	{

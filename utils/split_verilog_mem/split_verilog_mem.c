@@ -5,6 +5,8 @@
 #include <ctype.h>
 #include <errno.h>
 
+//TODO: last output should not always get rest of the bits
+
 void print_usage(const char* const arg0)
 {
 	printf("Usage:\n\t%s (width filename )+\n", arg0);
