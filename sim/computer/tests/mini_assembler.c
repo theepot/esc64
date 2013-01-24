@@ -353,6 +353,8 @@ void halt()
 	add_instruction(0x7F, 0, 0, 0, "halt");
 }
 
+extern void assembly_prgm(void);
+
 int main(int argc, char** argv)
 {
 	//init
@@ -365,7 +367,7 @@ int main(int argc, char** argv)
 	
 	//begin program
 	unsigned dest = 0xFFFF;
-	
+
 #define FN3(f, a, b, e, z, c) \
 	dest -= 3; \
 	fprintf(stderr, "@%05u expect: %04X, %c, %c\n", dest, (e), (z) ? '1' : '0', (c) ? '1' : '0'); \

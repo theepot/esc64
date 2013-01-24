@@ -12,5 +12,5 @@ computer.vcd: computer urom.lst ram.lst
 ram.lst: gen_program_ram
 	./gen_program_ram > ram.lst
 
-gen_program_ram: mini_assembler.c
-	gcc -I../../common -g -lm -Wall mini_assembler.c -o gen_program_ram
+gen_program_ram: mini_assembler.c $(MINI_ASSEMBLER_TARGET) mini_assembler.h
+	gcc -I. -I../../common -g -lm -Wall $(MINI_ASSEMBLER_TARGET) mini_assembler.c -o gen_program_ram

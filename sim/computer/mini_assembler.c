@@ -1,10 +1,12 @@
+#include "mini_assembler.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
 #include <cpu.h>
 
-#define MEM_SIZE (2048)
+/*#define MEM_SIZE (2048)
 #define LABELS_MAX (256)
 
 #define GP0	RGS_GP0
@@ -14,9 +16,9 @@
 #define GP4	RGS_GP4
 #define GP5	RGS_GP5
 #define LR	RGS_GP6
-#define PC	RGS_PC
+#define PC	RGS_PC*/
 
-typedef struct {
+/*typedef struct {
 	int opcode;
 	int op0, op1, op2;
 	int valid;
@@ -29,15 +31,9 @@ typedef struct {
 typedef struct {
 	const char* name;
 	int value;
-} label;
+} label;*/
 
-struct {
-	int new_instruction;
-	instruction* mem;
-	int mem_size;
-	label* labels;
-	int labels_amount;
-} globals;
+struct globals_struct globals;
 
 int label_find_by_name(const char* const name)
 {
@@ -353,6 +349,8 @@ void halt()
 	add_instruction(0x7F, 0, 0, 0, "halt");
 }
 
+extern void asm_prgm(void);
+
 int main(int argc, char** argv)
 {
 	//init
@@ -362,10 +360,12 @@ int main(int argc, char** argv)
 	globals.labels = malloc(sizeof(label) * LABELS_MAX);
 	globals.labels_amount = 0;
 	init_mem();
-	
-	//begin program
-	unsigned dest = 0x7FFF;
-	
+
+
+	asm_prgm();
+
+//BEGIN (test)	
+/*	unsigned dest = 0x7FFF;
 #define FN3(f, a, b, e, z, c) \
 	dest -= 3; \
 	fprintf(stderr, "@%05u expect: %04X, %c, %c\n", dest, (e), (z) ? '1' : '0', (c) ? '1' : '0'); \
@@ -436,8 +436,8 @@ int main(int argc, char** argv)
 	SHIFTR(0x0000, 0x0000, 1, 0);
 	SHIFTR(0x0001, 0x0000, 1, 1);
 	
-	
-	halt();
+	halt();*/
+//END (test)
 	
 	/*mov_literal(0, 10);
 	mov_literal(1, 5);
