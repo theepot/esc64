@@ -116,7 +116,39 @@ void set_next(uassembler* uasm, next_sel nxt)
 		break;
 		case next_sel_current:
 			set_field(uasm, uasm->nextsel_collumn_name, NEXT_SEL_UCODE);
-			set_field(uasm, uasm->next_addr_collumn_name, uasm->addr_current);
+			{
+				int field_index = bin_table_collumn_by_name(&(uasm->table), uasm->next_addr_collumn_name);
+				if(uasm->current_at_op_entry)
+				{
+					if(uasm->op_entry_zero_carry_mask & NOT_CARRY_NOT_ZERO)
+					{
+						bin_table_set_cell_value(&(uasm->table), field_index,
+									uasm->addr_current, uasm->addr_current);
+					}
+
+					if(uasm->op_entry_zero_carry_mask & NOT_CARRY_ZERO)
+					{
+						bin_table_set_cell_value(&(uasm->table), field_index,
+									uasm->addr_current | 1, uasm->addr_current | 1);
+					}
+
+					if(uasm->op_entry_zero_carry_mask & CARRY_NOT_ZERO)
+					{
+						bin_table_set_cell_value(&(uasm->table), field_index,
+									uasm->addr_current | 2, uasm->addr_current | 2);
+					}
+
+					if(uasm->op_entry_zero_carry_mask & CARRY_ZERO)
+					{
+						bin_table_set_cell_value(&(uasm->table), field_index,
+									uasm->addr_current | 3, uasm->addr_current | 3);
+					}
+				}
+				else
+				{
+					set_field(uasm, uasm->next_addr_collumn_name, uasm->addr_current);
+				}
+			}
 		break;
 		default:
 			fprintf(stderr, "error: unkown next_sel\n");

@@ -202,12 +202,6 @@ void create_nop_instruction(opcode op, int condition)
 	set_next(u, next_sel_fetch);
 }
 
-void create_illegal_instruction(opcode op)
-{
-	goto_op_entry(u, op, ALWAYS);
-	error(ERROR_WIRE_ILLEGAL_OPCODE);
-	set_next(u, next_sel_current);
-}
 
 void create_conditional_mov_instruction(opcode op, int condition)
 {
@@ -217,6 +211,13 @@ void create_conditional_mov_instruction(opcode op, int condition)
 	gpreg_ld(gpreg_ld_sel_op0);
 	alu_enable(ALU_F_A);
 	set_next(u, next_sel_fetch);
+}
+
+void create_illegal_instruction(opcode op)
+{
+	goto_op_entry(u, op, ALWAYS);
+	error(ERROR_WIRE_ILLEGAL_OPCODE);
+	set_next(u, next_sel_current);
 }
 
 void fill_opcode_entrys_with_illegal_instructions(void)
@@ -253,7 +254,8 @@ int main(int argc, char** argv)
 	fill_opcode_entrys_with_illegal_instructions();
 
 	//reset
-	goto_reset(u);
+	goto_op_entry(u, op_reset, ALWAYS);
+	//goto_reset(u);
 	set_next(u, next_sel_fetch);
 
 	//fetch

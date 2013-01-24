@@ -38,7 +38,7 @@
 #define ERROR_WIRE_ILLEGAL_STATE		2
 
 typedef enum opcode {
-	op_nop = 0,
+	op_reset = 0,
 	op_add = 1,
 	op_add_with_carry = 2,
 	op_add_literal = 3,

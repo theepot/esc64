@@ -1,4 +1,5 @@
 #include <mini_assembler.h>
+#include <cpu.h>
 
 void asm_prgm(void)
 {
