@@ -14,6 +14,7 @@ typedef enum ACTION_t {
 	ACTION_reset,
 	ACTION_step,
 	ACTION_step_instr,
+	ACTION_interactive,
 } ACTION_t;
 
 typedef enum SRAM_t {
@@ -52,5 +53,6 @@ void action_set_clock(const char* freq_str);
 void action_reset(void);
 void action_step(void);
 void action_step_instr(void);
+void action_interactive(void);
 
 #endif

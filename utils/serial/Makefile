@@ -1,9 +1,9 @@
 .PHONY: all
-all: serial.a
+all: libserial.a
 
 serial.o: serial.c
 	gcc -g -Wall -c serial.c -o $@
 
-serial.a: serial.o
-	ar rcs serial.a serial.o
+libserial.a: serial.o
+	ar rcs libserial.a serial.o
 

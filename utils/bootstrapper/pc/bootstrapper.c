@@ -25,14 +25,15 @@ static char doc[] =
 	"Bootstrapper -- Communicates with the ESC64 bootstrap hardware.";
 static char args_doc[] = "DEVICE";
 static struct argp_option options[] = {
-	{"upload",		'u',	"FILE",		0,	"upload file to SRAM"},
-	{"download",	'd',	"FILE",		0,	"download SRAM to file"},
-	{"start",		's',	0,		 	0,	"start the clock"},
-	{"stop",		'o',	0,		 	0,	"stop the clock"},
-	{"set_clock",	'c',	"FREQ",	 	0,	"set the clock frequency"},
-	{"reset",		'r',	0,		 	0,	"reset the CPU and stop clock"},
-	{"step",		'm',	0,		 	0,	"step one micro-instruction"},
-	{"step_instr",	'i',	0,		 	0,	"step one instruction"},
+	{"upload",			'u',	"FILE",		0,	"upload file to SRAM"},
+	{"download",		'd',	"FILE",		0,	"download SRAM to file"},
+	{"start",			's',	0,		 	0,	"start the clock"},
+	{"stop",			'o',	0,		 	0,	"stop the clock"},
+	{"set_clock",		'c',	"FREQ",	 	0,	"set the clock frequency"},
+	{"reset",			'r',	0,		 	0,	"reset the CPU and stop clock"},
+	{"step",			'm',	0,		 	0,	"step one micro-instruction"},
+	{"step_instr",		'i',	0,		 	0,	"step one instruction"},
+	{"interactive",		'a',	0,			0,	"go in interactive mode"},
 	{ 0 }
 };
 struct arguments
@@ -56,6 +57,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
 	case 'r':
 	case 'm':
 	case 'i':
+	case 'a':
 		if(arguments->action != ACTION_not_defined)
 		{
 			argp_error(state, "only one action can be specified");
@@ -92,7 +94,9 @@ parse_opt (int key, char *arg, struct argp_state *state)
 	case 'i':
 		arguments->action = ACTION_step_instr;
 		break;
-
+	case 'a':
+		arguments->action = ACTION_interactive;
+		break;
 	case ARGP_KEY_ARG:
 		if (state->arg_num >= 1)
 		{
@@ -132,8 +136,6 @@ int main(int argc, char** argv)
 
 	serial_open(&global_serial_device, arguments.device_tty_device_path, 8, 19200, 19200, 1, 0, 0, 1, 1, 1);
 
-	handshake();
-
 	switch(arguments.action)
 	{
 	case ACTION_upload:
@@ -159,6 +161,9 @@ int main(int argc, char** argv)
 		break;
 	case ACTION_step_instr:
 		action_step_instr();
+		break;
+	case ACTION_interactive:
+		action_interactive();
 		break;
 	default:
 		assert(0);
@@ -497,6 +502,7 @@ int sram_block_is_empty(const SRAM_t* const mem, const int n)
 int command_upload(const SRAM_t* const mem, const int start, const int length)
 {
 	retry:
+	handshake();
 	printf("sram upload of %d blocks from position %d\n", length, start);
 	send_command(COMMAND_UPLOAD);
 	send_blocks_with_header(mem, start, length);
@@ -521,6 +527,7 @@ int command_upload(const SRAM_t* const mem, const int start, const int length)
 
 void command_download(SRAM_t* mem)
 {
+	handshake();
 	send_command(COMMAND_DOWNLOAD);
 
 	uint8_t data[SRAM_DEPTH*SRAM_WORD_SIZE];
@@ -550,6 +557,7 @@ void command_download(SRAM_t* mem)
 }
 int command_start(void)
 {
+	handshake();
 	send_command(COMMAND_START);
 	int response = wait_for_command_response(30, 5, 1);
 	return response;
@@ -557,6 +565,7 @@ int command_start(void)
 
 int command_stop(void)
 {
+	handshake();
 	send_command(COMMAND_STOP);
 	int response = wait_for_command_response(30, 5, 1);
 	return response;
@@ -564,6 +573,7 @@ int command_stop(void)
 
 int command_set_clock(double f)
 {
+	handshake();
 	printf("setting clock speed at %f Hz\n", f);
 	send_command(COMMAND_SET_CLOCK);
 	uint32_t frequency = (double)f * (double)FREQ_DIVIDER;
@@ -578,6 +588,7 @@ int command_set_clock(double f)
 
 int command_step(void)
 {
+	handshake();
 	send_command(COMMAND_STEP);
 	int response = wait_for_command_response(30, 5, 1);
 	return response;
@@ -585,6 +596,7 @@ int command_step(void)
 
 int command_reset(void)
 {
+	handshake();
 	send_command(COMMAND_RESET);
 	int response = wait_for_command_response(30, 5, 1);
 	return response;
@@ -667,6 +679,8 @@ void action_upload_sram(const char* file_path)
 		}
 		start = end;
 	}
+
+	fclose(f);
 }
 
 void action_download_sram(const char* file_path)
@@ -743,49 +757,124 @@ void action_step_instr(void)
 	puts("not implemented");
 }
 
-/*void raw_data_to_EEPROM(EEPROM_t* const dest, const uint8_t* raw)
+static char* strip_string(char* string)
 {
-	int n;
-	for(n = 0; n < EEPROM_SIZE*EEPROM_WIDTH; n++)
+	int len = strlen(string);
+	if(len < 1)
+		return 0;
+
+	char* start = string;
+	while(isspace(*start))
 	{
-		dest[n] = (raw[n/EEPROM_WIDTH] >> (n % EEPROM_WIDTH)) & 1 ? EEPROM_ONE : EEPROM_ZERO;
+		start++;
 	}
+
+	char* end = string + len - 1;
+
+	while(isspace(*end) && end != string)
+	{
+		end--;
+	}
+	end++;
+
+	*end = '\0';
+	return start;
 }
 
-void command_read_eeprom(EEPROM_t* const mem)
+static void print_interactive_help(void)
 {
-	retry:
-	handshake();
-	printf("commanding read\n");
-	sync();
-	send_command(COMMAND_READ);
-	uint8_t data[EEPROM_SIZE];
-	int tmp = serial_timed_read(&global_serial_device, data, EEPROM_SIZE, 30);
-	if(tmp != EEPROM_SIZE)
+	puts("You are now in interactive mode. The commands are:\n"
+			"\tm:		step\n"
+			"\tm [n]:		step n times\n"
+			"\ts:		start\n"
+			"\to:		stop\n"
+			"\tr:		reset\n"
+			"\tc [n]:		set clock speed\n"
+			"\th:		print this message\n"
+			"\tq or EOF:	quit\n"
+			"By pressing only enter the previous command is issued\n");
+}
+
+void action_interactive(void)
+{
+	print_interactive_help();
+
+	char line[128];
+	int quit = 0;
+	char previous_command[128] = "";
+	while(!quit)
 	{
-		puts("failed receiving data. Action timed out");
-		exit(1);
+		printf("[%s]>", previous_command);
+		if(fgets(line, 128, stdin) == NULL)
+		{
+			puts("\nexit");
+			quit = 1;
+			continue;
+		}
+		char* l = strip_string(line);
+
+		if(l[0] == '\0')
+		{
+			l = previous_command;
+		}
+
+		switch(l[0])
+		{
+		case 'h':
+			print_interactive_help();
+			break;
+		case 'q':
+		case EOF:
+			puts("exit");
+			quit = 1;
+			break;
+		case 'c':
+			if(l[1] == '\0')
+			{
+				puts("command needs arugment");
+			}
+			else
+			{
+				action_set_clock(l + 1);
+			}
+			break;
+		case 'm':
+			if(l[1] == '\0')
+			{
+				action_step();
+			}
+			else
+			{
+				int n = strtol(l + 1, NULL, 10);
+				if(n == 0)
+				{
+					puts("number of steps to step is wrong");
+				}
+				else
+				{
+					for(; n >= 0; --n)
+					{
+						action_step();
+					}
+				}
+			}
+			break;
+		case 's':
+			action_start();
+			break;
+		case 'o':
+			action_stop();
+			break;
+		case 'r':
+			action_reset();
+			break;
+		default:
+			puts("unknown command");
+			break;
+		}
+		strcpy(previous_command, l);
 	}
 
-	uint8_t crc_remote[2];
-	if(serial_timed_read(&global_serial_device, crc_remote, 2, 10) != 2)
-	{
-		puts("failed receiving crc. Action timed out");
-		exit(1);
-	}
 
-	uint16_t crc_local = crc16(data, EEPROM_SIZE);
-	uint16_t crc_remote16 = (((uint16_t)crc_remote[1]) << 8) | ((uint16_t)crc_remote[0]);
-	if(crc_local != crc_remote16)
-	{
-		printf("crc check failed: got %X, expected %X. Retrying\n", crc_remote16, crc_local);
-		goto retry;
-	}
-
-	raw_data_to_EEPROM(mem, data);
-
-	puts("done");
-}*/
-
-
+}
 
