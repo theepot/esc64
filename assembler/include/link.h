@@ -5,41 +5,73 @@
 
 #include "esctypes.h"
 
+//	executable structure
+//		- section[]
+
 //	executable section structure
 //		- type		: Byte_t
 //		- address	: UWord_t
 //		- size		: UWord_t
 //		<<if type = data>>
-//		- data
+//		- data		: <size>
 //		<<end type = data>>
 #define EXE_SECTION_TYPE_OFFSET	0
 #define EXE_SECTION_ADDR_OFFSET	(EXE_SECTION_TYPE_OFFSET + sizeof (Byte_t))
 #define EXE_SECTION_SIZE_OFFSET	(EXE_SECTION_ADDR_OFFSET + sizeof (UWord_t))
 #define EXE_SECTION_DATA_OFFSET	(EXE_SECTION_SIZE_OFFSET + sizeof (UWord_t))
 
+/**
+ * @brief			Used to write sections to an executable
+ */
 typedef struct ExeWriter_
 {
 	FILE* stream;
 } ExeWriter;
 
+/**
+ * @brief			Initializes the executable writer
+ * @param path		Path to executable. File will be overwritten or created
+ */
 void ExeWriterInit(ExeWriter* writer, const char* path);
+/**
+ * @brief			Closes executable writer
+ */
 void ExeWriterClose(ExeWriter* writer);
 
+/**
+ * @brief			Write a BSS section
+ * @param address	Address of BSS section
+ * @param size		Size of BSS section
+ */
 void ExeWriteBss(ExeWriter* writer, UWord_t address, UWord_t size);
+
+/**
+ * @brief			Write a data section
+ * @param address	Address of data section
+ * @param size		Size of data section
+ * @param data		Pointer to raw data in data section
+ */
 void ExeWriteData(ExeWriter* writer, UWord_t address, UWord_t size, const void* data);
+
+/**
+ * @brief			Describes ExeReader state
+ */
+typedef enum ExeReaderState_
+{
+	EXE_READER_STATE_START,			///< Reader is at the start of a section
+	EXE_READER_STATE_READ_STATIC	///< Reader read the static part of the section
+} ExeReaderState;
 
 /**
  * @brief			Reader structure. Used to read executable files
  */
 typedef struct ExeReader_
 {
-	FILE* stream;		///< Input stream
-	Byte_t type;		///< Type of current section
-	UWord_t address;	///< Address of current section
-	UWord_t size;		///< Size of current section
-#ifdef ESC_DEBUG
-	int readData;
-#endif
+	FILE* stream;			///< Input stream
+	Byte_t type;			///< Type of current section
+	UWord_t address;		///< Address of current section
+	UWord_t size;			///< Size of current section
+	ExeReaderState state;	///< State of the reader
 } ExeReader;
 
 /**

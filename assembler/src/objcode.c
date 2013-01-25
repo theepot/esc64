@@ -177,6 +177,75 @@ int ObjReaderNextSection(ObjectReader* reader)
 	return 0;
 }
 
+UWord_t ObjReadAddress(ObjectReader* reader)
+{
+	IOSetFilePos(
+			reader->stream,
+			reader->offset + OBJ_SECTION_ADDRESS_OFFSET);
+	return IOReadWord(reader->stream);
+}
+
+
+UWord_t ObjReadSize(ObjectReader* reader)
+{
+	IOSetFilePos(
+				reader->stream,
+				reader->offset + OBJ_SECTION_SIZE_OFFSET);
+	return IOReadWord(reader->stream);
+}
+
+void ObjSymIteratorInit(ObjSymIterator* it, ObjectReader* reader, ObjSize_t offset, UWord_t symCount)
+{
+	it->stream = reader->stream;
+	it->symCount = symCount;
+	it->symN = 0;
+	RecordReaderInit(&it->symReader, reader->stream, reader->offset + offset);
+	it->state = OBJ_IT_STATE_START;
+}
+
+int ObjSymIteratorNext(ObjSymIterator* it)
+{
+	assert(it->state == OBJ_IT_STATE_START);
+	if(it->symN >= it->symCount)
+	{
+		return -1;
+	}
+
+	size_t toRead = sizeof (UWord_t) + sizeof (UWord_t);
+	Byte_t buf[toRead];
+	void* p = buf;
+	RecordRead(&it->symReader, it->stream, buf, toRead);
+
+	UWord_t rawValue;
+	memcpy(&rawValue, p, sizeof rawValue);
+	p += sizeof rawValue;
+	it->curSym.value = NTOH_WORD(rawValue);			//value
+
+	UWord_t rawNameSize;
+	memcpy(&rawNameSize, p, sizeof rawNameSize);
+	it->curSym.nameLen = NTOH_WORD(rawNameSize);	//nameSize
+
+	it->state = OBJ_IT_STATE_READ_STATIC;
+
+	return 0;
+}
+
+void ObjSymIteratorReadName(ObjSymIterator* it, void* buf)
+{
+	assert(it->state == OBJ_IT_STATE_READ_STATIC);
+	assert(it->symN < it->symCount);
+
+	RecordRead(&it->symReader, it->stream, buf, it->curSym.nameLen);
+	it->curSym.name = buf;
+
+	it->state = OBJ_IT_STATE_START;
+}
+
+const Symbol* ObjSymIteratorGetSym(ObjSymIterator* it)
+{
+	return &it->curSym;
+}
+
 static void EnterSection(ObjectWriter* writer, Byte_t type, Byte_t placement, UWord_t addr, UWord_t size)
 {
 	FlushSection(writer);

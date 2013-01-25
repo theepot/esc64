@@ -38,6 +38,7 @@ void ExeReaderInit(ExeReader* reader, const char* path)
 	assert(reader->stream);
 	
 	reader->type = SECTION_TYPE_NONE;
+	reader->state = EXE_READER_STATE_START;
 }
 
 void ExeReaderClose(ExeReader* reader)
@@ -47,12 +48,10 @@ void ExeReaderClose(ExeReader* reader)
 
 int ExeReadNext(ExeReader* reader)
 {
-#ifdef ESC_DEBUG
 	if(reader->type == SECTION_TYPE_DATA)
 	{
-		assert(reader->dataRead);
+		assert(reader->state == EXE_READER_STATE_START);
 	}
-#endif
 
 	reader->type = IOReadByte(reader->stream);		//type
 	if(feof(reader->stream))
@@ -60,26 +59,23 @@ int ExeReadNext(ExeReader* reader)
 		reader->type = SECTION_TYPE_NONE;
 		return -1;
 	}
-	
-#ifdef ESC_DEBUG
-	if(reader->type == SECTION_TYPE_DATA)
-	{
-		reader->dataRead = 0;
-	}
-#endif
 
 	reader->address = IOReadWord(reader->stream);	//address
 	reader->size = IOReadWord(reader->stream);		//size
+	
+	if(reader->type == SECTION_TYPE_DATA)
+	{
+		reader->state = EXE_READER_STATE_READ_STATIC;
+	}
 	
 	return 0;
 }
 
 void ExeReadData(ExeReader* reader, void* data)
 {
-#ifdef ESC_DEBUG
 	assert(reader->type == SECTION_TYPE_DATA);
-	reader->dataRead = 1;
-#endif
+	assert(reader->state == EXE_READER_STATE_READ_STATIC);
+
 	if(!data)
 	{
 		//TODO delegate to ioutils
@@ -88,5 +84,7 @@ void ExeReadData(ExeReader* reader, void* data)
 	}
 
 	IORead(reader->stream, data, reader->size);
+
+	reader->state = EXE_READER_STATE_START;
 }
 
