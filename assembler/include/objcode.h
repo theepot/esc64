@@ -1,6 +1,9 @@
 #ifndef OBJCODE_INCLUDED
 #define OBJCODE_INCLUDED
 
+//TODO add a field in the object header that describes the total of symbol name sizes (local and global seperate)
+
+
 #include <stdio.h>
 
 #include "esctypes.h"
@@ -84,9 +87,9 @@ typedef struct Instruction_
 } Instruction;
 
 //	symbol structure
+//		value		: UWord_t
 //		nameSize	: UWord_t
 //		name		: <nameSize>
-//		value		: UWord_t
 
 typedef struct Symbol_
 {
@@ -96,9 +99,9 @@ typedef struct Symbol_
 } Symbol;
 
 //	expressions structure
+//		value		: UWord_t
 //		nameSize	: UWord_t
 //		name		: <nameSize>
-//		value		: UWord_t
 
 typedef struct Expression_
 {
@@ -165,7 +168,46 @@ typedef struct ObjectReader_
 void ObjectReaderInit(ObjectReader* reader, const char* path, ObjectHeader* header);
 void ObjectReaderStart(ObjectReader* reader, ObjSize_t firstOffset);
 void ObjectReaderClose(ObjectReader* reader);
-
 int ObjReaderNextSection(ObjectReader* reader);
+
+UWord_t ObjReadAddress(ObjectReader* reader);
+UWord_t ObjReadSize(ObjectReader* reader);
+
+typedef enum ObjIteratorState_
+{
+	OBJ_IT_STATE_START,
+	OBJ_IT_STATE_READ_STATIC
+} ObjIteratorState;
+
+typedef struct ObjSymIterator_
+{
+	FILE* stream;
+	UWord_t symCount;	///< amount of symbols in record list
+	UWord_t symN;		///< current symbol index
+	RecordReader symReader;
+	ObjIteratorState state;
+	Symbol curSym;
+} ObjSymIterator;
+
+void ObjSymIteratorInit(ObjSymIterator* it, ObjectReader* reader, ObjSize_t offset, UWord_t symCount);
+int ObjSymIteratorNext(ObjSymIterator* it);
+void ObjSymIteratorReadName(ObjSymIterator* it, void* buf);
+const Symbol* ObjSymIteratorGetSym(ObjSymIterator* it);
+
+//typedef struct ObjExprIterator_
+//{
+//	ObjectReader* reader;
+//	ObjSize_t i;	///< offset of next expression
+//} ObjExprIterator;
+//
+//void ObjExprIteratorInit(ObjExprIterator* it, ObjectReader* reader);
+//int ObjExprIteratorNext(ObjExprIterator* it, Expression* expr);
+//
+//typedef struct ObjDataIterator_
+//{
+//	ObjectReader* reader;
+//	ObjSize_t i;	///< points to unread data
+//	ObjSize_t end;	///< points to end of data
+//} ObjDataIterator;
 
 #endif
