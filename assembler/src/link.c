@@ -8,7 +8,7 @@
 
 void ExeWriterInit(ExeWriter* writer, const char* path)
 {
-	writer->stream = fopen(path, "rb");
+	writer->stream = fopen(path, "wb+");
 	assert(writer->stream);
 }
 
@@ -26,7 +26,7 @@ void ExeWriteBss(ExeWriter* writer, UWord_t address, UWord_t size)
 
 void ExeWriteData(ExeWriter* writer, UWord_t address, UWord_t size, const void* data)
 {
-	IOWriteByte(writer->stream, SECTION_TYPE_BSS);	//type
+	IOWriteByte(writer->stream, SECTION_TYPE_DATA);	//type
 	IOWriteWord(writer->stream, address);			//address
 	IOWriteWord(writer->stream, size);				//size
 	IOWrite(writer->stream, data, size);			//data
@@ -53,10 +53,8 @@ int ExeReadNext(ExeReader* reader)
 		assert(reader->state == EXE_READER_STATE_START);
 	}
 
-	reader->type = IOReadByte(reader->stream);		//type
-	if(feof(reader->stream))
+	if(!TryIOReadByte(reader->stream, &reader->type))
 	{
-		reader->type = SECTION_TYPE_NONE;
 		return -1;
 	}
 

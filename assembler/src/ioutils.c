@@ -73,6 +73,23 @@ void IORead(FILE* stream, void* data, size_t dataSize)
 	assert(fread(data, dataSize, 1, stream) == 1);
 }
 
+size_t TryIORead(FILE* stream, void* data, size_t dataSize)
+{
+	return fread(data, dataSize, 1, stream);
+}
+
+int TryIOReadByte(FILE* stream, Byte_t* out)
+{
+	if(TryIORead(stream, out, 1) == 1)
+	{
+		return 1;
+	}
+	else
+	{
+		return 0;
+	}
+}
+
 Byte_t IOReadByte(FILE* stream)
 {
 	Byte_t byte;
