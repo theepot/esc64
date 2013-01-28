@@ -1,5 +1,5 @@
-`ifndef THREE_TO_EIGHT_DECODER_74138
-`define THREE_TO_EIGHT_DECODER_74138
+`ifndef _THREE_TO_EIGHT_DECODER_74138_
+`define _THREE_TO_EIGHT_DECODER_74138_
 
 module ThreeToEightDecoder_74138(notOE1, notOE2, OE3, in, notOut);
 	input notOE1, notOE2, OE3;

@@ -352,8 +352,10 @@ int main(int argc, char** argv)
 	goto_next(u);
 	alu_enable(ALU_F_SUB);
 	status_ld();
+	carry_set(carry_sel_one);
 	gpreg_oe(gpreg_oe_sel_op1);
 	set_next(u, next_sel_fetch);
+
 
 	//call
 	goto_op_entry(u, op_call, ALWAYS);

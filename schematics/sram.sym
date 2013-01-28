@@ -4,352 +4,341 @@ P 0 1400 300 1400 1 0 0
 T 0 1400 5 10 0 1 0 0 1
 pintype=in
 T 355 1395 5 10 1 1 0 0 1
-pinlabel=addr:16
+pinlabel=addr:15
 T 205 1445 5 10 1 1 0 6 1
-pinnumber=16
-T 0 1400 5 10 0 0 0 0 1
-pinseq=16
+pinnumber=15
+T 0 1400 5 10 0 1 0 0 1
+pinseq=15
 }
 P 0 1700 300 1700 1 0 0
 {
 T 0 1700 5 10 0 1 0 0 1
 pintype=in
 T 355 1695 5 10 1 1 0 0 1
-pinlabel=addr:15
+pinlabel=addr:14
 T 205 1745 5 10 1 1 0 6 1
-pinnumber=15
-T 0 1700 5 10 0 0 0 0 1
-pinseq=15
+pinnumber=14
+T 0 1700 5 10 0 1 0 0 1
+pinseq=14
 }
 P 0 2000 300 2000 1 0 0
 {
 T 0 2000 5 10 0 1 0 0 1
 pintype=in
 T 355 1995 5 10 1 1 0 0 1
-pinlabel=addr:14
+pinlabel=addr:13
 T 205 2045 5 10 1 1 0 6 1
-pinnumber=14
-T 0 2000 5 10 0 0 0 0 1
-pinseq=14
+pinnumber=13
+T 0 2000 5 10 0 1 0 0 1
+pinseq=13
 }
 P 0 2300 300 2300 1 0 0
 {
 T 0 2300 5 10 0 1 0 0 1
 pintype=in
 T 355 2295 5 10 1 1 0 0 1
-pinlabel=addr:13
+pinlabel=addr:12
 T 205 2345 5 10 1 1 0 6 1
-pinnumber=13
-T 0 2300 5 10 0 0 0 0 1
-pinseq=13
+pinnumber=12
+T 0 2300 5 10 0 1 0 0 1
+pinseq=12
 }
 P 0 2600 300 2600 1 0 0
 {
 T 0 2600 5 10 0 1 0 0 1
 pintype=in
 T 355 2595 5 10 1 1 0 0 1
-pinlabel=addr:12
+pinlabel=addr:11
 T 205 2645 5 10 1 1 0 6 1
-pinnumber=12
-T 0 2600 5 10 0 0 0 0 1
-pinseq=12
+pinnumber=11
+T 0 2600 5 10 0 1 0 0 1
+pinseq=11
 }
 P 0 2900 300 2900 1 0 0
 {
 T 0 2900 5 10 0 1 0 0 1
 pintype=in
 T 355 2895 5 10 1 1 0 0 1
-pinlabel=addr:11
+pinlabel=addr:10
 T 205 2945 5 10 1 1 0 6 1
-pinnumber=11
-T 0 2900 5 10 0 0 0 0 1
-pinseq=11
+pinnumber=10
+T 0 2900 5 10 0 1 0 0 1
+pinseq=10
 }
 P 0 3200 300 3200 1 0 0
 {
 T 0 3200 5 10 0 1 0 0 1
 pintype=in
 T 355 3195 5 10 1 1 0 0 1
-pinlabel=addr:10
+pinlabel=addr:9
 T 205 3245 5 10 1 1 0 6 1
-pinnumber=10
-T 0 3200 5 10 0 0 0 0 1
-pinseq=10
+pinnumber=9
+T 0 3200 5 10 0 1 0 0 1
+pinseq=9
 }
 P 0 3500 300 3500 1 0 0
 {
 T 0 3500 5 10 0 1 0 0 1
 pintype=in
 T 355 3495 5 10 1 1 0 0 1
-pinlabel=addr:9
+pinlabel=addr:8
 T 205 3545 5 10 1 1 0 6 1
-pinnumber=9
-T 0 3500 5 10 0 0 0 0 1
-pinseq=9
+pinnumber=8
+T 0 3500 5 10 0 1 0 0 1
+pinseq=8
 }
 P 0 3800 300 3800 1 0 0
 {
 T 0 3800 5 10 0 1 0 0 1
 pintype=in
 T 355 3795 5 10 1 1 0 0 1
-pinlabel=addr:8
+pinlabel=addr:7
 T 205 3845 5 10 1 1 0 6 1
-pinnumber=8
-T 0 3800 5 10 0 0 0 0 1
-pinseq=8
+pinnumber=7
+T 0 3800 5 10 0 1 0 0 1
+pinseq=7
 }
 P 0 4100 300 4100 1 0 0
 {
 T 0 4100 5 10 0 1 0 0 1
 pintype=in
 T 355 4095 5 10 1 1 0 0 1
-pinlabel=addr:7
+pinlabel=addr:6
 T 205 4145 5 10 1 1 0 6 1
-pinnumber=7
-T 0 4100 5 10 0 0 0 0 1
-pinseq=7
+pinnumber=6
+T 0 4100 5 10 0 1 0 0 1
+pinseq=6
 }
 P 0 4400 300 4400 1 0 0
 {
 T 0 4400 5 10 0 1 0 0 1
 pintype=in
 T 355 4395 5 10 1 1 0 0 1
-pinlabel=addr:6
+pinlabel=addr:5
 T 205 4445 5 10 1 1 0 6 1
-pinnumber=6
-T 0 4400 5 10 0 0 0 0 1
-pinseq=6
+pinnumber=5
+T 0 4400 5 10 0 1 0 0 1
+pinseq=5
 }
 P 0 4700 300 4700 1 0 0
 {
 T 0 4700 5 10 0 1 0 0 1
 pintype=in
 T 355 4695 5 10 1 1 0 0 1
-pinlabel=addr:5
+pinlabel=addr:4
 T 205 4745 5 10 1 1 0 6 1
-pinnumber=5
-T 0 4700 5 10 0 0 0 0 1
-pinseq=5
+pinnumber=4
+T 0 4700 5 10 0 1 0 0 1
+pinseq=4
 }
 P 0 5000 300 5000 1 0 0
 {
 T 0 5000 5 10 0 1 0 0 1
 pintype=in
 T 355 4995 5 10 1 1 0 0 1
-pinlabel=addr:4
+pinlabel=addr:3
 T 205 5045 5 10 1 1 0 6 1
-pinnumber=4
-T 0 5000 5 10 0 0 0 0 1
-pinseq=4
+pinnumber=3
+T 0 5000 5 10 0 1 0 0 1
+pinseq=3
 }
 P 0 5300 300 5300 1 0 0
 {
 T 0 5300 5 10 0 1 0 0 1
 pintype=in
 T 355 5295 5 10 1 1 0 0 1
-pinlabel=addr:3
+pinlabel=addr:2
 T 205 5345 5 10 1 1 0 6 1
-pinnumber=3
-T 0 5300 5 10 0 0 0 0 1
-pinseq=3
+pinnumber=2
+T 0 5300 5 10 0 1 0 0 1
+pinseq=2
 }
 P 0 5600 300 5600 1 0 0
 {
 T 0 5600 5 10 0 1 0 0 1
 pintype=in
 T 355 5595 5 10 1 1 0 0 1
-pinlabel=addr:2
-T 205 5645 5 10 1 1 0 6 1
-pinnumber=2
-T 0 5600 5 10 0 0 0 0 1
-pinseq=2
-}
-P 0 5900 300 5900 1 0 0
-{
-T 0 5900 5 10 0 1 0 0 1
-pintype=in
-T 355 5895 5 10 1 1 0 0 1
 pinlabel=addr:1
-T 205 5945 5 10 1 1 0 6 1
+T 205 5645 5 10 1 1 0 6 1
 pinnumber=1
-T 0 5900 5 10 0 0 0 0 1
+T 0 5600 5 10 0 1 0 0 1
 pinseq=1
-}
-P 2300 5900 2000 5900 1 0 0
-{
-T 2300 5900 5 10 0 1 0 0 1
-pintype=out
-T 1945 5895 5 10 1 1 0 6 1
-pinlabel=data:1
-T 2095 5945 5 10 1 1 0 0 1
-pinnumber=20
-T 2300 5900 5 10 0 0 0 0 1
-pinseq=20
 }
 P 2300 5600 2000 5600 1 0 0
 {
 T 2300 5600 5 10 0 1 0 0 1
 pintype=out
 T 1945 5595 5 10 1 1 0 6 1
-pinlabel=data:2
+pinlabel=data:1
 T 2095 5645 5 10 1 1 0 0 1
-pinnumber=21
-T 2300 5600 5 10 0 0 0 0 1
-pinseq=21
+pinnumber=19
+T 2300 5600 5 10 0 1 0 0 1
+pinseq=19
 }
 P 2300 5300 2000 5300 1 0 0
 {
 T 2300 5300 5 10 0 1 0 0 1
 pintype=out
 T 1945 5295 5 10 1 1 0 6 1
-pinlabel=data:3
+pinlabel=data:2
 T 2095 5345 5 10 1 1 0 0 1
-pinnumber=22
-T 2300 5300 5 10 0 0 0 0 1
-pinseq=22
+pinnumber=20
+T 2300 5300 5 10 0 1 0 0 1
+pinseq=20
 }
 P 2300 5000 2000 5000 1 0 0
 {
 T 2300 5000 5 10 0 1 0 0 1
 pintype=out
 T 1945 4995 5 10 1 1 0 6 1
-pinlabel=data:4
+pinlabel=data:3
 T 2095 5045 5 10 1 1 0 0 1
-pinnumber=23
-T 2300 5000 5 10 0 0 0 0 1
-pinseq=23
+pinnumber=21
+T 2300 5000 5 10 0 1 0 0 1
+pinseq=21
 }
 P 2300 4700 2000 4700 1 0 0
 {
 T 2300 4700 5 10 0 1 0 0 1
 pintype=out
 T 1945 4695 5 10 1 1 0 6 1
-pinlabel=data:5
+pinlabel=data:4
 T 2095 4745 5 10 1 1 0 0 1
-pinnumber=24
-T 2300 4700 5 10 0 0 0 0 1
-pinseq=24
+pinnumber=22
+T 2300 4700 5 10 0 1 0 0 1
+pinseq=22
 }
 P 2300 4400 2000 4400 1 0 0
 {
 T 2300 4400 5 10 0 1 0 0 1
 pintype=out
 T 1945 4395 5 10 1 1 0 6 1
-pinlabel=data:6
+pinlabel=data:5
 T 2095 4445 5 10 1 1 0 0 1
-pinnumber=25
-T 2300 4400 5 10 0 0 0 0 1
-pinseq=25
+pinnumber=23
+T 2300 4400 5 10 0 1 0 0 1
+pinseq=23
 }
 P 2300 4100 2000 4100 1 0 0
 {
 T 2300 4100 5 10 0 1 0 0 1
 pintype=out
 T 1945 4095 5 10 1 1 0 6 1
-pinlabel=data:7
+pinlabel=data:6
 T 2095 4145 5 10 1 1 0 0 1
-pinnumber=26
-T 2300 4100 5 10 0 0 0 0 1
-pinseq=26
+pinnumber=24
+T 2300 4100 5 10 0 1 0 0 1
+pinseq=24
 }
 P 2300 3800 2000 3800 1 0 0
 {
 T 2300 3800 5 10 0 1 0 0 1
 pintype=out
 T 1945 3795 5 10 1 1 0 6 1
-pinlabel=data:8
+pinlabel=data:7
 T 2095 3845 5 10 1 1 0 0 1
-pinnumber=27
-T 2300 3800 5 10 0 0 0 0 1
-pinseq=27
+pinnumber=25
+T 2300 3800 5 10 0 1 0 0 1
+pinseq=25
 }
 P 2300 3500 2000 3500 1 0 0
 {
 T 2300 3500 5 10 0 1 0 0 1
 pintype=out
 T 1945 3495 5 10 1 1 0 6 1
-pinlabel=data:9
+pinlabel=data:8
 T 2095 3545 5 10 1 1 0 0 1
-pinnumber=28
-T 2300 3500 5 10 0 0 0 0 1
-pinseq=28
+pinnumber=26
+T 2300 3500 5 10 0 1 0 0 1
+pinseq=26
 }
 P 2300 3200 2000 3200 1 0 0
 {
 T 2300 3200 5 10 0 1 0 0 1
 pintype=out
 T 1945 3195 5 10 1 1 0 6 1
-pinlabel=data:10
+pinlabel=data:9
 T 2095 3245 5 10 1 1 0 0 1
-pinnumber=29
-T 2300 3200 5 10 0 0 0 0 1
-pinseq=29
+pinnumber=27
+T 2300 3200 5 10 0 1 0 0 1
+pinseq=27
 }
 P 2300 2900 2000 2900 1 0 0
 {
 T 2300 2900 5 10 0 1 0 0 1
 pintype=out
 T 1945 2895 5 10 1 1 0 6 1
-pinlabel=data:11
+pinlabel=data:10
 T 2095 2945 5 10 1 1 0 0 1
-pinnumber=30
-T 2300 2900 5 10 0 0 0 0 1
-pinseq=30
+pinnumber=28
+T 2300 2900 5 10 0 1 0 0 1
+pinseq=28
 }
 P 2300 2600 2000 2600 1 0 0
 {
 T 2300 2600 5 10 0 1 0 0 1
 pintype=out
 T 1945 2595 5 10 1 1 0 6 1
-pinlabel=data:12
+pinlabel=data:11
 T 2095 2645 5 10 1 1 0 0 1
-pinnumber=31
-T 2300 2600 5 10 0 0 0 0 1
-pinseq=31
+pinnumber=29
+T 2300 2600 5 10 0 1 0 0 1
+pinseq=29
 }
 P 2300 2300 2000 2300 1 0 0
 {
 T 2300 2300 5 10 0 1 0 0 1
 pintype=out
 T 1945 2295 5 10 1 1 0 6 1
-pinlabel=data:13
+pinlabel=data:12
 T 2095 2345 5 10 1 1 0 0 1
-pinnumber=32
-T 2300 2300 5 10 0 0 0 0 1
-pinseq=32
+pinnumber=30
+T 2300 2300 5 10 0 1 0 0 1
+pinseq=30
 }
 P 2300 2000 2000 2000 1 0 0
 {
 T 2300 2000 5 10 0 1 0 0 1
 pintype=out
 T 1945 1995 5 10 1 1 0 6 1
-pinlabel=data:14
+pinlabel=data:13
 T 2095 2045 5 10 1 1 0 0 1
-pinnumber=33
-T 2300 2000 5 10 0 0 0 0 1
-pinseq=33
+pinnumber=31
+T 2300 2000 5 10 0 1 0 0 1
+pinseq=31
 }
 P 2300 1700 2000 1700 1 0 0
 {
 T 2300 1700 5 10 0 1 0 0 1
 pintype=out
 T 1945 1695 5 10 1 1 0 6 1
-pinlabel=data:15
+pinlabel=data:14
 T 2095 1745 5 10 1 1 0 0 1
-pinnumber=34
-T 2300 1700 5 10 0 0 0 0 1
-pinseq=34
+pinnumber=32
+T 2300 1700 5 10 0 1 0 0 1
+pinseq=32
 }
 P 2300 1400 2000 1400 1 0 0
 {
 T 2300 1400 5 10 0 1 0 0 1
 pintype=out
 T 1945 1395 5 10 1 1 0 6 1
-pinlabel=data:16
+pinlabel=data:15
 T 2095 1445 5 10 1 1 0 0 1
-pinnumber=35
-T 2300 1400 5 10 0 0 0 0 1
-pinseq=35
+pinnumber=33
+T 2300 1400 5 10 0 1 0 0 1
+pinseq=33
+}
+P 2300 1100 2000 1100 1 0 0
+{
+T 2300 1100 5 10 0 1 0 0 1
+pintype=out
+T 1945 1095 5 10 1 1 0 6 1
+pinlabel=data:16
+T 2095 1145 5 10 1 1 0 0 1
+pinnumber=34
+T 2300 1100 5 10 0 1 0 0 1
+pinseq=34
 }
 P 0 800 300 800 1 0 0
 {
@@ -358,8 +347,19 @@ pintype=in
 T 355 795 5 10 1 1 0 0 1
 pinlabel=notCS
 T 205 845 5 10 1 1 0 6 1
+pinnumber=16
+T 0 800 5 10 0 1 0 0 1
+pinseq=16
+}
+P 0 200 300 200 1 0 0
+{
+T 0 200 5 10 0 1 0 0 1
+pintype=in
+T 355 195 5 10 1 1 0 0 1
+pinlabel=notOE
+T 205 245 5 10 1 1 0 6 1
 pinnumber=17
-T 0 800 5 10 0 0 0 0 1
+T 0 200 5 10 0 1 0 0 1
 pinseq=17
 }
 P 0 500 300 500 1 0 0
@@ -367,25 +367,14 @@ P 0 500 300 500 1 0 0
 T 0 500 5 10 0 1 0 0 1
 pintype=in
 T 355 495 5 10 1 1 0 0 1
-pinlabel=notOE
+pinlabel=notWE
 T 205 545 5 10 1 1 0 6 1
 pinnumber=18
-T 0 500 5 10 0 0 0 0 1
+T 0 500 5 10 0 1 0 0 1
 pinseq=18
 }
-P 0 200 300 200 1 0 0
-{
-T 0 200 5 10 0 1 0 0 1
-pintype=in
-T 355 195 5 10 1 1 0 0 1
-pinlabel=notWE
-T 205 245 5 10 1 1 0 6 1
-pinnumber=19
-T 0 200 5 10 0 0 0 0 1
-pinseq=19
-}
-B 300 0 1700 6100 3 0 0 0 -1 -1 0 -1 -1 -1 -1 -1
-T 300 6200 8 10 1 1 0 0 1
+B 300 0 1700 5800 3 0 0 0 -1 -1 0 -1 -1 -1 -1 -1
+T 300 5900 8 10 1 1 0 0 1
 device=sram
-T 1800 6200 8 10 1 1 0 0 1
+T 1800 5900 8 10 1 1 0 0 1
 refdes=U?

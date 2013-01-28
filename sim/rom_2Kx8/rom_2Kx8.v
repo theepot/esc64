@@ -1,5 +1,5 @@
-`ifndef ROM_2KX8_INCLUDED
-`define ROM_2KX8_INCLUDED
+`ifndef _ROM_2KX8_INCLUDED_
+`define _ROM_2KX8_INCLUDED_
 
 module rom_2Kx8(addr, data, notCE, notOE);
 	parameter MEMFILE = "rom.lst";

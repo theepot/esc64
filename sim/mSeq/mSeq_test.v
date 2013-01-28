@@ -1,6 +1,9 @@
+`include "mSeq.v"
+
 `include "../globals.v"
 
-`include "mSeq.v"
+`define TEST_DELAY (500)
+`define TEST_CLOCK (800)
 
 module mSeq_test();
 	reg clock, notReset, carry, zero;

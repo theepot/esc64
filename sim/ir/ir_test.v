@@ -7,6 +7,8 @@
 `endif
 
 `include "../globals.v"
+`define TEST_DELAY (500)
+`define TEST_CLOCK (800)
 
 module ir_test();
 	reg [15:0] data;

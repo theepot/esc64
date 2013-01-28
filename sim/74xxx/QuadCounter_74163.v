@@ -1,5 +1,5 @@
-`ifndef QUADCOUNTER_74163_INCLUDED
-`define QUADCOUNTER_74163_INCLUDED
+`ifndef _QUADCOUNTER_74163_INCLUDED_
+`define _QUADCOUNTER_74163_INCLUDED_
 
 module QuadCounter_74163(clock, notClear, notLoad, enp, ent, in, out, cout);
 	input clock, notClear, notLoad, enp, ent;

@@ -1,5 +1,5 @@
-`ifndef OCT_INPUT_OR_NOR_744078
-`define OCT_INPUT_OR_NOR_744078
+`ifndef _OCT_INPUT_OR_NOR_744078_
+`define _OCT_INPUT_OR_NOR_744078_
 
 module OctInputOrNor_744078(in, out, notOut);
 	input[7:0] in;

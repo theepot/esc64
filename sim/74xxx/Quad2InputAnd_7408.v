@@ -1,5 +1,5 @@
-`ifndef QUAD2INPUTAND_H
-`define QUAD2INPUTAND_H
+`ifndef _QUAD2INPUTAND_H_
+`define _QUAD2INPUTAND_H_
 
 module Quad2InputAnd_7408(a, b, y);
     input   [3:0] a;

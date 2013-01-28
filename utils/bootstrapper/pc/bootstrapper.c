@@ -25,8 +25,8 @@ static char doc[] =
 	"Bootstrapper -- Communicates with the ESC64 bootstrap hardware.";
 static char args_doc[] = "DEVICE";
 static struct argp_option options[] = {
-	{"upload",			'u',	"FILE",		0,	"upload file to SRAM"},
-	{"download",		'd',	"FILE",		0,	"download SRAM to file"},
+	{"upload",			'u',	"FILE",		0,	"upload image to SRAM"},
+	{"download",		'd',	"FILE",		0,	"download SRAM to image"},
 	{"start",			's',	0,		 	0,	"start the clock"},
 	{"stop",			'o',	0,		 	0,	"stop the clock"},
 	{"set_clock",		'c',	"FREQ",	 	0,	"set the clock frequency"},
@@ -789,7 +789,9 @@ static void print_interactive_help(void)
 			"\ts:		start\n"
 			"\to:		stop\n"
 			"\tr:		reset\n"
-			"\tc [n]:		set clock speed\n"
+			"\tc [n]:		set clock speed at n Hz. (K and M suffixes are supported)\n"
+			"\tu [path]	upload image to SRAM\n"
+			"\td [path]	download SRAM to image\n"
 			"\th:		print this message\n"
 			"\tq or EOF:	quit\n"
 			"By pressing only enter the previous command is issued\n");
@@ -857,6 +859,26 @@ void action_interactive(void)
 						action_step();
 					}
 				}
+			}
+			break;
+		case 'u':
+			if(l[1] == '\0')
+			{
+				puts("command needs arugment");
+			}
+			else
+			{
+				action_upload_sram(l + 2);
+			}
+			break;
+		case 'd':
+			if(l[1] == '\0')
+			{
+				puts("command needs arugment");
+			}
+			else
+			{
+				action_download_sram(l + 2);
 			}
 			break;
 		case 's':

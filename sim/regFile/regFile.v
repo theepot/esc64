@@ -4,13 +4,13 @@
 `ifdef GPREGISTER_STRUCT
 `include "../GPRegister/GPRegister_s.v"
 `else
-//`include "../GPRegister/GPRegister.v"
+`include "../GPRegister/GPRegister.v"
 `endif
 
 `ifdef PC_STRUCT
 `include "../pc/pc_s.v"
 `else
-//`include "../pc/pc.v"
+`include "../pc/pc.v"
 `endif
 
 module regFile(clock, aBus, yBus, notOE, notLoad, pcNotReset, pcInc);

@@ -12,6 +12,9 @@
  * max propagation time for 74LS181 is 41ns for Cout, when doing ripple carry
  ****************************************************************************/
 
+`ifndef _ALU_74181_INCLUDED_
+`define _ALU_74181_INCLUDED_
+
 module ALU_74181 (S, A, B, M, CNb, F, X, Y, CN4b, AEB);
 
 	input [3:0] A, B, S;
@@ -99,3 +102,5 @@ module Summodule(E, D, C, M, F, AEB);
 	assign AEB = &F;
 
 endmodule
+
+`endif

@@ -77,10 +77,7 @@ typedef enum opcode {
 	op_store_literal = 37,
 	op_store_with_offset = 38,
 	op_call = 40,
-	op_call_literal = 41,
-	op_retfie = 42,
-	op_intenable = 43,
-	op_intdisable = 44
+	op_call_literal = 41
 } opcode;
 
 

@@ -1,5 +1,5 @@
-`ifndef QUAD_2_TO_1_MUX_74157_INCLUDED
-`define QUAD_2_TO_1_MUX_74157_INCLUDED
+`ifndef _QUAD_2_TO_1_MUX_74157_INCLUDED_
+`define _QUAD_2_TO_1_MUX_74157_INCLUDED_
 
 module Quad2To1Mux_74157(notIE, sel, inA, inB, out);
 	input notIE;
