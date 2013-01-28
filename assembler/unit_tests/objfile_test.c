@@ -6,7 +6,7 @@
 
 void TestObjCode(const char* fileName)
 {
-	ObjectWriter writer;
+/*	ObjectWriter writer;
 	ObjectWriterInit(&writer, fileName);
 
 	ObjWriteAbsDataSection(&writer, 0);
@@ -42,5 +42,5 @@ void TestObjCode(const char* fileName)
 	Byte_t d2[] = { 0xCAFE, 0xBABE };
 	ObjWriteData(&writer, d2, sizeof d2);
 	
-	ObjectWriterClose(&writer);
+	ObjectWriterClose(&writer);*/
 }
