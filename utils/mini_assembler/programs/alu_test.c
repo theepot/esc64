@@ -4,7 +4,7 @@
 
 void asm_prgm(void)
 {
-	unsigned dest = 0xFFFF;
+	unsigned dest = 0x7FFF;
 
 #define FN3(f, a, b, e, z, c) \
 	dest -= 3; \

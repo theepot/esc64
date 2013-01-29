@@ -44,7 +44,7 @@ module computer();
 		#(`CLOCK_PERIOD / 2) clock = ~clock;
 		if(cpu.irOpcode == 7'b1111111) begin
 			$display("halt");
-			//#5 $writememb("memBottomDump.lst", ram.mem, 0, 64);
+			#5 $writememb("mem_out.lst", ram.mem, 0, (1<<15)-1);
 			//$writememb("memTopDump.lst", ram.mem, (1<<15) - 100, (1<<15)-1);
 			$finish;
 		end

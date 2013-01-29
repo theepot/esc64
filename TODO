@@ -5,3 +5,10 @@ List of TODO things:
 	-change the Makefile's of all the simulations so that source directories get included by -I<path>, and get rid including relative paths
 	
 	-All active low in/outputs should either have a not in it's name, or a graphical bar above it.
+	
+	-add new instructions:
+		inc, dec, 
+		all combination's of conditional mov's
+	-create big diagnostics program
+	
+	-schematic bootstrapper
