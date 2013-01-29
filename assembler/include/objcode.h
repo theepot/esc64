@@ -1,13 +1,11 @@
 #ifndef OBJCODE_INCLUDED
 #define OBJCODE_INCLUDED
 
-//TODO add a field in the object header that describes the total of symbol name sizes (local and global seperate)
-
-
 #include <stdio.h>
 
 #include "esctypes.h"
 #include "objrecord.h"
+#include "tokendescr.h"
 
 enum SectionType_
 {
@@ -21,22 +19,28 @@ enum SectionType_
 //		- section []
 
 //	header structure
-//		- local symbol count	: UWord_t
-//		- global symbol count	: UWord_t
-//		- abs section count		: UWord_t
-//		- reloc section count	: UWord_t
-//		- abs section offset	: ObjSize_t
-//		- reloc section offset	: ObjSize_t
-#define OBJ_HEADER_LOCAL_SYM_COUNT_OFFSET		0
-#define OBJ_HEADER_GLOBAL_SYM_COUNT_OFFSET		(OBJ_HEADER_LOCAL_SYM_COUNT_OFFSET + sizeof (UWord_t))
-#define OBJ_HEADER_ABS_SECTION_COUNT_OFFSET		(OBJ_HEADER_GLOBAL_SYM_COUNT_OFFSET + sizeof (UWord_t))
-#define OBJ_HEADER_RELOC_SECTION_COUNT_OFFSET	(OBJ_HEADER_ABS_SECTION_COUNT_OFFSET + sizeof (UWord_t))
-#define OBJ_HEADER_ABS_SECTION_OFFSET_OFFSET	(OBJ_HEADER_RELOC_SECTION_COUNT_OFFSET + sizeof (UWord_t))
-#define OBJ_HEADER_RELOC_SECTION_OFFSET_OFFSET	(OBJ_HEADER_ABS_SECTION_OFFSET_OFFSET + sizeof (ObjSize_t))
-#define OBJ_HEADER_SIZE							(OBJ_HEADER_RELOC_SECTION_OFFSET_OFFSET + sizeof (ObjSize_t))
+//		- local symbol total name size	: UWord_t	///< size of names of all local symbols
+//		- global symbol total name size	: UWord_t 	///< size of names of all global symbols
+//		- local symbol count			: UWord_t
+//		- global symbol count			: UWord_t
+//		- abs section count				: UWord_t
+//		- reloc section count			: UWord_t
+//		- abs section offset			: ObjSize_t
+//		- reloc section offset			: ObjSize_t
+#define OBJ_HEADER_LOCAL_SYM_TOT_NAME_SIZE_OFFSET	0
+#define OBJ_HEADER_GLOBAL_SYM_TOT_NAME_SIZE_OFFSET	(OBJ_HEADER_LOCAL_SYM_TOT_NAME_SIZE_OFFSET + sizeof (UWord_t))
+#define OBJ_HEADER_LOCAL_SYM_COUNT_OFFSET			(OBJ_HEADER_GLOBAL_SYM_TOT_NAME_SIZE_OFFSET + sizeof (UWord_t))
+#define OBJ_HEADER_GLOBAL_SYM_COUNT_OFFSET			(OBJ_HEADER_LOCAL_SYM_COUNT_OFFSET + sizeof (UWord_t))
+#define OBJ_HEADER_ABS_SECTION_COUNT_OFFSET			(OBJ_HEADER_GLOBAL_SYM_COUNT_OFFSET + sizeof (UWord_t))
+#define OBJ_HEADER_RELOC_SECTION_COUNT_OFFSET		(OBJ_HEADER_ABS_SECTION_COUNT_OFFSET + sizeof (UWord_t))
+#define OBJ_HEADER_ABS_SECTION_OFFSET_OFFSET		(OBJ_HEADER_RELOC_SECTION_COUNT_OFFSET + sizeof (UWord_t))
+#define OBJ_HEADER_RELOC_SECTION_OFFSET_OFFSET		(OBJ_HEADER_ABS_SECTION_OFFSET_OFFSET + sizeof (ObjSize_t))
+#define OBJ_HEADER_SIZE								(OBJ_HEADER_RELOC_SECTION_OFFSET_OFFSET + sizeof (ObjSize_t))
 
 typedef struct ObjectHeader_
 {
+	UWord_t localSymTotNameSize;
+	UWord_t globalSymTotNameSize;
 	UWord_t localSymCount;
 	UWord_t globalSymCount;
 	UWord_t absSectionCount;
@@ -78,12 +82,12 @@ typedef struct ObjectHeader_
 #define OPERAND2_OFFSET	0
 #define OPERAND2_MASK	0x7
 
+#define INSTRUCTION_MAX_OPERANDS 4
+
 typedef struct Instruction_
 {
-	Byte_t opcode;
-	Byte_t operands[3];
-	UWord_t exOperand;
-	Byte_t wide;
+	const InstructionDescr* descr;
+	UWord_t operands[INSTRUCTION_MAX_OPERANDS];
 } Instruction;
 
 //	symbol structure
@@ -105,9 +109,9 @@ typedef struct Symbol_
 
 typedef struct Expression_
 {
-	ObjSize_t address;	///< address of unlinked word
+	UWord_t address;	///< address of unlinked word
 	const char* name;	///< name of unlinked symbol
-	size_t nameLen;
+	UWord_t nameLen;
 } Expression;
 
 #define DATA_WRITER_BUF_SIZE		32
@@ -122,6 +126,8 @@ typedef struct ObjectWriter_
 {
 	FILE* stream;
 
+	UWord_t localSymTotNameSize;
+	UWord_t globalSymTotNameSize;
 	UWord_t localSymCount;
 	UWord_t globalSymCount;
 	UWord_t absSectionCount;
@@ -151,6 +157,7 @@ void ObjectWriterClose(ObjectWriter*writer);
 
 void ObjWriteDataSection(ObjectWriter* writer, Byte_t placement, UWord_t address);
 void ObjWriteBssSection(ObjectWriter* writer, Byte_t placement, UWord_t address, UWord_t size);
+
 void ObjWriteData(ObjectWriter* writer, const void* data, size_t dataSize);
 void ObjWriteInstr(ObjectWriter* writer, const Instruction* instr);
 void ObjWriteLocalSym(ObjectWriter* writer, const Symbol* sym);
@@ -163,6 +170,7 @@ typedef struct ObjectReader_
 
 	Byte_t type;			///< type of current section
 	ObjSize_t offset;		///< offset of current section
+	ObjSize_t next;			///< offset of next section
 } ObjectReader;
 
 void ObjectReaderInit(ObjectReader* reader, const char* path, ObjectHeader* header);
@@ -173,6 +181,8 @@ int ObjReaderNextSection(ObjectReader* reader);
 UWord_t ObjReadAddress(ObjectReader* reader);
 UWord_t ObjReadSize(ObjectReader* reader);
 
+void ObjInitDataRecordReader(ObjectReader* objReader, RecordReader* dataReader);
+
 typedef enum ObjIteratorState_
 {
 	OBJ_IT_STATE_START,
@@ -182,32 +192,36 @@ typedef enum ObjIteratorState_
 typedef struct ObjSymIterator_
 {
 	FILE* stream;
-	UWord_t symCount;	///< amount of symbols in record list
-	UWord_t symN;		///< current symbol index
 	RecordReader symReader;
 	ObjIteratorState state;
 	Symbol curSym;
 } ObjSymIterator;
 
-void ObjSymIteratorInit(ObjSymIterator* it, ObjectReader* reader, ObjSize_t offset, UWord_t symCount);
+int ObjSymIteratorInit(ObjSymIterator* it, ObjectReader* reader, ObjSize_t offset);
 int ObjSymIteratorNext(ObjSymIterator* it);
 void ObjSymIteratorReadName(ObjSymIterator* it, void* buf);
 const Symbol* ObjSymIteratorGetSym(ObjSymIterator* it);
 
-//typedef struct ObjExprIterator_
-//{
-//	ObjectReader* reader;
-//	ObjSize_t i;	///< offset of next expression
-//} ObjExprIterator;
-//
-//void ObjExprIteratorInit(ObjExprIterator* it, ObjectReader* reader);
-//int ObjExprIteratorNext(ObjExprIterator* it, Expression* expr);
-//
-//typedef struct ObjDataIterator_
-//{
-//	ObjectReader* reader;
-//	ObjSize_t i;	///< points to unread data
-//	ObjSize_t end;	///< points to end of data
-//} ObjDataIterator;
+typedef struct ObjExprIterator_
+{
+	FILE* stream;
+	RecordReader exprReader;
+	ObjIteratorState state;
+	Expression curExpr;
+} ObjExprIterator;
+
+int ObjExprIteratorInit(ObjExprIterator* it, ObjectReader* reader);
+int ObjExprIteratorNext(ObjExprIterator* it);
+void ObjExprIteratorReadName(ObjExprIterator* it, void* buf);
+const Expression* ObjExprIteratorGetExpr(ObjExprIterator* it);
+
+typedef struct ObjDataReader_
+{
+	FILE* stream;
+	RecordReader dataReader;
+} ObjDataReader;
+
+int ObjDataReaderInit(ObjDataReader* dataReader, ObjectReader* objReader);
+size_t ObjDataReaderRead(ObjDataReader* reader, void* data, size_t dataSize);
 
 #endif

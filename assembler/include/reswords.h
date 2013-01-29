@@ -13,7 +13,7 @@ typedef struct ReservedWord_
 	TokenDescrId descrId;
 } ReservedWord;
 
-extern ReservedWord gReservedWords[];
+//extern ReservedWord gReservedWords[];
 extern const size_t RESERVED_WORDS_SIZE;
 
 void ReservedWordsInit(void);

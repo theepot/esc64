@@ -9,14 +9,14 @@ static int Compare(const void* a, const void* b);
 static void Dump(FILE* stream, const void* item);
 static Hash_t Hash(const void* str);
 
-ReservedWord gReservedWords[] =
+static ReservedWord reservedWords[] =
 {
 	{ "align", TOKEN_DESCR_DIR_ALIGN },
 	{ "ascii", TOKEN_DESCR_DIR_ASCII },
 	{ "byte", TOKEN_DESCR_DIR_BYTE },
 	{ "word", TOKEN_DESCR_DIR_WORD },
 	{ "global", TOKEN_DESCR_DIR_GLOBAL },
-	{ "org", TOKEN_DESCR_DIR_ORG },
+	{ "section", TOKEN_DESCR_DIR_SECTION },
 	{ "add", TOKEN_DESCR_OPCODE_ADD },
 	{ "sub", TOKEN_DESCR_OPCODE_SUB },
 	{ "or", TOKEN_DESCR_OPCODE_OR },
@@ -33,9 +33,9 @@ ReservedWord gReservedWords[] =
 	{ "call", TOKEN_DESCR_OPCODE_CALL }
 };
 
-const size_t RESERVED_WORDS_SIZE = sizeof(gReservedWords) / sizeof(ReservedWord);
+const size_t RESERVED_WORDS_SIZE = sizeof(reservedWords) / sizeof(ReservedWord);
 
-#define RESWORDS_MEM_REAL_SIZE	(HASHSET_CALC_MEMSIZE(sizeof(ReservedWord), sizeof(gReservedWords) / sizeof(ReservedWord)))
+#define RESWORDS_MEM_REAL_SIZE	(HASHSET_CALC_MEMSIZE(sizeof(ReservedWord), sizeof(reservedWords) / sizeof(ReservedWord)))
 #define RESWORDS_MEM_SIZE		(RESWORDS_MEM_REAL_SIZE + RESWORDS_MEM_REAL_SIZE / 3)
 
 static char mem[RESWORDS_MEM_SIZE];
@@ -47,7 +47,7 @@ void ReservedWordsInit(void)
 	size_t i;
 	for(i = 0; i < RESERVED_WORDS_SIZE; ++i)
 	{
-		assert(!HashSetInsert(&set, &gReservedWords[i]));
+		assert(!HashSetInsert(&set, &reservedWords[i]));
 	}
 }
 

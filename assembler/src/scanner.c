@@ -317,19 +317,6 @@ static int GetDirective(Scanner* scanner, Token* token)
 
 	token->descrId = descrId;
 	return 0;
-
-	/* TODO remove obsolete
-	static const TokenDescrTable table[] =
-	{
-		{ "align", &TOKEN_DESCR_DIR_ALIGN },
-		{ "ascii", &TOKEN_DESCR_DIR_ASCII },
-		{ "byte", &TOKEN_DESCR_DIR_BYTE },
-		{ "word", &TOKEN_DESCR_DIR_WORD },
-		{ "global", &TOKEN_DESCR_DIR_GLOBAL },
-		{ "org", &TOKEN_DESCR_DIR_ORG }
-	};
-
-	return DescrTableFind(table, sizeof(table) / sizeof(TokenDescrTable), scanner->buf, token);*/
 }
 
 static int GetRegisterRef(Scanner* scanner, Token* token)

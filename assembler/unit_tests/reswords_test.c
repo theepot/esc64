@@ -9,8 +9,8 @@ void TestReservedWords(void)
 	size_t i;
 	for(i = 0; i < RESERVED_WORDS_SIZE; ++i)
 	{
-		TokenDescrId descrId = FindReservedWord(gReservedWords[i].name);
-		assert(descrId == gReservedWords[i].descrId);
+		TokenDescrId descrId = FindReservedWord(reservedWords[i].name);
+		assert(descrId == reservedWords[i].descrId);
 	}
 
 	assert(FindReservedWord("this should not exist") == TOKEN_DESCR_INVALID);
