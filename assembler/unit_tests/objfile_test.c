@@ -23,6 +23,8 @@ void TestObjCode(const char* fileName)
 static void TestWrite(const char* fileName)
 {
 	ObjectWriter writer;
+
+	ObjectWriter writer;
 	ObjectWriterInit(&writer, fileName);
 
 	//data1
@@ -67,6 +69,8 @@ static void TestWrite(const char* fileName)
 
 	ObjWriteExpr(&writer, &expr);
 
+	ObjectWriterClose(&writer);
+	
 	ObjectWriterClose(&writer);
 }
 

@@ -1854,83 +1854,75 @@ T 25800 41100 5 10 1 1 0 0 1
 netname=irNotLoad
 }
 N 25400 40800 25700 40800 4
+{
+T 25800 40800 5 10 1 1 0 0 1
+netname=memNotWrite
+}
 N 25400 40500 25700 40500 4
 {
 T 25800 40500 5 10 1 1 0 0 1
-netname=memNotWrite
+netname=memNotRead
 }
 N 25400 40200 25700 40200 4
 {
 T 25800 40200 5 10 1 1 0 0 1
-netname=memNotRead
+netname=aluUCIn
 }
 N 25400 39900 25700 39900 4
 {
 T 25800 39900 5 10 1 1 0 0 1
-netname=aluUCIn
+netname=aluCSel
 }
 N 25400 39600 25700 39600 4
 {
 T 25800 39600 5 10 1 1 0 0 1
-netname=aluCSel
+netname=aluNotShiftOE
 }
 N 25400 39300 25700 39300 4
 {
 T 25800 39300 5 10 1 1 0 0 1
-netname=aluNotShiftOE
+netname=aluF:1
 }
 N 25400 39000 25700 39000 4
 {
 T 25800 39000 5 10 1 1 0 0 1
-netname=aluF:1
+netname=aluF:2
 }
 N 25400 38700 25700 38700 4
 {
 T 25800 38700 5 10 1 1 0 0 1
-netname=aluF:2
+netname=aluF:3
 }
 N 25400 38400 25700 38400 4
 {
 T 25800 38400 5 10 1 1 0 0 1
-netname=aluF:3
+netname=aluF:4
 }
 N 25400 38100 25700 38100 4
 {
 T 25800 38100 5 10 1 1 0 0 1
-netname=aluF:4
+netname=aluF:5
 }
 N 25400 37800 25700 37800 4
 {
 T 25800 37800 5 10 1 1 0 0 1
-netname=aluF:5
+netname=aluNotALUOE
 }
 N 25400 37500 25700 37500 4
 {
 T 25800 37500 5 10 1 1 0 0 1
-netname=aluNotALUOE
+netname=aluBRegNotLoad
 }
 N 25400 37200 25700 37200 4
 {
 T 25800 37200 5 10 1 1 0 0 1
-netname=aluBRegNotLoad
-}
-N 25400 36900 25700 36900 4
-{
-T 25800 36900 5 10 1 1 0 0 1
 netname=pcInc
 }
-N 25400 33300 25700 33300 4
+N 25400 33600 25700 33600 4
 {
-T 25800 33300 5 10 1 1 0 0 1
+T 25800 33600 5 10 1 1 0 0 1
 netname=statusNotLoad
 }
-N 25400 33000 25700 33000 4
-N 25400 32700 25700 32700 4
-N 25400 32400 25700 32400 4
-N 25400 32100 25700 32100 4
-N 25400 31800 25700 31800 4
-N 25400 31500 25700 31500 4
-N 25400 31200 25700 31200 4
 N 17500 43000 17200 43000 4
 {
 T 17100 43000 5 10 1 1 0 6 1
@@ -2076,59 +2068,59 @@ N 22800 42500 22500 42500 4
 T 22400 42500 5 10 1 1 0 6 1
 netname=regselOE
 }
+N 25400 36900 25700 36900 4
+{
+T 25800 36900 5 10 1 1 0 0 1
+netname=regselLoaduSel:1
+}
 N 25400 36600 25700 36600 4
 {
 T 25800 36600 5 10 1 1 0 0 1
-netname=regselLoaduSel:1
+netname=regselLoaduSel:2
 }
 N 25400 36300 25700 36300 4
 {
 T 25800 36300 5 10 1 1 0 0 1
-netname=regselLoaduSel:2
+netname=regselLoaduSel:3
 }
 N 25400 36000 25700 36000 4
 {
 T 25800 36000 5 10 1 1 0 0 1
-netname=regselLoaduSel:3
+netname=regselOEuSel:1
 }
 N 25400 35700 25700 35700 4
 {
 T 25800 35700 5 10 1 1 0 0 1
-netname=regselOEuSel:1
+netname=regselOEuSel:2
 }
 N 25400 35400 25700 35400 4
 {
 T 25800 35400 5 10 1 1 0 0 1
-netname=regselOEuSel:2
+netname=regselOEuSel:3
 }
 N 25400 35100 25700 35100 4
 {
 T 25800 35100 5 10 1 1 0 0 1
-netname=regselOEuSel:3
+netname=regselLoadSource
 }
 N 25400 34800 25700 34800 4
 {
 T 25800 34800 5 10 1 1 0 0 1
-netname=regselLoadSource
+netname=regselOESource:1
 }
 N 25400 34500 25700 34500 4
 {
 T 25800 34500 5 10 1 1 0 0 1
-netname=regselOESource:1
+netname=regselOESource:2
 }
 N 25400 34200 25700 34200 4
 {
 T 25800 34200 5 10 1 1 0 0 1
-netname=regselOESource:2
+netname=regselLoad
 }
 N 25400 33900 25700 33900 4
 {
 T 25800 33900 5 10 1 1 0 0 1
-netname=regselLoad
-}
-N 25400 33600 25700 33600 4
-{
-T 25800 33600 5 10 1 1 0 0 1
 netname=regselOE
 }
 N 17700 38900 17400 38900 4

@@ -15,7 +15,9 @@ void IOWriteWord(FILE* stream, UWord_t word);
 void IOWriteObjSize(FILE* stream, ObjSize_t objSize);
 
 void IORead(FILE* stream, void* data, size_t dataSize);
+size_t TryIORead(FILE* stream, void* data, size_t dataSize);
 Byte_t IOReadByte(FILE* stream);
+int TryIOReadByte(FILE* stream, Byte_t* out); //returns zero in case of an error or EOF, otherwise non-zero
 UWord_t IOReadWord(FILE* stream);
 ObjSize_t IOReadObjSize(FILE* stream);
 

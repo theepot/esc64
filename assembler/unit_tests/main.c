@@ -12,6 +12,7 @@ extern void TestReservedWords(void);
 extern void TestParser(const char* asmFile, const char* objFile);
 extern void TestRecords(const char* filePath);
 extern void TestObjCode(const char* fileName);
+extern void TestExecWriteRead(const char* filePath);
 
 #ifndef ESC_TEST_FILE_BASE_PATH
 #error no base path for test files defined
@@ -29,6 +30,7 @@ int main(int argc, char** argv)
 	TestParser(ESC_TEST_FILE_BASE_PATH"/scanner_test.asm", ESC_TEST_FILE_BASE_PATH"/parser_test.o");
 	TestRecords(ESC_TEST_FILE_BASE_PATH"/records.bin");
 	TestObjCode(ESC_TEST_FILE_BASE_PATH"/test.o");
+	TestExecWriteRead(ESC_TEST_FILE_BASE_PATH"/assembler_exec_test");
 
 	clock_t stop = clock();
 	clock_t ms = (stop - start) / 1000;

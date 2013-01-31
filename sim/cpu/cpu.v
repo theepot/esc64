@@ -4,38 +4,40 @@
 `ifdef STATUS_STRUCT
 `include "../status/status_s.v"
 `else
-//`include "../status/status.v"
+`include "../status/status.v"
 `endif
 
 `ifdef IR_STRUCT
 `include "../ir/ir_s.v"
 `else
-//`include "../ir/ir.v"
+`include "../ir/ir.v"
 `endif
 
 `ifdef ALU_STRUCT
 `include "../alu/alu_s.v"
 `else
-//`include "../alu/alu.v"
+`include "../alu/alu.v"
 `endif
 
 `ifdef REGSEL_STRUCT
 `include "../regsel/regsel_s.v"
 `else
-//`include "../regsel/regsel.v"
+`include "../regsel/regsel.v"
 `endif
 
 `ifdef BREG_STRUCT
 `include "../74xxx/octRegister_74377.v"
 `else
-//`include "../register/register.v"
+`include "../register/register.v"
 `endif
 
 `ifdef MSEQ_STRUCT
 `include "../mSeq/mSeq_s.v"
 `else
-//`include "../mSeq/mSeq.v"
+`include "../mSeq/mSeq.v"
 `endif
+
+
 
 module cpu(clock, notReset, aBus, yBus, memNotRead, memNotWrite);
 	input clock, notReset;
@@ -102,6 +104,10 @@ module cpu(clock, notReset, aBus, yBus, memNotRead, memNotWrite);
 	wire [33:0] control;
 	mSeq #(.ROM_FILENAME("urom.lst")) _mSeq(clock, notReset, irOpcode, statusCOut, statusZOut, control);
 	
+	//error signals
+	wire [1:0] error;
+	
+	assign error = control[27:26]; //2, H
 	assign statusNotLoad = control[25]; //1,L
 	assign regselOE = control[24]; //1,H
 	assign regselLoad = control[23]; //1,H

@@ -1,11 +1,14 @@
 List of TODO things:
-	-update all chip timings(transistion time should be added with propagation delay)
-	-include gaurds of .v files should have consistent names
-	-all .v files should have some header with general information and todo's
 	-rename control lines from the microsequencer
 	-memfile parameter of memory devices should have consistent names
-	-remove delays from the non-structural models if they are not used in the structural-cpu anymore
 	-rename ALU's signal fcin to s(tatus)r(register)cin
 	-change the Makefile's of all the simulations so that source directories get included by -I<path>, and get rid including relative paths
 	
 	-All active low in/outputs should either have a not in it's name, or a graphical bar above it.
+	
+	-add new instructions:
+		inc, dec, 
+		all combination's of conditional mov's
+	-create big diagnostics program
+	
+	-schematic bootstrapper

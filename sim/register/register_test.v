@@ -1,5 +1,9 @@
 `include "register.v"
+
 `include "globals.v"
+
+`define TEST_DELAY (500)
+`define TEST_CLOCK (800)
 
 module register_test();
 	wire [15:0] data_bus;
@@ -20,8 +24,10 @@ module register_test();
 		data = 0;
 		oe = 0;
 		
-		# `TEST_DELAY notReset = 0;
-		# `TEST_DELAY notReset = 1;
+		notReset = 0;
+		# `TEST_CLOCK clock = 1;
+		# `TEST_CLOCK clock = 0;
+		notReset = 1;
 		
 		# `TEST_DELAY if(data_bus !== 16'bzzzzzzzzzzzzzzzz) begin
 			$display("ERROR:register. Got %X on outputs. Expected 0xZZZZ.", data_bus);
@@ -36,6 +42,8 @@ module register_test();
 		data = 16'HBEEF;
 		regOE = 0;
 		notLoad = 0;
+		# `TEST_CLOCK clock = 1;
+		# `TEST_CLOCK clock = 0;
 		
 		# `TEST_DELAY notLoad = 1;
 		regOE = 1;
@@ -46,7 +54,9 @@ module register_test();
 		end
 		
 		# `TEST_DELAY notReset = 0;
-		# `TEST_DELAY notReset = 1;
+		# `TEST_CLOCK clock = 1;
+		# `TEST_CLOCK clock = 0;
+		notReset = 1;
 		
 		# `TEST_DELAY if(data_bus !== 16'H0000) begin
 			$display("ERROR:register. Got %X on outputs. Expected 0x0000.", data_bus);
@@ -55,9 +65,9 @@ module register_test();
 		#10 $finish;
 	end
 	
-	always begin
-		# `TEST_CLOCK clock = ~clock;
-	end
+	//always begin
+	//	# `TEST_CLOCK clock = ~clock;
+	//end
 	
 	//register(clock, notReset, notLoad, OE, in, out);
 	register #(.DATA_WIDTH(16)) register(clock, notReset, notLoad, regOE, data_bus, data_bus);

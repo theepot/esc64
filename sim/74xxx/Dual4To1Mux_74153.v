@@ -1,5 +1,5 @@
-`ifndef DUAL_4_TO_1_MUX_74153
-`define DUAL_4_TO_1_MUX_74153
+`ifndef _DUAL_4_TO_1_MUX_74153_
+`define _DUAL_4_TO_1_MUX_74153_
 
 module Dual4To1Mux_74153(notIE, sel, inA, inB, inC, inD, out);
 	input[1:0] notIE;

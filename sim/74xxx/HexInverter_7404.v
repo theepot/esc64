@@ -1,5 +1,5 @@
-`ifndef HEX_INVERTER_7404_INCLUDED
-`define HEX_INVERTER_7404_INCLUDED
+`ifndef _HEX_INVERTER_7404_INCLUDED_
+`define _HEX_INVERTER_7404_INCLUDED_
 
 module HexInverter_7404(a, y);
     input   [5:0] a;

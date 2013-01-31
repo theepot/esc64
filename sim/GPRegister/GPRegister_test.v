@@ -5,6 +5,8 @@
 `endif
 
 `include "../globals.v"
+`define TEST_DELAY (500)
+`define TEST_CLOCK (800)
 
 module GPRegister_test();
 	wire [15:0] data_bus;

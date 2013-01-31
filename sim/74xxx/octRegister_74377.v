@@ -1,5 +1,5 @@
-`ifndef OCT_REGISTER_74377_INCLUDED
-`define OCT_REGISTER_74377_INCLUDED
+`ifndef _OCT_REGISTER_74377_INCLUDED_
+`define _OCT_REGISTER_74377_INCLUDED_
 
 module octRegister_74377(clock, notLoad, in, out);
 	input clock, notLoad;

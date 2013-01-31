@@ -22,7 +22,7 @@ module program_counter(clock, notReset, notLoad, notOE, inc, in, out);
 	
 	reg [DATA_WIDTH-1:0] data;
 
-	assign #45 out = ~notOE ? data : 32'bzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz;
+	assign out = ~notOE ? data : 32'bzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz;
 	
 	always @ (posedge clock) begin
 		if(inc) begin

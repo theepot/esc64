@@ -1,5 +1,15 @@
+`ifdef SRAM_STRUCT
+//`define WAVENAME "sram_s.vcd"
+`include "sram_s.v"
+`else
+//`define WAVENAME "sram.vcd"
 `include "sram.v"
+`endif
+
 `include "../globals.v"
+
+`define TEST_DELAY (500)
+`define TEST_CLOCK (800)
 
 module sram_test();
 	reg [3:0] addr;

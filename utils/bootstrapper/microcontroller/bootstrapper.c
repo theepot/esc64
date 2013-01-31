@@ -503,6 +503,12 @@ void command_upload(void)
 
 void command_download(void)
 {
+	if(clock_running)
+	{
+		usart_send(REPLY_CLOCK_IS_RUNNING);
+		return;
+	}
+
 	uint16_t block;
 	uint8_t data[SRAM_BLOCK_SIZE*SRAM_WORD_SIZE];
 	uint16_t crc = CRC_INITIAL_VALUE;

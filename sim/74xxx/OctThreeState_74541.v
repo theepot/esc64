@@ -1,5 +1,5 @@
-`ifndef OCT_THREE_STATE_74541_INCLUDED
-`define OCT_THREE_STATE_74541_INCLUDED
+`ifndef _OCT_THREE_STATE_74541_INCLUDED_
+`define _OCT_THREE_STATE_74541_INCLUDED_
 
 module OctThreeState_74541(notOE1, notOE2, in, out);
 	input notOE1, notOE2;
