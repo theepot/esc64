@@ -4,15 +4,16 @@
 
 #include "parser.h"
 
-void TestParser(const char* testFile)
+void TestParser(const char* asmFile, const char* objFile)
 {
-//	Scanner scanner;
-//	FILE* file = fopen(testFile, "r");
-//	assert(file);
-//	ScannerInit(&scanner, file);
-//
-//	Parser parser;
-//	ParserInit(&parser, &scanner);
-//
-//	Parse(&parser);
+	Scanner scanner;
+	ScannerInit(&scanner, asmFile);
+
+	ObjectWriter objWriter;
+	ObjectWriterInit(&objWriter, objFile);
+
+	Parser parser;
+	ParserInit(&parser, &scanner, &objWriter);
+
+	Parse(&parser);
 }

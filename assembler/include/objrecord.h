@@ -27,18 +27,6 @@ typedef struct RecordReader_
 	UWord_t dataIndex;			///< offset on data of the record currently being read
 } RecordReader;
 
-//TODO remove obsolete
-//	object file header structure:
-//		raw data size			: UWord_t
-//		local symbol count		: UWord_t
-//		global symbol count		: UWord_t
-//		first section pos		: ObjSize_t
-//#define OBJ_HEADER_RAW_DATA_SIZE_OFFSET			(0)
-//#define OBJ_HEADER_LOCAL_SYMBOL_COUNT_OFFSET	(OBJ_HEADER_RAW_DATA_SIZE_OFFSET + sizeof (UWord_t))
-//#define OBJ_HEADER_GLOBAL_SYMBOL_COUNT_OFFSET	(OBJ_HEADER_LOCAL_SYMBOL_COUNT + sizeof (UWord_t))
-//#define OBJ_HEADER_FIRST_SECTION_POS_OFFSET		(OBJ_HEADER_GLOBAL_SYMBOL_COUNT_OFFSET + sizeof (UWord_t))
-//#define OBJ_HEADER_SIZE							(OBJ_HEADER_FIRST_SECTION_POS_OFFSET + sizeof (ObjSize_t))
-
 //	record structure:
 //		size	: UWord_t
 //		next	: ObjSize_t
@@ -52,6 +40,6 @@ void RecordWriterClose(RecordWriter* writer, FILE* file);
 void RecordWrite(RecordWriter* writer, FILE* stream, const void* data, size_t dataSize);
 
 void RecordReaderInit(RecordReader* reader, FILE* stream, ObjSize_t firstOffset);
-void RecordRead(RecordReader* reader, FILE* stream, void* buf, size_t amount);
+size_t RecordRead(RecordReader* reader, FILE* stream, void* buf, size_t amount);
 
 #endif

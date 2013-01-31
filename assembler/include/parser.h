@@ -1,64 +1,64 @@
-//#ifndef PARSER_INCLUDED
-//#define PARSER_INCLUDED
+#ifndef PARSER_INCLUDED
+#define PARSER_INCLUDED
+
+#include "scanner.h"
+#include "objcode.h"
+
+//	Grammar:
 //
-//#include "scanner.h"
-//#include "objcode.h"
+//		Line:
+//			End
+//			Label* End
+//			Label* Command End
 //
-///*
-//GRAMMER:
+//		Command:
+//			Directive
+//			Instruction
 //
-//Line:
-//	End
-//	Label* End
-//	Label* Command End
+//		Label:
+//			token<label>
 //
-//Command:
-//	Directive
-//	Instruction
+//		Directive:
+//			token<directive>
+//			token<directive> ArgList
 //
-//Label:
-//	token<label>
+//		Instruction:
+//			token<instruction>
+//			token<instruction> ArgList
 //
-//Directive:
-//	token<directive>
-//	token<directive> ArgList
+//		End:
+//			token<EOL>
+//			token<EOF>
 //
-//Instruction:
-//	token<instruction>
-//	token<instruction> ArgList
+//		ArgList:
+//			Arg(,Arg)*
 //
-//End:
-//	token<EOL>
-//	token<EOF>
+//		Arg:
+//			Number|Label
 //
-//ArgList:
-//	Arg(,Arg)*
-//
-//Arg:
-//	Number|Label
-//
-//Number:
-//	token<number>
-//*/
-//
-//typedef struct Parser_
+//		Number:
+//			token<number>
+
+typedef struct Parser_
+{
+	Scanner* scanner;
+	ObjectWriter* objWriter;
+	Token curToken;
+	UWord_t pc;
+	unsigned line;
+} Parser;
+
+//typedef struct Instruction_
 //{
-//	Scanner* scanner;
-//	ObjectOutputStream* objStream;
-//	Token curToken;
-//	UWord_t pc;
-//	unsigned line;
-//} Parser;
-//
-////typedef struct Instruction_
-////{
-////	UWord_t opcode;
-////	UWord_t operands[4];
-////} Instruction;
-//
-//void ParserInit(Parser* parser, Scanner* scanner, ObjectOutputStream* objStream);
-//
-//void Parse(Parser* parser);
-//
-//#endif
-//
+//	UWord_t opcode;
+//	UWord_t operands[4];
+//} Instruction;
+
+
+
+void ParserInit(Parser* parser, Scanner* scanner, ObjectWriter* objWriter);
+
+void Parse(Parser* parser);
+
+#endif
+

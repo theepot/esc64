@@ -11,6 +11,7 @@
 static void EnterSection(ObjectWriter* writer, Byte_t type, Byte_t placement, UWord_t addr, UWord_t size);
 static void FlushSection(ObjectWriter* writer);
 static void UpdatePrevNext(ObjectWriter* writer);
+//static void UpdateFirstOffset(ObjectWriter* writer, ObjSize_t newOffset);
 static void WriteSymbol(RecordWriter* writer, FILE* stream, const Symbol* sym);
 static void FlushHeader(ObjectWriter* writer);
 
@@ -22,11 +23,15 @@ void ObjectWriterInit(ObjectWriter* writer, const char* path)
 	writer->stream = fopen(path, "wb+");
 	assert(writer->stream);
 
+	writer->localSymTotNameSize = 0;
+	writer->globalSymTotNameSize = 0;
 	writer->localSymCount = 0;
 	writer->globalSymCount = 0;
 	writer->absSectionCount = 0;
 	writer->relocSectionCount = 0;
 
+//	writer->relocFirstOffset = OBJ_RECORD_ILLEGAL_OFFSET;
+//	writer->absFirstOffset = OBJ_RECORD_ILLEGAL_OFFSET;
 	writer->absPrevNextOffset = OBJ_HEADER_ABS_SECTION_OFFSET_OFFSET;
 	writer->relocPrevNextOffset = OBJ_HEADER_RELOC_SECTION_OFFSET_OFFSET;
 
@@ -47,15 +52,13 @@ void ObjectReaderInit(ObjectReader* reader, const char* path, ObjectHeader* head
 {
 	reader->stream = fopen(path, "rb");
 	assert(reader->stream);
+	reader->next = OBJ_RECORD_ILLEGAL_OFFSET;
 	ReadHeader(reader, header);
 }
 
 void ObjectReaderStart(ObjectReader* reader, ObjSize_t firstOffset)
 {
-#ifdef ESC_DEBUG
-	assert(firstOffset != OBJ_RECORD_ILLEGAL_OFFSET);
-#endif
-	ReadSection(reader, firstOffset);
+	reader->next = firstOffset;
 }
 
 void ObjectReaderClose(ObjectReader* reader)
@@ -100,17 +103,17 @@ void ObjWriteData(ObjectWriter* writer, const void* data, size_t dataSize)
 
 void ObjWriteInstr(ObjectWriter* writer, const Instruction* instr)
 {
-	UWord_t instrWord =	(instr->opcode << OPCODE_OFFSET)
+	UWord_t instrWord =	(instr->descr->opcode << OPCODE_OFFSET)
 			| (instr->operands[0] << OPERAND0_OFFSET)
 			| (instr->operands[1] << OPERAND1_OFFSET)
 			| (instr->operands[2] << OPERAND2_OFFSET);
 
-	if(instr->wide)
+	if(instr->descr->isWide)
 	{
 		const size_t size = 2;
 		UWord_t buf[size];
 		buf[0] = HTON_WORD(instrWord);
-		buf[1] = HTON_WORD(instr->exOperand);
+		buf[1] = HTON_WORD(instr->operands[3]);
 
 		ObjWriteData(writer, buf, size * sizeof (UWord_t));
 	}
@@ -129,6 +132,7 @@ void ObjWriteLocalSym(ObjectWriter* writer, const Symbol* sym)
 
 	WriteSymbol(&writer->localSymWriter, writer->stream, sym);
 	++writer->localSymCount;
+	writer->localSymTotNameSize += sym->nameLen;
 }
 
 void ObjWriteGlobalSym(ObjectWriter* writer, const Symbol* sym)
@@ -139,6 +143,7 @@ void ObjWriteGlobalSym(ObjectWriter* writer, const Symbol* sym)
 
 	WriteSymbol(&writer->globalSymWriter, writer->stream, sym);
 	++writer->globalSymCount;
+	writer->globalSymTotNameSize += sym->nameLen;
 }
 
 void ObjWriteExpr(ObjectWriter* writer, const Expression* expr)
@@ -151,30 +156,38 @@ void ObjWriteExpr(ObjectWriter* writer, const Expression* expr)
 	Byte_t buf[bufSize];
 	void* p = buf;
 
+	UWord_t address = HTON_WORD(expr->address);
+	memcpy(p, &address, sizeof address);			//address
+	p += sizeof address;
+
 	UWord_t nameLen = HTON_WORD(expr->nameLen);
-	memcpy(p, &nameLen, sizeof nameLen);
+	memcpy(p, &nameLen, sizeof nameLen);			//nameLen
 	p += sizeof nameLen;
 
-	memcpy(p, expr->name, expr->nameLen);
-	p += expr->nameLen;
-
-	UWord_t address = HTON_WORD(expr->address);
-	memcpy(p, &address, sizeof address);
+	memcpy(p, expr->name, expr->nameLen);			//name
 
 	RecordWrite(&writer->exprWriter, writer->stream, buf, bufSize);
 }
 
 int ObjReaderNextSection(ObjectReader* reader)
 {
-	IOSetFilePos(reader->stream, reader->offset + OBJ_SECTION_NEXT_OFFSET);
-	ObjSize_t next = IOReadObjSize(reader->stream);
-	if(next == OBJ_RECORD_ILLEGAL_OFFSET)
+	if(reader->next == OBJ_RECORD_ILLEGAL_OFFSET)
 	{
 		return -1;
 	}
 
-	ReadSection(reader, next);
+	ReadSection(reader, reader->next);
 	return 0;
+
+//	IOSetFilePos(reader->stream, reader->offset + OBJ_SECTION_NEXT_OFFSET);
+//	ObjSize_t next = IOReadObjSize(reader->stream);
+//	if(next == OBJ_RECORD_ILLEGAL_OFFSET)
+//	{
+//		return -1;
+//	}
+//
+//	ReadSection(reader, next);
+//	return 0;
 }
 
 UWord_t ObjReadAddress(ObjectReader* reader)
@@ -194,27 +207,33 @@ UWord_t ObjReadSize(ObjectReader* reader)
 	return IOReadWord(reader->stream);
 }
 
-void ObjSymIteratorInit(ObjSymIterator* it, ObjectReader* reader, ObjSize_t offset, UWord_t symCount)
+int ObjSymIteratorInit(ObjSymIterator* it, ObjectReader* reader, ObjSize_t offset)
 {
 	it->stream = reader->stream;
-	it->symCount = symCount;
-	it->symN = 0;
-	RecordReaderInit(&it->symReader, reader->stream, reader->offset + offset);
+	IOSetFilePos(it->stream, reader->offset + offset);
+	ObjSize_t recordOffset = IOReadObjSize(it->stream);
+	if(recordOffset == OBJ_RECORD_ILLEGAL_OFFSET)
+	{
+		return -1;
+	}
+
+	RecordReaderInit(&it->symReader, reader->stream, recordOffset);
 	it->state = OBJ_IT_STATE_START;
+
+	return 0;
 }
 
 int ObjSymIteratorNext(ObjSymIterator* it)
 {
 	assert(it->state == OBJ_IT_STATE_START);
-	if(it->symN >= it->symCount)
-	{
-		return -1;
-	}
 
 	size_t toRead = sizeof (UWord_t) + sizeof (UWord_t);
 	Byte_t buf[toRead];
 	void* p = buf;
-	RecordRead(&it->symReader, it->stream, buf, toRead);
+	if(RecordRead(&it->symReader, it->stream, buf, toRead) != toRead)
+	{
+		return -1;
+	}
 
 	UWord_t rawValue;
 	memcpy(&rawValue, p, sizeof rawValue);
@@ -233,11 +252,8 @@ int ObjSymIteratorNext(ObjSymIterator* it)
 void ObjSymIteratorReadName(ObjSymIterator* it, void* buf)
 {
 	assert(it->state == OBJ_IT_STATE_READ_STATIC);
-	assert(it->symN < it->symCount);
-
-	RecordRead(&it->symReader, it->stream, buf, it->curSym.nameLen);
+	assert(RecordRead(&it->symReader, it->stream, buf, it->curSym.nameLen) == it->curSym.nameLen);
 	it->curSym.name = buf;
-
 	it->state = OBJ_IT_STATE_START;
 }
 
@@ -246,18 +262,99 @@ const Symbol* ObjSymIteratorGetSym(ObjSymIterator* it)
 	return &it->curSym;
 }
 
+int ObjExprIteratorInit(ObjExprIterator* it, ObjectReader* reader)
+{
+	assert(reader->type == SECTION_TYPE_DATA);
+
+	it->stream = reader->stream;
+	IOSetFilePos(it->stream, reader->offset + OBJ_SECTION_EXPR_RECORD_OFFSET);
+	ObjSize_t recordOffset = IOReadObjSize(it->stream);
+	if(recordOffset == OBJ_RECORD_ILLEGAL_OFFSET)
+	{
+		return -1;
+	}
+
+	RecordReaderInit(&it->exprReader, reader->stream, recordOffset);
+	it->state = OBJ_IT_STATE_START;
+
+	return 0;
+}
+
+int ObjExprIteratorNext(ObjExprIterator* it)
+{
+	assert(it->state == OBJ_IT_STATE_START);
+
+	size_t toRead = sizeof (UWord_t) + sizeof (UWord_t);
+	Byte_t buf[toRead];
+	void* p = buf;
+	if(RecordRead(&it->exprReader, it->stream, buf, toRead) != toRead)
+	{
+		return -1;
+	}
+
+	UWord_t rawAddress;
+	memcpy(&rawAddress, p, sizeof rawAddress);
+	p += sizeof rawAddress;
+	it->curExpr.address = NTOH_WORD(rawAddress);	//address
+
+	UWord_t rawNameSize;
+	memcpy(&rawNameSize, p, sizeof rawNameSize);
+	it->curExpr.nameLen = NTOH_WORD(rawNameSize);	//nameSize
+
+	it->state = OBJ_IT_STATE_READ_STATIC;
+
+	return 0;
+}
+
+void ObjExprIteratorReadName(ObjExprIterator* it, void* buf)
+{
+	assert(it->state == OBJ_IT_STATE_READ_STATIC);
+	assert(RecordRead(&it->exprReader, it->stream, buf, it->curExpr.nameLen) == it->curExpr.nameLen);
+	it->curExpr.name = buf;
+	it->state = OBJ_IT_STATE_START;
+}
+
+const Expression* ObjExprIteratorGetExpr(ObjExprIterator* it)
+{
+	return &it->curExpr;
+}
+
+int ObjDataReaderInit(ObjDataReader* dataReader, ObjectReader* objReader)
+{
+	assert(objReader->type == SECTION_TYPE_DATA);
+
+	dataReader->stream = objReader->stream;
+	IOSetFilePos(dataReader->stream, objReader->offset + OBJ_SECTION_DATA_RECORD_OFFSET);
+	ObjSize_t firstOffset = IOReadObjSize(dataReader->stream);
+	if(firstOffset == OBJ_RECORD_ILLEGAL_OFFSET)
+	{
+		return -1;
+	}
+
+	RecordReaderInit(&dataReader->dataReader, dataReader->stream, firstOffset);
+
+	return 0;
+}
+
+size_t ObjDataReaderRead(ObjDataReader* reader, void* data, size_t dataSize)
+{
+	return RecordRead(&reader->dataReader, reader->stream, data, dataSize);
+}
+
 static void EnterSection(ObjectWriter* writer, Byte_t type, Byte_t placement, UWord_t addr, UWord_t size)
 {
+//	IOSeekEnd(writer->stream);
+//	ObjSize_t newOffset = IOGetFilePos(writer->stream);
+
 	FlushSection(writer);
 
+	IOSeekEnd(writer->stream);
 	writer->type = type;
 	writer->placement = placement;
-
-	IOSeekEnd(writer->stream);
 	writer->offset = IOGetFilePos(writer->stream);
 
 	//write section header
-	IOWriteByte(writer->stream, type);		//type
+	IOWriteByte(writer->stream, type);							//type
 	IOWriteObjSize(writer->stream, OBJ_RECORD_ILLEGAL_OFFSET);	//next
 
 	switch(placement)
@@ -295,8 +392,6 @@ static void FlushSection(ObjectWriter* writer)
 {
 	if(writer->type != SECTION_TYPE_NONE)
 	{
-		UpdatePrevNext(writer);
-
 		RecordWriterClose(&writer->localSymWriter, writer->stream);
 		RecordWriterClose(&writer->globalSymWriter, writer->stream);
 
@@ -308,28 +403,53 @@ static void FlushSection(ObjectWriter* writer)
 			RecordWriterClose(&writer->exprWriter, writer->stream);
 			RecordWriterClose(&writer->dataWriter, writer->stream);
 		}
+
+		UpdatePrevNext(writer);
 	}
 }
 
 static void UpdatePrevNext(ObjectWriter* writer)
 {
-	ObjSize_t offset;
+	ObjSize_t* prevNext;
 	switch(writer->placement)
 	{
 	case OBJ_ABS:
-		offset = writer->absPrevNextOffset;
+		prevNext = &writer->absPrevNextOffset;
 		break;
 	case OBJ_RELOC:
-		offset = writer->relocPrevNextOffset;
+		prevNext = &writer->relocPrevNextOffset;
 		break;
 	default:
 		assert(0 && "Illegal placement");
 		break;
 	}
 
-	IOSetFilePos(writer->stream, offset);
+	IOSetFilePos(writer->stream, *prevNext);
 	IOWriteObjSize(writer->stream, writer->offset);
+	*prevNext = writer->offset + OBJ_SECTION_NEXT_OFFSET;
 }
+
+//static void UpdateFirstOffset(ObjectWriter* writer, ObjSize_t newOffset)
+//{
+//	switch(writer->placement)
+//	{
+//	case OBJ_ABS:
+//		if(writer->absFirstOffset == OBJ_RECORD_ILLEGAL_OFFSET)
+//		{
+//			writer->absFirstOffset = newOffset;
+//		}
+//		break;
+//	case OBJ_RELOC:
+//		if(writer->relocFirstOffset == OBJ_RECORD_ILLEGAL_OFFSET)
+//		{
+//			writer->relocFirstOffset = newOffset;
+//		}
+//		break;
+//	default:
+//		assert(0 && "Illegal placement");
+//		break;
+//	}
+//}
 
 static void WriteSymbol(RecordWriter* writer, FILE* stream, const Symbol* sym)
 {
@@ -337,15 +457,15 @@ static void WriteSymbol(RecordWriter* writer, FILE* stream, const Symbol* sym)
 	Byte_t buf[bufSize];
 	void* p = buf;
 
+	UWord_t value = HTON_WORD(sym->value);
+	memcpy(p, &value, sizeof value);			//value
+	p += sizeof sym->value;
+
 	UWord_t nameLen = HTON_WORD(sym->nameLen);
-	memcpy(p, &nameLen, sizeof nameLen);
+	memcpy(p, &nameLen, sizeof nameLen);		//nameLen
 	p += sizeof sym->nameLen;
 
-	memcpy(p, sym->name, sym->nameLen);
-	p += sym->nameLen;
-
-	UWord_t value = HTON_WORD(sym->value);
-	memcpy(p, &value, sizeof value);
+	memcpy(p, sym->name, sym->nameLen);			//name
 
 	RecordWrite(writer, stream, buf, bufSize);
 }
@@ -353,6 +473,8 @@ static void WriteSymbol(RecordWriter* writer, FILE* stream, const Symbol* sym)
 static void FlushHeader(ObjectWriter* writer)
 {
 	IOSetFilePos(writer->stream, 0);
+	IOWriteWord(writer->stream, writer->localSymTotNameSize);
+	IOWriteWord(writer->stream, writer->globalSymTotNameSize);
 	IOWriteWord(writer->stream, writer->localSymCount);
 	IOWriteWord(writer->stream, writer->globalSymCount);
 	IOWriteWord(writer->stream, writer->absSectionCount);
@@ -362,12 +484,25 @@ static void FlushHeader(ObjectWriter* writer)
 static void ReadSection(ObjectReader* reader, ObjSize_t offset)
 {
 	IOSetFilePos(reader->stream, offset);
-	reader->type = IOReadByte(reader->stream);
+	reader->type = IOReadByte(reader->stream);		//type
+	reader->next = IOReadObjSize(reader->stream);	//next
+
 	reader->offset = offset;
 }
 
 static void ReadHeader(ObjectReader* reader, ObjectHeader* header)
 {
+	//		- local symbol total name size	: UWord_t	///< size of names of all local symbols
+	//		- global symbol total name size	: UWord_t 	///< size of names of all global symbols
+	//		- local symbol count			: UWord_t
+	//		- global symbol count			: UWord_t
+	//		- abs section count				: UWord_t
+	//		- reloc section count			: UWord_t
+	//		- abs section offset			: ObjSize_t
+	//		- reloc section offset			: ObjSize_t
+
+	header->localSymTotNameSize = IOReadWord(reader->stream);
+	header->globalSymTotNameSize = IOReadWord(reader->stream);
 	header->localSymCount = IOReadWord(reader->stream);
 	header->globalSymCount = IOReadWord(reader->stream);
 	header->absSectionCount = IOReadWord(reader->stream);

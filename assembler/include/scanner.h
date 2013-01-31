@@ -1,6 +1,8 @@
 #ifndef SCANNER_INCLUDED
 #define SCANNER_INCLUDED
 
+//TODO scanning for symbols / directives / label declarations is now a bit of a mess. Fix!
+
 #include <stdio.h>
 #include "tokendescr.h"
 
@@ -58,11 +60,15 @@ typedef struct Token_
 } Token;
 
 void ScannerStaticInit(void);
-
-void ScannerInit(Scanner* scanner, FILE* stream);
-
+void ScannerInit(Scanner* scanner, const char* filePath);
+void ScannerClose(Scanner* scanner);
 void ScannerNext(Scanner* scanner, Token*  token);
-
+/**
+ * @brief			Get length of last read token. Can be used to get the length of a read symbol for example
+ * @param scanner	Scanner
+ * @return			Length of last read token
+ */
+size_t ScannerStrLen(Scanner* scanner);
 void ScannerDumpToken(FILE* stream, const Token* token);
 void ScannerDumpPretty(FILE* stream, Scanner* scanner);
 
