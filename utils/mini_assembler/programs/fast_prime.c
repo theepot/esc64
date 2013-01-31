@@ -44,7 +44,7 @@ void asm_prgm(void)
 	mov_literal_labeled(R_TMP1, "try_next");\
 	mov_on_zero(PC, R_TMP1);\
 	mov_literal_labeled(R_TMP1, "underflow"#x);\
-	mov_on_not_carry(PC, R_TMP1);\
+	mov_on_notcarry(PC, R_TMP1);\
 	load(R_TMP1, R_ITTERATOR);\
 	sub(R_TMP0, R_TMP0, R_TMP1);\
 	lbl("underflow"#x);\

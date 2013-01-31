@@ -16,6 +16,9 @@ module GPRegister(clock, notLoad, notOE, in, out);
 	OctThreeState_74541 bufL(notOE, 0, outL , out[7:0]);
 	OctThreeState_74541 bufH(notOE, 0, outH , out[15:8]);
 	
+	//generic register interface so higher level modules can monitor the content of this register
+	wire [15:0] content = {regH.out, regL.out};
+	
 endmodule
 
 `endif

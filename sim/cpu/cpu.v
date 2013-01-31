@@ -73,7 +73,7 @@ module cpu(clock, notReset, aBus, yBus, memNotRead, memNotWrite);
 	wire statusCIn; //status < alu
 	wire statusCOut; //status >  alu, useq
 	wire statusZIn; //status < alu
-	wire statusZOut; //status > alu, useq
+	wire statusZOut; //status > useq
 	wire statusNotLoad; //status < useq
 	statusRegister status(clock, statusNotLoad, statusCIn, statusCOut, statusZIn, statusZOut);
 

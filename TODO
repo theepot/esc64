@@ -9,6 +9,9 @@ List of TODO things:
 	-add new instructions:
 		inc, dec, 
 		all combination's of conditional mov's
+		
 	-create big diagnostics program
 	
 	-schematic bootstrapper
+	
+	-urom: clear all registers at reset

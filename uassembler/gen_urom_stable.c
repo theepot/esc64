@@ -22,7 +22,6 @@ bin_table_collumn_description field_descrps[] = {
 	{.name = "aluUCIn", .width = 1, .active_high = H},
 	{.name = "memNotRead", .width = 1, .active_high = L},
 	{.name = "memNotWrite", .width = 1, .active_high = L},
-	//{.name = "dummy", .width = 1, .active_high = L},
 	{.name = "irNotLoad", .width = 1, .active_high = L},
 	{.name = "next", .width = UROM_ADDR_WIDTH, .active_high = H},
 	{.name = "nextsel", .width = 1, .active_high = H}
@@ -213,6 +212,17 @@ void create_conditional_mov_instruction(opcode op, int condition)
 	set_next(u, next_sel_fetch);
 }
 
+void create_conditional_mov_literal_instruction(opcode op, int condition)
+{
+	create_nop_instruction(op, ~condition);
+	goto_op_entry(u, op, condition);
+	pc_inc();
+	gpreg_oe(gpreg_oe_sel_pc);
+	mem(mem_action_read);
+	gpreg_ld(gpreg_ld_sel_op0);
+	set_next(u, next_sel_fetch);
+}
+
 void create_illegal_instruction(opcode op)
 {
 	goto_op_entry(u, op, ALWAYS);
@@ -256,6 +266,44 @@ int main(int argc, char** argv)
 	//reset
 	goto_op_entry(u, op_reset, ALWAYS);
 	//goto_reset(u);
+	set_next(u, next_sel_next_free);
+	goto_next(u);
+	alu_enable(ALU_F_ZERO);
+	gpreg_ld(gpreg_ld_sel_0);
+	set_next(u, next_sel_next_free);
+	goto_next(u);
+	alu_enable(ALU_F_ZERO);
+	gpreg_ld(gpreg_ld_sel_1);
+	set_next(u, next_sel_next_free);
+	goto_next(u);
+	alu_enable(ALU_F_ZERO);
+	gpreg_ld(gpreg_ld_sel_2);
+	set_next(u, next_sel_next_free);
+	goto_next(u);
+	alu_enable(ALU_F_ZERO);
+	gpreg_ld(gpreg_ld_sel_3);
+	set_next(u, next_sel_next_free);
+	goto_next(u);
+	alu_enable(ALU_F_ZERO);
+	gpreg_ld(gpreg_ld_sel_4);
+	set_next(u, next_sel_next_free);
+	goto_next(u);
+	alu_enable(ALU_F_ZERO);
+	gpreg_ld(gpreg_ld_sel_5);
+	set_next(u, next_sel_next_free);
+	goto_next(u);
+	alu_enable(ALU_F_ZERO);
+	gpreg_ld(gpreg_ld_sel_6);
+	carry_set(carry_sel_zero);
+	ir_ld();
+	gpreg_oe(gpreg_oe_sel_5);
+	breg_ld();
+	set_next(u, next_sel_next_free);
+	goto_next(u);
+	alu_enable(ALU_F_A_PLUS_ONE);
+	carry_set(carry_sel_one);
+	gpreg_oe(gpreg_oe_sel_5);
+	status_ld();
 	set_next(u, next_sel_fetch);
 
 	//fetch
@@ -272,23 +320,104 @@ int main(int argc, char** argv)
 	//mov
 	create_conditional_mov_instruction(op_mov, ALWAYS);
 
+	//mov on notcarry and notzero
+	create_conditional_mov_instruction(op_mov_on_notcarry_and_notzero, NOT_CARRY_NOT_ZERO);
+
+	//mov on notcarry and zero
+	create_conditional_mov_instruction(op_mov_on_notcarry_and_zero, NOT_CARRY_ZERO);
+
+	//mov on notcarry
+	create_conditional_mov_instruction(op_mov_on_notcarry, NOT_CARRY_ZERO | NOT_CARRY_NOT_ZERO);
+
+	//mov on carry and notzero
+	create_conditional_mov_instruction(op_mov_on_carry_and_notzero, CARRY_NOT_ZERO);
+
+	//mov on notzero
+	create_conditional_mov_instruction(op_mov_on_notzero, CARRY_NOT_ZERO | NOT_CARRY_NOT_ZERO);
+
+	//mov on carry notequals zero
+	create_conditional_mov_instruction(op_mov_on_carry_notequals_zero, CARRY_NOT_ZERO | NOT_CARRY_ZERO);
+
+	//mov on notcarry or notzero
+	create_conditional_mov_instruction(op_mov_on_notcarry_or_notzero, CARRY_NOT_ZERO | NOT_CARRY_ZERO | NOT_CARRY_NOT_ZERO);
+
+	//mov on carry and zero
+	create_conditional_mov_instruction(op_mov_on_carry_and_zero, CARRY_ZERO);
+
+	//mov on carry equals zero
+	create_conditional_mov_instruction(op_mov_on_carry_equals_zero, CARRY_ZERO | NOT_CARRY_NOT_ZERO);
+
 	//mov on zero
 	create_conditional_mov_instruction(op_mov_on_zero, CARRY_ZERO | NOT_CARRY_ZERO);
 
-	//mov on not zero
-	create_conditional_mov_instruction(op_mov_on_not_zero, CARRY_NOT_ZERO | NOT_CARRY_NOT_ZERO);
+	//mov on notcarry or zero
+	create_conditional_mov_instruction(op_mov_on_notcarry_or_zero,  CARRY_ZERO | NOT_CARRY_ZERO | NOT_CARRY_NOT_ZERO);
 
-	//mov on not carry
-	create_conditional_mov_instruction(op_mov_on_not_carry, NOT_CARRY_ZERO | NOT_CARRY_NOT_ZERO);
+	//mov on carry
+	create_conditional_mov_instruction(op_mov_on_carry, CARRY_ZERO | CARRY_NOT_ZERO);
 
-	//mov on not carry or zero
-	create_conditional_mov_instruction(op_mov_on_not_carry_or_zero, NOT_CARRY_ZERO | NOT_CARRY_NOT_ZERO | CARRY_ZERO);
+	//mov on carry or notzero
+	create_conditional_mov_instruction(op_mov_on_carry_or_notzero, CARRY_ZERO | CARRY_NOT_ZERO | NOT_CARRY_NOT_ZERO);
+
+	//mov on carry or zero
+	create_conditional_mov_instruction(op_mov_on_carry_or_zero, CARRY_ZERO | CARRY_NOT_ZERO | NOT_CARRY_ZERO);
+
+	//mov literal
+	create_conditional_mov_literal_instruction(op_mov_literal, ALWAYS);
+
+	//mov literal on notcarry and notzero
+	create_conditional_mov_literal_instruction(op_mov_literal_on_notcarry_and_notzero, NOT_CARRY_NOT_ZERO);
+
+	//mov literal on notcarry and zero
+	create_conditional_mov_literal_instruction(op_mov_literal_on_notcarry_and_zero, NOT_CARRY_ZERO);
+
+	//mov literal on notcarry
+	create_conditional_mov_literal_instruction(op_mov_literal_on_notcarry, NOT_CARRY_ZERO | NOT_CARRY_NOT_ZERO);
+
+	//mov literal on carry and notzero
+	create_conditional_mov_literal_instruction(op_mov_literal_on_carry_and_notzero, CARRY_NOT_ZERO);
+
+	//mov literal on notzero
+	create_conditional_mov_literal_instruction(op_mov_literal_on_notzero, CARRY_NOT_ZERO | NOT_CARRY_NOT_ZERO);
+
+	//mov literal on carry notequals zero
+	create_conditional_mov_literal_instruction(op_mov_literal_on_carry_notequals_zero, CARRY_NOT_ZERO | NOT_CARRY_ZERO);
+
+	//mov literal on notcarry or notzero
+	create_conditional_mov_literal_instruction(op_mov_literal_on_notcarry_or_notzero, CARRY_NOT_ZERO | NOT_CARRY_ZERO | NOT_CARRY_NOT_ZERO);
+
+	//mov literal on carry and zero
+	create_conditional_mov_literal_instruction(op_mov_literal_on_carry_and_zero, CARRY_ZERO);
+
+	//mov literal on carry equals zero
+	create_conditional_mov_literal_instruction(op_mov_literal_on_carry_equals_zero, CARRY_ZERO | NOT_CARRY_NOT_ZERO);
+
+	//mov literal on zero
+	create_conditional_mov_literal_instruction(op_mov_literal_on_zero, CARRY_ZERO | NOT_CARRY_ZERO);
+
+	//mov literal on notcarry or zero
+	create_conditional_mov_literal_instruction(op_mov_literal_on_notcarry_or_zero,  CARRY_ZERO | NOT_CARRY_ZERO | NOT_CARRY_NOT_ZERO);
+
+	//mov literal on carry
+	create_conditional_mov_literal_instruction(op_mov_literal_on_carry, CARRY_ZERO | CARRY_NOT_ZERO);
+
+	//mov literal on carry or notzero
+	create_conditional_mov_literal_instruction(op_mov_literal_on_carry_or_notzero, CARRY_ZERO | CARRY_NOT_ZERO | NOT_CARRY_NOT_ZERO);
+
+	//mov literal on carry or zero
+	create_conditional_mov_literal_instruction(op_mov_literal_on_carry_or_zero, CARRY_ZERO | CARRY_NOT_ZERO | NOT_CARRY_ZERO);
 
 	//add
 	create_2op_alu_instruction(op_add, ALU_F_ADD, carry_sel_zero);
 
+	//add with carry
+	create_2op_alu_instruction(op_add_with_carry, ALU_F_ADD, carry_sel_status_reg);
+
 	//sub
 	create_2op_alu_instruction(op_sub, ALU_F_SUB, carry_sel_one);
+
+	//sub with carry
+	create_2op_alu_instruction(op_sub_with_carry, ALU_F_SUB, carry_sel_status_reg);
 
 	//and
 	create_2op_alu_instruction(op_and, ALU_F_AND, carry_sel_zero);
@@ -299,8 +428,20 @@ int main(int argc, char** argv)
 	//xor
 	create_2op_alu_instruction(op_xor, ALU_F_XOR, carry_sel_zero);
 
+	//compare
+	goto_op_entry(u, op_cmp, ALWAYS);
+	breg_ld();
+	gpreg_oe(gpreg_oe_sel_op2);
+	set_next(u, next_sel_next_free);
+	goto_next(u);
+	alu_enable(ALU_F_SUB);
+	status_ld();
+	carry_set(carry_sel_one);
+	gpreg_oe(gpreg_oe_sel_op1);
+	set_next(u, next_sel_fetch);
+
 	//shift left
-	goto_op_entry(u, op_shift_left, ALWAYS);
+	goto_op_entry(u, op_shift_left_1, ALWAYS);
 	gpreg_oe(gpreg_oe_sel_op1);
 	gpreg_ld(gpreg_ld_sel_op0);
 	shift_enable(1);
@@ -308,20 +449,38 @@ int main(int argc, char** argv)
 	set_next(u, next_sel_fetch);
 
 	//shift right
-	goto_op_entry(u, op_shift_right, ALWAYS);
+	goto_op_entry(u, op_shift_right_1, ALWAYS);
 	gpreg_oe(gpreg_oe_sel_op1);
 	gpreg_ld(gpreg_ld_sel_op0);
 	shift_enable(0);
 	status_ld();
 	set_next(u, next_sel_fetch);
 
-	//mov literal
-	goto_op_entry(u, op_mov_literal, ALWAYS);
-	pc_inc();
-	gpreg_oe(gpreg_oe_sel_pc);
-	mem(mem_action_read);
+	//inc
+	goto_op_entry(u, op_inc, ALWAYS);
+	gpreg_oe(gpreg_oe_sel_op1);
 	gpreg_ld(gpreg_ld_sel_op0);
+	alu_enable(ALU_F_A_PLUS_ONE);
+	carry_set(carry_sel_one);
+	status_ld();
 	set_next(u, next_sel_fetch);
+
+	//dec
+	goto_op_entry(u, op_dec, ALWAYS);
+	gpreg_oe(gpreg_oe_sel_op1);
+	gpreg_ld(gpreg_ld_sel_op0);
+	alu_enable(ALU_F_A_MINUS_ONE);
+	carry_set(carry_sel_zero);
+	status_ld();
+	set_next(u, next_sel_fetch);
+
+	//not
+	goto_op_entry(u, op_not, ALWAYS);
+	gpreg_oe(gpreg_oe_sel_op1);
+	gpreg_ld(gpreg_ld_sel_op0);
+	alu_enable(ALU_F_NOT_A);
+	set_next(u, next_sel_fetch);
+
 
 	//load
 	goto_op_entry(u, op_load, ALWAYS);
@@ -344,19 +503,6 @@ int main(int argc, char** argv)
 	gpreg_oe(gpreg_oe_sel_op1);
 	set_next(u, next_sel_fetch);
 
-	//compare
-	goto_op_entry(u, op_cmp, ALWAYS);
-	breg_ld();
-	gpreg_oe(gpreg_oe_sel_op2);
-	set_next(u, next_sel_next_free);
-	goto_next(u);
-	alu_enable(ALU_F_SUB);
-	status_ld();
-	carry_set(carry_sel_one);
-	gpreg_oe(gpreg_oe_sel_op1);
-	set_next(u, next_sel_fetch);
-
-
 	//call
 	goto_op_entry(u, op_call, ALWAYS);
 	gpreg_oe(gpreg_oe_sel_pc);
@@ -369,76 +515,10 @@ int main(int argc, char** argv)
 	gpreg_ld(gpreg_ld_sel_pc);
 	set_next(u, next_sel_fetch);
 
-
+	//halt
+	//TODO: implement
 
 	print_verilog(u, 1);
 
-/*	//ucode
-	//init
-	put_op_entry("", 0, dontcare, dontcare, fetch, mem);
-
-	//fetch
-	put_uop("regselOE, regselOESource="RGS_OESRC_USEQ", regselOEuSel="RGS_PC", memNotCS, memNotRead, irNotLoad, pcInc", next, mem);
-	put_uop("", op_entry, mem);
-	
-	//mov's
-#define MOV(o,c,z) put_op_entry("regselOE, regselOESource="RGS_OESRC_OP1", regselLoad, regselLoadSource="RGS_LOADSRC_OP0", aluNotALUOE, aluF="ALU_F_A, (o), (c), (z), fetch, mem)
-#define NOP(o) put_op_entry("", (o), dontcare, dontcare, fetch, mem)
-
-	MOV(op_mov, dontcare, dontcare);
-	
-	NOP(op_mov_on_zero);
-	MOV(op_mov_on_zero, dontcare, true);
-	
-	NOP(op_mov_on_not_zero);
-	MOV(op_mov_on_not_zero, dontcare, false);
-	
-	NOP(op_mov_on_not_carry);
-	MOV(op_mov_on_not_carry, false, dontcare);
-	
-	NOP(op_mov_on_not_carry_or_zero);
-	MOV(op_mov_on_not_carry_or_zero, false, dontcare);
-	MOV(op_mov_on_not_carry_or_zero, dontcare, true);
-	
-	//mov immediate
-	put_op_entry("pcInc, regselLoad, regselLoadSource="RGS_LOADSRC_OP0", regselOE, regselOESource="RGS_OESRC_USEQ", regselOEuSel="RGS_PC", memNotCS, memNotRead", op_mov_literal, dontcare, dontcare, fetch, mem);
-	
-	//ALU functions
-#define FN(op, f) \
-	put_op_entry("regselOE, regselOESource="RGS_OESRC_OP2", aluBRegNotLoad", (op), dontcare, dontcare, next, mem); \
-	put_uop("regselOE, regselOESource="RGS_OESRC_OP1", regselLoad, regselLoadSource="RGS_LOADSRC_OP0", aluNotALUOE, statusNotLoad, aluF="  f ", aluCSel="ALU_CSEL_UCIN, fetch, mem)
-	FN(op_add, ALU_F_ADD);
-	FN(op_or, ALU_F_OR);
-	FN(op_xor, ALU_F_XOR);
-	FN(op_and, ALU_F_AND);
-	put_op_entry("regselOE, regselOESource="RGS_OESRC_OP2", aluBRegNotLoad", op_sub, dontcare, dontcare, next, mem); \
-	put_uop("regselOE, regselOESource="RGS_OESRC_OP1", regselLoad, regselLoadSource="RGS_LOADSRC_OP0", statusNotLoad, aluNotALUOE, aluF="ALU_F_SUB", aluCSel="ALU_CSEL_UCIN", aluUCIn", fetch, mem);
-	
-	//shift left
-	put_op_entry("regselOE, regselOESource="RGS_OESRC_OP1", regselLoad, regselLoadSource="RGS_LOADSRC_OP0", aluNotShiftOE, statusNotLoad, aluF="ALU_F_SHIFT_LEFT, op_shift_left, dontcare, dontcare, fetch, mem);
-	
-	//shift right
-	put_op_entry("regselOE, regselOESource="RGS_OESRC_OP1", regselLoad, regselLoadSource="RGS_LOADSRC_OP0", aluNotShiftOE, statusNotLoad, aluF="ALU_F_SHIFT_RIGHT, op_shift_right, dontcare, dontcare, fetch, mem);
-	
-	
-	//load
-	put_op_entry("regselOE, regselOESource="RGS_OESRC_OP1", regselLoad, regselLoadSource="RGS_LOADSRC_OP0", memNotCS, memNotRead", op_load, dontcare, dontcare, fetch, mem);
-	
-	//store
-	put_op_entry("regselOE, regselOESource="RGS_OESRC_OP2", aluBRegNotLoad, aluF="ALU_F_B", aluNotALUOE", op_store, dontcare, dontcare, next, mem);
-	put_uop("memNotWrite, memNotCS, regselOE, regselOESource="RGS_OESRC_OP1", aluF="ALU_F_B", aluNotALUOE", next, mem);
-	put_uop("memNotCS, regselOE, regselOESource="RGS_OESRC_OP1", aluF="ALU_F_B", aluNotALUOE", fetch, mem);
-	
-	//comp
-	put_op_entry("regselOE, regselOESource="RGS_OESRC_OP2", aluBRegNotLoad", op_cmp, dontcare, dontcare, next, mem); \
-	put_uop("regselOE, regselOESource="RGS_OESRC_OP1", statusNotLoad, aluNotALUOE, aluF="ALU_F_SUB", aluCSel="ALU_CSEL_UCIN", aluUCIn", fetch, mem);
-	
-	//call
-	put_op_entry("aluNotALUOE, regselLoad, regselLoadSource="RGS_LOADSRC_USEQ", regselLoaduSel="RGS_LR", regselOE, regselOESource="RGS_OESRC_USEQ", regselOEuSel="RGS_PC, op_call, dontcare, dontcare, next, mem);
-	put_uop("aluNotALUOE, regselOE, regselOESource="RGS_OESRC_OP1", regselLoad, regselLoadSource="RGS_LOADSRC_USEQ", regselLoaduSel="RGS_PC, fetch, mem);
-	
-	*/
-
-	//print
 	return 0;
 }

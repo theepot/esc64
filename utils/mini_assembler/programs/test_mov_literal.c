@@ -28,4 +28,6 @@ void asm_prgm(void)
 	T(GP4)
 	T(GP5)
 	T(LR)
+
+	halt();
 }

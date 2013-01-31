@@ -1,4 +1,4 @@
-@PHONY: all
+.PHONY: all
 all: computer.vcd
 
 computer: computer.v ../*/*.v ../globals.v

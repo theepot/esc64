@@ -75,10 +75,30 @@ module alu_test();
 					expected_y = a + b + cin;
 					expected_cout = expected_y < a || expected_y < b ? 1'b1 : 1'b0;
 				end
-				`ALU_F_NOT:expected_y = ~a;
-				`ALU_F_XOR:expected_y = a ^ b;
-				`ALU_F_AND:expected_y = a & b;
-				`ALU_F_OR:expected_y = a | b;
+				`ALU_F_A_MINUS_ONE: begin
+					expected_y = a - 1 + cin;
+					expected_cout = y < a ? 1'b1 : 1'b0;
+				end
+				`ALU_F_ZERO: begin
+					expected_y = 0;
+					expected_cout = 1'bx;
+				end
+				`ALU_F_NOT: begin
+					expected_y = ~a;
+					expected_cout = 1'bx;
+				end
+				`ALU_F_XOR: begin
+					expected_y = a ^ b;
+					expected_cout = 1'bx;
+				end
+				`ALU_F_AND: begin
+					expected_y = a & b;
+					expected_cout = 1'bx;
+				end
+				`ALU_F_OR: begin
+					expected_y = a | b;
+					expected_cout = 1'bx;
+				end
 				default:$display("Warning in ALU test. Unknown code at f");
 			endcase
 		end
@@ -93,7 +113,7 @@ module alu_test();
 			alu_print_state();
 		end
 		
-		if((!notALUOE ^ !notShiftOE) && f !== `ALU_F_NOT && expected_cout !== cout) begin
+		if((!notALUOE ^ !notShiftOE) && expected_cout !== 1'bx && expected_cout !== cout) begin
 			$display("ERROR: cout(carry out) is %X. Expected %X", cout, expected_cout);
 			alu_print_state();
 		end
@@ -152,6 +172,32 @@ module alu_test();
 		
 		# `TEST_DELAY alu_check();
 		
+		//A minus one without undeflow
+		$display("Testing: A minus one without underflow");
+		# `TEST_DELAY a = 16'HDEAD;
+		b = 16'HBEEF;
+		notALUOE = 0;
+		notShiftOE = 1;
+		csel = `ALU_CSEL_FCIN;
+		ucin = 0;
+		fcin = 0;
+		f = `ALU_F_A_MINUS_ONE;
+		
+		# `TEST_DELAY alu_check();
+		
+		//A minus one with undeflow
+		$display("Testing: A minus one with underflow");
+		# `TEST_DELAY a = 16'H0000;
+		b = 16'HBEEF;
+		notALUOE = 0;
+		notShiftOE = 1;
+		csel = `ALU_CSEL_FCIN;
+		ucin = 0;
+		fcin = 0;
+		f = `ALU_F_A_MINUS_ONE;
+		
+		# `TEST_DELAY alu_check();
+		
 		//pass through B
 		$display("Testing: pass through B");
 		# `TEST_DELAY a = 16'H0002;
@@ -165,6 +211,31 @@ module alu_test();
 		
 		# `TEST_DELAY alu_check();
 		
+		//always zero with carry high
+		$display("Testing: always zero with carry high");
+		# `TEST_DELAY a = 16'bxxxxxxxxxxxxxxxx;
+		b = 16'bxxxxxxxxxxxxxxxx;
+		notALUOE = 0;
+		notShiftOE = 1;
+		csel = `ALU_CSEL_FCIN;
+		ucin = 0;
+		fcin = 1;
+		f = `ALU_F_ZERO;
+		
+		# `TEST_DELAY alu_check();
+		
+		//always zero with carry low
+		$display("Testing: always zero with carry low");
+		# `TEST_DELAY a = 16'HDEAD;
+		b = 16'HBEEF;
+		notALUOE = 0;
+		notShiftOE = 1;
+		csel = `ALU_CSEL_FCIN;
+		ucin = 0;
+		fcin = 0;
+		f = `ALU_F_ZERO;
+		
+		# `TEST_DELAY alu_check();
 		
 		//add
 		$display("Testing: add");
@@ -386,6 +457,7 @@ module alu_test();
 		f = `ALU_F_ADD;
 		
 		# `TEST_DELAY alu_check();
+		
 		
 		#20 $finish;
 	end

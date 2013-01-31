@@ -33,6 +33,10 @@ module program_counter(clock, notReset, notLoad, notOE, inc, in, out);
 	//three-state buffers
 	OctThreeState_74541 threeStateL(0, notOE, counterOut[15:8], out[15:8]);
 	OctThreeState_74541 threeStateH(0, notOE, counterOut[7:0], out[7:0]);
+	
+	//generic register interface so higher level modules can monitor the content of this register
+	wire [15:0] content = {counter3.out, counter2.out, counter1.out, counter0.out};
+	
 endmodule
 
 `endif
