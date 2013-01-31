@@ -31,14 +31,6 @@ static void ParsePseudoInstr(Parser* parser);
 __attribute__((noreturn)) static void UnexpectedToken(Parser* parser);
 __attribute__((noreturn)) static void ParserError(Parser* parser, const char* errMsg);
 
-static void TEMP_Print(Parser* parser, const char* procName)
-{
-	const Token* t = Peek(parser);
-	printf("%s:\t", procName);
-	ScannerDumpToken(stdout, t);
-	putchar('\n');
-}
-
 void ParserInit(Parser* parser, Scanner* scanner, ObjectWriter* objWriter)
 {
 	parser->scanner = scanner;
@@ -72,37 +64,6 @@ static void Expect(Parser* parser, TokenDescrId expected)
 	}
 }
 
-//static void EmitWord(Parser* parser, UWord_t word)
-//{
-//	ObjectWriteData(parser->objWriter, parser->pc, word);
-//	parser->pc += sizeof (UWord_t);
-//}
-
-//static void EmitInstruction(Parser* parser, const Instruction* instr, int isWide)
-//{
-//	UWord_t iWord = (instr->opcode << OPCODE_OFFSET)
-//			| (instr->operands[0] << OPERAND0_OFFSET)
-//			| (instr->operands[1] << OPERAND1_OFFSET)
-//			| (instr->operands[2] << OPERAND2_OFFSET);
-//	EmitWord(parser, iWord);
-//
-//	if(isWide)
-//	{
-//		EmitWord(parser, instr->operands[3]);
-//	}
-//}
-
-//TODO remove, obsolete
-//static void EmitUnlinkedWide(Parser* parser, const char* sym, size_t symSize)
-//{
-//	//ObjectWriteUnlinked(parser->objWriter, sym, symSize, parser->pc + sizeof (UWord_t));
-//	Expression expr;
-//	expr.name = sym;
-//	expr.nameLen = symSize;
-//	expr.address = parser->pc + sizeof (UWord_t); //TODO is this even right?
-//	ObjWriteExpr(parser->objWriter, &expr);
-//}
-
 static int ParseLine(Parser* parser)
 {
 #ifdef ESC_DEBUG
@@ -110,7 +71,6 @@ static int ParseLine(Parser* parser)
 #endif
 
 	ParseLocalLabelDecls(parser);
-
 	ParseCommand(parser);
 
 	if(Peek(parser)->descrId == TOKEN_DESCR_EOF)
@@ -121,6 +81,7 @@ static int ParseLine(Parser* parser)
 	Expect(parser, TOKEN_DESCR_EOL);
 	Next(parser);
 	++parser->line;
+
 	return 0;
 }
 
@@ -143,7 +104,7 @@ static int ParseLabelDecl(Parser* parser, Symbol* sym)
 	}
 
 #ifdef ESC_DEBUG
-	printf("DEBUG: ParseLableDecl: label `%s' declared at 0x%X(%u)\n", t->strValue, parser->pc, parser->pc);
+	printf("ParseLableDecl: label `%s' declared at 0x%X(%u)\n", t->strValue, parser->pc, parser->pc);
 #endif
 
 	sym->name = t->strValue;
@@ -170,17 +131,6 @@ static void ParseCommand(Parser* parser)
 		break;
 	default:
 		break;
-	}
-}
-
-static void TEMP_ConsumeOperands(Parser* parser)
-{
-	const Token* t = Next(parser);
-	const TokenDescr* tDescr = GetTokenDescr(t->descrId);
-	while(tDescr->tokenClass == TOKEN_CLASS_VALUE || t->descrId == TOKEN_DESCR_COMMA)
-	{
-		TEMP_Print(parser, "ConsumeOperands");
-		t = Next(parser);
 	}
 }
 
@@ -211,6 +161,8 @@ static void ParseDirective(Parser* parser)
 		ParserError(parser, "ParseDirective: Unexpected token");
 		break;
 	}
+
+	Next(parser);
 }
 
 //.global ldecl[,ldecl]*
@@ -312,8 +264,7 @@ static void ParseDataSection(Parser* parser)
 static void ParseInstruction(Parser* parser)
 {
 	const Token* t = Peek(parser);
-	const TokenDescr* tDescr = GetTokenDescr(t->descrId);
-	const InstructionDescr* iDescr = tDescr->instructionDescr;
+	const InstructionDescr* iDescr = GetTokenDescr(t->descrId)->instructionDescr;
 
 	Instruction instr;
 	instr.descr = iDescr;
@@ -332,14 +283,7 @@ static void ParseInstruction(Parser* parser)
 
 static void ParsePseudoInstr(Parser* parser)
 {
-	//TODO
-	const Token* t = Peek(parser);
-	const TokenDescr* tDescr = GetTokenDescr(t->descrId);
-	if(tDescr->tokenClass == TOKEN_CLASS_PSEUDO_OPCODE)
-	{
-		TEMP_Print(parser, "ParsePseudoInstruction");
-		TEMP_ConsumeOperands(parser);
-	}
+	assert(0 && "pseudo instructions not implemented yet");
 }
 
 static void ParseArgList(Parser* parser, Instruction* instr)
@@ -435,8 +379,12 @@ __attribute__((noreturn)) static void UnexpectedToken(Parser* parser)
 #endif
 
 	putc('\n', stderr);
-	fflush(stderr);
+
+#ifdef ESC_DEBUG
+	assert(0);
+#else
 	exit(-1);
+#endif
 }
 
 __attribute__((noreturn)) static void ParserError(Parser* parser, const char* errMsg)
@@ -447,6 +395,10 @@ __attribute__((noreturn)) static void ParserError(Parser* parser, const char* er
 			"================================\n",
 			errMsg);
 	fflush(stderr);
+#ifdef ESC_DEBUG
+	assert(0);
+#else
 	exit(-1);
+#endif
 }
 

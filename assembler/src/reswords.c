@@ -9,7 +9,7 @@ static int Compare(const void* a, const void* b);
 static void Dump(FILE* stream, const void* item);
 static Hash_t Hash(const void* str);
 
-static ReservedWord reservedWords[] =
+static const ReservedWord reservedWords[] =
 {
 	{ "align", TOKEN_DESCR_DIR_ALIGN },
 	{ "ascii", TOKEN_DESCR_DIR_ASCII },
@@ -32,6 +32,10 @@ static ReservedWord reservedWords[] =
 	{ "str", TOKEN_DESCR_OPCODE_STR },
 	{ "call", TOKEN_DESCR_OPCODE_CALL }
 };
+
+#ifdef ESC_TEST
+const ReservedWord* gTestReservedWords = reservedWords;
+#endif
 
 const size_t RESERVED_WORDS_SIZE = sizeof(reservedWords) / sizeof(ReservedWord);
 

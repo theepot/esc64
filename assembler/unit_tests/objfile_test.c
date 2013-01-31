@@ -29,11 +29,10 @@ static void TestWrite(const char* fileName)
 	ObjWriteDataSection(&writer, OBJ_ABS, 0);
 
 	Instruction i1;
-	i1.opcode = 1;
+	i1.descr = GetTokenDescr(TOKEN_DESCR_OPCODE_ADD)->instructionDescr;
 	i1.operands[0] = 4;
 	i1.operands[1] = 3;
 	i1.operands[2] = 2;
-	i1.wide = 0;
 	ObjWriteInstr(&writer, &i1);
 
 	Symbol s1;

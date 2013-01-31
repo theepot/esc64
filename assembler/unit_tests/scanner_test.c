@@ -8,28 +8,34 @@ static size_t expectedN = 0;
 
 static const Token expectedTokens[] =
 {
-	{ .descrId = TOKEN_DESCR_LABEL_DECL, .strValue = "piet" },
-	{ .descrId = TOKEN_DESCR_EOL },
+		{ .descrId = TOKEN_DESCR_DIR_SECTION },
+		{ .descrId = TOKEN_DESCR_LABEL_REF, .strValue = "data" },
+		{ .descrId = TOKEN_DESCR_COMMA },
+		{ .descrId = TOKEN_DESCR_NUMBER, .intValue = 0 },
+		{ .descrId = TOKEN_DESCR_EOL },
 
-	{ .descrId = TOKEN_DESCR_OPCODE_ADD },
-	{ .descrId = TOKEN_DESCR_REGISTER_REF, .intValue = REG_LR },
-	{ .descrId = TOKEN_DESCR_COMMA },
-	{ .descrId = TOKEN_DESCR_REGISTER_REF, .intValue = REG_LR },
-	{ .descrId = TOKEN_DESCR_COMMA },
-	{ .descrId = TOKEN_DESCR_NUMBER, .intValue = 10 },
-	{ .descrId = TOKEN_DESCR_EOL },
+		{ .descrId = TOKEN_DESCR_LABEL_DECL, .strValue = "piet" },
+		{ .descrId = TOKEN_DESCR_EOL },
 
-	{ .descrId = TOKEN_DESCR_OPCODE_LDR },
-	{ .descrId = TOKEN_DESCR_REGISTER_REF, .intValue = REG(0) },
-	{ .descrId = TOKEN_DESCR_COMMA },
-	{ .descrId = TOKEN_DESCR_NUMBER, .intValue = 1234 },
-	{ .descrId = TOKEN_DESCR_EOL },
+		{ .descrId = TOKEN_DESCR_OPCODE_ADD },
+		{ .descrId = TOKEN_DESCR_REGISTER_REF, .intValue = REG_LR },
+		{ .descrId = TOKEN_DESCR_COMMA },
+		{ .descrId = TOKEN_DESCR_REGISTER_REF, .intValue = REG_LR },
+		{ .descrId = TOKEN_DESCR_COMMA },
+		{ .descrId = TOKEN_DESCR_REGISTER_REF, .intValue = REG5 },
+		{ .descrId = TOKEN_DESCR_EOL },
 
-	{ .descrId = TOKEN_DESCR_PSEUDO_OPCODE_MOV },
-	{ .descrId = TOKEN_DESCR_REGISTER_REF, .intValue = REG(7) },
-	{ .descrId = TOKEN_DESCR_COMMA },
-	{ .descrId = TOKEN_DESCR_LABEL_REF, .strValue = "henk" },
-	{ .descrId = TOKEN_DESCR_EOF }
+		{ .descrId = TOKEN_DESCR_OPCODE_LDR },
+		{ .descrId = TOKEN_DESCR_REGISTER_REF, .intValue = REG(0) },
+		{ .descrId = TOKEN_DESCR_COMMA },
+		{ .descrId = TOKEN_DESCR_NUMBER, .intValue = 1234 },
+		{ .descrId = TOKEN_DESCR_EOL },
+
+		{ .descrId = TOKEN_DESCR_PSEUDO_OPCODE_MOV },
+		{ .descrId = TOKEN_DESCR_REGISTER_REF, .intValue = REG(7) },
+		{ .descrId = TOKEN_DESCR_COMMA },
+		{ .descrId = TOKEN_DESCR_LABEL_REF, .strValue = "henk" },
+		{ .descrId = TOKEN_DESCR_EOF }
 };
 
 static const size_t expectedTokensSize = sizeof(expectedTokens) / sizeof(Token);
@@ -39,11 +45,8 @@ static int CompareToken(const Token* a, const Token* b);
 
 void TestScanner(const char* asmFile)
 {
-	FILE* scannerInput = fopen(asmFile, "r");
-	assert(scannerInput);
-
 	Scanner scanner;
-	ScannerInit(&scanner, scannerInput);
+	ScannerInit(&scanner, asmFile);
 
 	Token token;
 	do
@@ -54,7 +57,7 @@ void TestScanner(const char* asmFile)
 
 	assert(expectedN == expectedTokensSize);
 
-	fclose(scannerInput);
+	ScannerClose(&scanner);
 }
 
 static int TestToken(const Token* token)

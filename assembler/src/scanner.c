@@ -26,7 +26,7 @@ static int GetSymbol(Scanner* scanner, Token* token);
 static int BufferSymbol(Scanner* scanner);
 static void GetLabelDecl(Scanner* scanner, Token* token);
 static void GetLabelRef(Scanner* scanner, Token* token);
-static int GetDirective(Scanner* scanner, Token* token);
+static void GetDirective(Scanner* scanner, Token* token);
 static int GetRegisterRef(Scanner* scanner, Token* token);
 static int GetRegisterNumeric(Scanner* scanner, Token* token);
 static int GetOpcode(Scanner* scanner, Token* token);
@@ -39,16 +39,24 @@ static int GetEOL(Scanner* scanner, Token* token);
 
 __attribute__((noreturn)) static void ScannerError(Scanner* scanner, const char* errMsg);
 
-void ScannerInit(Scanner* scanner, FILE* stream)
+void ScannerInit(Scanner* scanner, const char* filePath)
 {
-	scanner->stream = stream;
+	scanner->stream = fopen(filePath, "r");
+	assert(scanner->stream);
 	ClearBuf(scanner);
 	Read(scanner);
 }
 
+void ScannerClose(Scanner* scanner)
+{
+	fclose(scanner->stream);
+}
+
 void ScannerNext(Scanner* scanner, Token*  token)
 {
+	ClearBuf(scanner);
 	IgnoreWhitespaces(scanner);
+
 	if(Peek(scanner) == EOF)
 	{
 		token->descrId = TOKEN_DESCR_EOF;
@@ -61,6 +69,11 @@ void ScannerNext(Scanner* scanner, Token*  token)
 	{
 		ScannerError(scanner, "Invalid sequence of characters");
 	}
+}
+
+size_t ScannerStrLen(Scanner* scanner)
+{
+	return scanner->bufIndex;
 }
 
 void ScannerDumpToken(FILE* stream, const Token* token)
@@ -235,30 +248,67 @@ static void GetDec(Scanner* scanner, Token* token)
 
 static int GetSymbol(Scanner* scanner, Token* token)
 {
+	if(Peek(scanner) == '.')
+	{
+		Read(scanner);
+		if(BufferSymbol(scanner))
+		{
+			return -1;
+		}
+
+		GetDirective(scanner, token);
+
+		return 0;
+	}
+
 	if(BufferSymbol(scanner))
 	{
 		return -1;
 	}
 
-	if(scanner->buf[0] == '.')
-	{
-		if(GetDirective(scanner, token))
-		{
-			ScannerError(scanner, "Unknown directive");
-		}
-	}
-	else if(Peek(scanner) == ':')
+	if(Peek(scanner) == ':')
 	{
 		Read(scanner);
 		GetLabelDecl(scanner, token);
+		return 0;
 	}
 	else if(GetRegisterRef(scanner, token) && GetOpcode(scanner, token))
 	{
 		GetLabelRef(scanner, token);
 	}
 
-	ClearBuf(scanner);
 	return 0;
+
+//TODO remove, obsolete
+//	if(Peek(scanner) == '.')
+//	{
+//		Read(scanner);
+//	}
+//
+//	if(BufferSymbol(scanner))
+//	{
+//		return -1;
+//	}
+//
+//	if(scanner->buf[0] == '.')
+//	{
+//		if(GetDirective(scanner, token))
+//		{
+//			ScannerError(scanner, "Unknown directive");
+//		}
+//	}
+//	else if(Peek(scanner) == ':')
+//	{
+//		Read(scanner);
+//		GetLabelDecl(scanner, token);
+//	}
+//	else if(GetRegisterRef(scanner, token) && GetOpcode(scanner, token))
+//	{
+//		GetLabelRef(scanner, token);
+//	}
+//
+//	ClearBuf(scanner);
+//	return 0;
 }
 
 static int BufferSymbol(Scanner* scanner)
@@ -305,18 +355,17 @@ static void GetLabelRef(Scanner* scanner, Token* token)
 	token->strValue = name;
 }
 
-static int GetDirective(Scanner* scanner, Token* token)
+static void GetDirective(Scanner* scanner, Token* token)
 {
 	const char* name = scanner->buf;
 
 	TokenDescrId descrId = FindReservedWord(name);
 	if(descrId == TOKEN_DESCR_INVALID || GetTokenDescr(descrId)->tokenClass != TOKEN_CLASS_DIRECTIVE)
 	{
-		return -1;
+		ScannerError(scanner, "Illegal directive");
 	}
 
 	token->descrId = descrId;
-	return 0;
 }
 
 static int GetRegisterRef(Scanner* scanner, Token* token)
@@ -490,7 +539,11 @@ __attribute__((noreturn)) static void ScannerError(Scanner* scanner, const char*
 			"=================================\n",
 			errMsg, scanner->curChar, scanner->curChar, scanner->buf, scanner->bufIndex);
 	fflush(stderr);
+#ifdef ESC_DEBUG
+	assert(0);
+#else
 	exit(-1);
+#endif
 }
 
 
