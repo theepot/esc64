@@ -6,10 +6,11 @@
  *                                                                          *
  *  Written by: Mark C. Hansen                                              *
  *                                                                          *
- *  Last modified: Dec 11, 1997                                             *
- *  Modified for HC timings.                                                *
- * max propagation time for 74LS181 is 62ns (for A_eq_B)                    *
- * max propagation time for 74LS181 is 41ns for Cout, when doing ripple carry
+ *  Last modified: Jan 31, 2013                                             *
+ *  Modified for HC timings                                                 *
+ *  Modified by others                                                      *
+ *  Max propagation time for 74LS181 is 62ns (for A_eq_B)                   *
+ *  Max propagation time for 74LS181 is 41ns for Cout, when doing ripple carry
  ****************************************************************************/
 
 `ifndef _ALU_74181_INCLUDED_
@@ -28,9 +29,15 @@ module ALU_74181 (S, A, B, M, CNb, F, X, Y, CN4b, AEB);
 	TopLevel74181b Ckt74181b (S, A, B, M, CNb, Fint, Xint, Yint, CN4bint, AEBint);
 	
 	assign #(55+15) CN4b = CN4bint;
-	assign #(55+15) F = Fint;
+
+	//When A ior B are unkown or high-impedance, the result is always unknown/invalid.
+	//However, with function S=0x3 the values of A and B don't matter.
+	//This is only a workaround for the 'always 0' function
+	assign #(55+15) F = (S === 4'b0011 && M === 1'b1) ? 4'H0 : Fint;
+	
 	assign #(55+15) AEB = AEBint;
 	assign #(55+15) X = Xint;
+	
 	assign #(55+15) Y = Yint;
 
 endmodule

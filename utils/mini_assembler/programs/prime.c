@@ -26,7 +26,7 @@ void asm_prgm(void)
 	mov_literal_labeled(GP4, "no_new_prime");
 	mov_on_zero(PC, GP4);
 	mov_literal_labeled(GP4, "try_next_divider");
-	mov_on_not_carry(PC, GP4);
+	mov_literal_on_notcarry(PC, GP4);
 	mov_literal_labeled(PC, "loop1");
 
 	lbl("try_next_divider");
@@ -34,7 +34,7 @@ void asm_prgm(void)
 	sub(GP4, GP1, GP5);
 	sub(GP4, GP2, GP4);
 	mov_literal_labeled(GP4, "loop0");
-	mov_on_not_carry_or_zero(PC, GP4);
+	mov_on_notcarry_or_zero(PC, GP4);
 
 	//found prime
 	mov(GP0, GP1);

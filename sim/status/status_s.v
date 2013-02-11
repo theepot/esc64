@@ -14,10 +14,6 @@ module statusRegister(clock, notLoad, cIn, cOut, zIn, zOut);
 	assign cOut = rOut & (1 << 1) ? 1 : 0;
 	assign zOut = rOut & 1 ? 1 : 0;
 	
-	initial begin
-		r.out = 8'bxxxxxx00;
-	end
-	
 	octRegister_74377 r(clock, notLoad, rIn, rOut);
 	
 endmodule

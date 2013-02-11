@@ -9,6 +9,8 @@
 `define ALU_F_XOR			5'b01101
 `define ALU_F_AND			5'b10111
 `define ALU_F_OR			5'b11101
+`define ALU_F_A_MINUS_ONE	5'b11110
+`define ALU_F_ZERO			5'b00111
 
 `define ALU_F_SHIFT_LEFT	5'b00101
 `define ALU_F_SHIFT_RIGHT	5'b00010

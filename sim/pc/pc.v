@@ -40,9 +40,10 @@ module program_counter(clock, notReset, notLoad, notOE, inc, in, out);
 				data = in;
 			end
 		end
-		
-		
 	end
+	
+	//generic register interface so higher level modules can monitor the content of this register
+	wire [DATA_WIDTH-1:0] content = data;
 	
 endmodule
 

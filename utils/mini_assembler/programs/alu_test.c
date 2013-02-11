@@ -19,8 +19,8 @@ void asm_prgm(void)
 	mov_literal(GP2, dest+1); \
 	mov_literal(GP3, dest+2); \
 	mov_literal(GP4, 0); \
-	mov_on_not_zero(GP0, GP4); \
-	mov_on_not_carry(GP1, GP4); \
+	mov_on_notzero(GP0, GP4); \
+	mov_on_notcarry(GP1, GP4); \
 	store(GP2, GP0); \
 	store(GP3, GP1);
 
@@ -36,8 +36,8 @@ void asm_prgm(void)
 	mov_literal(GP2, dest+1); \
 	mov_literal(GP3, dest+2); \
 	mov_literal(GP4, 0); \
-	mov_on_not_zero(GP0, GP4); \
-	mov_on_not_carry(GP1, GP4); \
+	mov_on_notzero(GP0, GP4); \
+	mov_on_notcarry(GP1, GP4); \
 	store(GP2, GP0); \
 	store(GP3, GP1);
 

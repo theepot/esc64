@@ -79,6 +79,13 @@ module alu(a, b, yout, f, csel, ucin, fcin, cout, zout, notALUOE, notShiftOE);
 						cout = y181 < a || y181 < b ? 1'b1 : 1'b0;
 					end
 				end
+				`ALU_F_A_MINUS_ONE: begin
+					y181 = a - 1 + cin;
+					if(notShiftOE) begin
+						cout = y181 < a ? 1'b1 : 1'b0;
+					end
+				end
+				`ALU_F_ZERO:y181 = 0;
 				`ALU_F_NOT:y181 = ~a;
 				`ALU_F_XOR:y181 = a ^ b;
 				`ALU_F_AND:y181 = a & b;
