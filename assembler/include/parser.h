@@ -1,6 +1,8 @@
 #ifndef PARSER_INCLUDED
 #define PARSER_INCLUDED
 
+//TODO separate parser and assembler code. right now both tasks fall to the parser
+
 #include "scanner.h"
 #include "objcode.h"
 
@@ -47,14 +49,6 @@ typedef struct Parser_
 	UWord_t pc;
 	unsigned line;
 } Parser;
-
-//typedef struct Instruction_
-//{
-//	UWord_t opcode;
-//	UWord_t operands[4];
-//} Instruction;
-
-
 
 void ParserInit(Parser* parser, Scanner* scanner, ObjectWriter* objWriter);
 

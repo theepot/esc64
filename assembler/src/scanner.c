@@ -8,6 +8,8 @@
 #include "hashset.h"
 #include "reswords.h"
 
+//FIXME doesn't process comments correctly
+
 static int Peek(Scanner* scanner);
 static int Read(Scanner* scanner);
 
@@ -206,17 +208,17 @@ static void GetHex(Scanner* scanner, Token* token)
 		}
 		else if(c >= 'a' && c <= 'f')
 		{
-			num = num * 16 + c - 'a';
+			num = num * 16 + c - 'a' + 10;
 		}
 		else if(c >= 'A' && c <= 'F')
 		{
-			num = num * 16 + c - 'A';
+			num = num * 16 + c - 'A' + 10;
 		}
 		else
 		{
 			break;
 		}
-		Read(scanner);
+		c = Read(scanner);
 	}
 	
 	token->intValue = num;

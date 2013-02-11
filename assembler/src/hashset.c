@@ -67,7 +67,7 @@ int HashSetFind(HashSet* set, const void* valueFind, void** valueOut)
 		}
 	}
 
-	for(i = toSlot; i < set->elemCount; ++i)
+	for(i = 0; i < toSlot; ++i)
 	{
 		if((r = TryMatch(set, hash, i, valueFind, valueOut)) != HASHSET_TRY_MATCH_CONTINUE)
 		{

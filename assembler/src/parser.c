@@ -17,17 +17,22 @@ static int ParseLine(Parser* parser);
 static int ParseLabelDecl(Parser* parser, Symbol* sym);
 static void ParseCommand(Parser* parser);
 static void ParseDirective(Parser* parser);
+static void ParseDirWord(Parser* parser);
 static void ParseDirGlobal(Parser* parser);
 static void ParseDirSection(Parser* parser);
 static void ParseBssSection(Parser* parser);
 static void ParseDataSection(Parser* parser);
+static void EmitInstr(Parser* parser, Instruction* instr);
+static void EmitWord(Parser* parser, UWord_t word);
 static void ParseInstruction(Parser* parser);
 static void ParseArgList(Parser* parser, Instruction* instr);
 static void ParseArg(Parser* parser, Instruction* instr, const ArgDescr* argDescr);
 static void ParseImmArg(Parser* parser, Instruction* instr, const ArgDescr* argDescr);
 static void ParseRegArg(Parser* parser, Instruction* instr, const ArgDescr* argDescr);
 static void ParsePseudoInstr(Parser* parser);
+static void ParsePseudoMov(Parser* parser);
 
+static void PrintString(const char* str, size_t strLen);
 __attribute__((noreturn)) static void UnexpectedToken(Parser* parser);
 __attribute__((noreturn)) static void ParserError(Parser* parser, const char* errMsg);
 
@@ -67,7 +72,7 @@ static void Expect(Parser* parser, TokenDescrId expected)
 static int ParseLine(Parser* parser)
 {
 #ifdef ESC_DEBUG
-	printf("ParseLine: starting on line %u; pc=0x%X\n", parser->line, parser->pc);
+	printf("parser: line=%04u; PC=0x%04X\n", parser->line, parser->pc);
 #endif
 
 	ParseLocalLabelDecls(parser);
@@ -90,6 +95,11 @@ static void ParseLocalLabelDecls(Parser* parser)
 	Symbol sym;
 	while(!ParseLabelDecl(parser, &sym))
 	{
+#ifdef ESC_DEBUG
+		printf("\tlocal symbol defined: name=`");
+		PrintString(sym.name, sym.nameLen);
+		printf("'\n");
+#endif
 		ObjWriteLocalSym(parser->objWriter, &sym);
 		Next(parser);
 	}
@@ -102,10 +112,6 @@ static int ParseLabelDecl(Parser* parser, Symbol* sym)
 	{
 		return -1;
 	}
-
-#ifdef ESC_DEBUG
-	printf("ParseLableDecl: label `%s' declared at 0x%X(%u)\n", t->strValue, parser->pc, parser->pc);
-#endif
 
 	sym->name = t->strValue;
 	sym->nameLen = ScannerStrLen(parser->scanner);
@@ -140,16 +146,10 @@ static void ParseDirective(Parser* parser)
 	switch(t->descrId)
 	{
 	case TOKEN_DESCR_DIR_WORD:
-		assert(0 && "word directive not implemented");
-		break;
-	case TOKEN_DESCR_DIR_ALIGN:
-		assert(0 && "align directive not implemented");
+		ParseDirWord(parser);
 		break;
 	case TOKEN_DESCR_DIR_ASCII:
 		assert(0 && "ascii directive not implemented");
-		break;
-	case TOKEN_DESCR_DIR_BYTE:
-		assert(0 && "byte directive not implemented");
 		break;
 	case TOKEN_DESCR_DIR_GLOBAL:
 		ParseDirGlobal(parser);
@@ -159,6 +159,26 @@ static void ParseDirective(Parser* parser)
 		break;
 	default:
 		ParserError(parser, "ParseDirective: Unexpected token");
+		break;
+	}
+}
+
+//.word imm/lref
+static void ParseDirWord(Parser* parser)
+{
+	const Token* t = Next(parser);
+	switch(t->descrId)
+	{
+	case TOKEN_DESCR_LABEL_REF:
+		assert(0 && ".word lref not implemented yet");
+		break;
+
+	case TOKEN_DESCR_NUMBER:
+		EmitWord(parser, t->intValue);
+		break;
+
+	default:
+		UnexpectedToken(parser);
 		break;
 	}
 
@@ -175,6 +195,12 @@ static void ParseDirGlobal(Parser* parser)
 	{
 		ParserError(parser, "Expected one or more label declarations after .global");
 	}
+
+#ifdef ESC_DEBUG
+	printf("\tglobal symbol defined: name=`");
+	PrintString(sym.name, sym.nameLen);
+	printf("'\n");
+#endif
 	ObjWriteGlobalSym(parser->objWriter, &sym);
 
 	while(Next(parser)->descrId == TOKEN_DESCR_COMMA)
@@ -184,6 +210,12 @@ static void ParseDirGlobal(Parser* parser)
 		{
 			UnexpectedToken(parser);
 		}
+
+#ifdef ESC_DEBUG
+		printf("\tglobal symbol defined: name=`");
+		PrintString(sym.name, sym.nameLen);
+		printf("'\n");
+#endif
 		ObjWriteGlobalSym(parser->objWriter, &sym);
 	}
 }
@@ -206,6 +238,12 @@ static void ParseDirSection(Parser* parser)
 	{
 		ParseDataSection(parser);
 	}
+	else
+	{
+		ParserError(parser, "Unknown section type");
+	}
+
+	parser->pc = 0;
 }
 
 static void ParseBssSection(Parser* parser)
@@ -231,10 +269,11 @@ static void ParseBssSection(Parser* parser)
 		assert(t->intValue >= 0 && t->intValue <= 0xFFFF); //TODO temp
 		address = t->intValue;
 		placement = OBJ_ABS;
+		Next(parser);
 	}
 
 #ifdef ESC_DEBUG
-	printf("ParseBssSection: placement=%u; size=%u; address=%u\n", placement, size, address);
+	printf("\tentering BSS section. placement=%u; size=%u; address=%u\n", placement, size, address);
 #endif
 	ObjWriteBssSection(parser->objWriter, placement, address, size);
 }
@@ -253,10 +292,11 @@ static void ParseDataSection(Parser* parser)
 		assert(t->intValue >= 0 && t->intValue <= 0xFFFF); //TODO temp
 		address = t->intValue;
 		placement = OBJ_ABS;
+		Next(parser);
 	}
 
 #ifdef ESC_DEBUG
-	printf("ParseDataSection: placement=%u; address=%u\n", placement, address);
+	printf("\tentering data section. placement=%u; address=%u\n", placement, address);
 #endif
 	ObjWriteDataSection(parser->objWriter, placement, address);
 }
@@ -268,22 +308,111 @@ static void ParseInstruction(Parser* parser)
 
 	Instruction instr;
 	instr.descr = iDescr;
-	memset(instr.operands, 0, INSTRUCTION_MAX_OPERANDS);
+	memset(instr.operands, 0, sizeof instr.operands);
 
 	Next(parser);
 	ParseArgList(parser, &instr);
 
+	EmitInstr(parser, &instr);
+}
+
+static void EmitInstr(Parser* parser, Instruction* instr)
+{
 #ifdef ESC_DEBUG
-	printf("ParseInstruction: opcode=0x%X; operands=[0x%X; 0x%X; 0x%X]\n",
-			instr.descr->opcode, instr.operands[0], instr.operands[1], instr.operands[2]);
+	printf("\tinstruction: opcode=0x%X; operands=[0x%X; 0x%X; 0x%X; 0x%X]\n",
+			instr->descr->opcode, instr->operands[0], instr->operands[1], instr->operands[2], instr->operands[3]);
 #endif
 
-	ObjWriteInstr(parser->objWriter, &instr);
+	ObjWriteInstr(parser->objWriter, instr);
+	if(instr->descr->isWide)
+	{
+		parser->pc += 2;
+	}
+	else
+	{
+		parser->pc += 1;
+	}
+}
+
+static void EmitWord(Parser* parser, UWord_t word)
+{
+#ifdef ESC_DEBUG
+	printf("\tword 0x%X(%u)\n", word, word);
+#endif
+	UWord_t x = HTON_WORD(word);
+	ObjWriteData(parser->objWriter, &x, 1);
+	++parser->pc;
 }
 
 static void ParsePseudoInstr(Parser* parser)
 {
-	assert(0 && "pseudo instructions not implemented yet");
+	const Token* t = Peek(parser);
+
+	switch(t->descrId)
+	{
+	case TOKEN_DESCR_PSEUDO_OPCODE_MOV:
+		ParsePseudoMov(parser);
+		break;
+
+	default:
+		ParserError(parser, "Unknown pseudo instruction");
+		break;
+	}
+}
+
+//	move reg->reg:	mov	reg, reg
+//	move imm->reg:	mov	reg, imm / mov reg, lref
+static void ParsePseudoMov(Parser* parser)
+{
+	const Token* t;
+	Instruction instr;
+	memset(instr.operands, 0, sizeof instr.operands);
+
+	t = Next(parser);
+	Expect(parser, TOKEN_DESCR_REGISTER_REF);
+	instr.operands[0] = t->intValue;
+
+	Next(parser);
+	Expect(parser, TOKEN_DESCR_COMMA);
+
+	t = Next(parser);
+	switch(t->descrId)
+	{
+	case TOKEN_DESCR_REGISTER_REF:
+#ifdef ESC_DEBUG
+		printf("\tpseudo instruction `mov' evaluated to `mov reg->reg'\n");
+#endif
+		instr.descr = GetTokenDescr(TOKEN_DESCR_OPCODE_MOV)->instructionDescr;
+		instr.operands[1] = t->intValue;
+		break;
+
+	case TOKEN_DESCR_NUMBER:
+#ifdef ESC_DEBUG
+		printf("\tpseudo instruction `mov' evaluated to `mov lref->reg'\n");
+#endif
+		instr.descr = GetTokenDescr(TOKEN_DESCR_OPCODE_MOV_WIDE)->instructionDescr;
+		instr.operands[3] = t->intValue;
+		break;
+
+	case TOKEN_DESCR_LABEL_REF:
+#ifdef ESC_DEBUG
+		printf("\tpseudo instruction `mov' evaluated to `mov imm->reg'\n");
+#endif
+		instr.descr = GetTokenDescr(TOKEN_DESCR_OPCODE_MOV_WIDE)->instructionDescr;
+		Expression expr;
+		expr.name = t->strValue;
+		expr.nameLen = ScannerStrLen(parser->scanner);
+		expr.address = parser->pc + 1;
+		ObjWriteExpr(parser->objWriter, &expr);
+		break;
+
+	default:
+		ParserError(parser, "Illegal `mov' instruction");
+		break;
+	}
+
+	EmitInstr(parser, &instr);
+	Next(parser);
 }
 
 static void ParseArgList(Parser* parser, Instruction* instr)
@@ -299,6 +428,15 @@ static void ParseArgList(Parser* parser, Instruction* instr)
 		Next(parser);
 		ParseArg(parser, instr, &args[i]);
 		Next(parser);
+	}
+}
+
+static void PrintString(const char* str, size_t strLen)
+{
+	size_t i;
+	for(i = 0; i < strLen; ++i)
+	{
+		putchar(str[i]);
 	}
 }
 
@@ -323,10 +461,6 @@ static void ParseImmArg(Parser* parser, Instruction* instr, const ArgDescr* argD
 	{
 	case TOKEN_DESCR_LABEL_REF:
 		{
-#ifdef ESC_DEBUG
-			printf("ParseImmArg: label ref=`%s\n'", t->strValue);
-#endif
-
 			Expression expr;
 			expr.address = parser->pc;
 			expr.name = t->strValue;
@@ -334,10 +468,6 @@ static void ParseImmArg(Parser* parser, Instruction* instr, const ArgDescr* argD
 			ObjWriteExpr(parser->objWriter, &expr);
 		} break;
 	case TOKEN_DESCR_NUMBER:
-#ifdef ESC_DEBUG
-		printf("ParseImmArg: number=%d\n", t->intValue);
-#endif
-
 		instr->operands[argDescr->operand] = t->intValue;
 		break;
 	default:
@@ -361,16 +491,12 @@ static void ParseRegArg(Parser* parser, Instruction* instr, const ArgDescr* argD
 		ParserError(parser, "Instruction operand out of range");
 	}
 
-#ifdef ESC_DEBUG
-	printf("ParseRefArg: register reg=%u\n", t->intValue);
-#endif
-
 	instr->operands[argDescr->operand] = t->intValue;
 }
 
 __attribute__((noreturn)) static void UnexpectedToken(Parser* parser)
 {
-	fprintf(stderr, "Unexpected token at line %u: `%s'\n", parser->line, parser->scanner->buf);
+	fprintf(stderr, "Unexpected token at line %u near `%s'\n", parser->line, parser->scanner->buf);
 
 #ifdef ESC_DEBUG
 	fputs("DEBUG: Token dump:\t", stderr);

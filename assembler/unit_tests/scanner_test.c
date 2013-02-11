@@ -26,21 +26,22 @@ static const Token expectedTokens[] =
 		{ .descrId = TOKEN_DESCR_EOL },
 
 		{ .descrId = TOKEN_DESCR_OPCODE_LDR },
-		{ .descrId = TOKEN_DESCR_REGISTER_REF, .intValue = REG(0) },
+		{ .descrId = TOKEN_DESCR_REGISTER_REF, .intValue = REG0 },
 		{ .descrId = TOKEN_DESCR_COMMA },
-		{ .descrId = TOKEN_DESCR_NUMBER, .intValue = 1234 },
+		{ .descrId = TOKEN_DESCR_REGISTER_REF, .intValue = REG2 },
 		{ .descrId = TOKEN_DESCR_EOL },
 
 		{ .descrId = TOKEN_DESCR_PSEUDO_OPCODE_MOV },
-		{ .descrId = TOKEN_DESCR_REGISTER_REF, .intValue = REG(7) },
+		{ .descrId = TOKEN_DESCR_REGISTER_REF, .intValue = REG7 },
 		{ .descrId = TOKEN_DESCR_COMMA },
 		{ .descrId = TOKEN_DESCR_LABEL_REF, .strValue = "henk" },
+		{ .descrId = TOKEN_DESCR_EOL },
 		{ .descrId = TOKEN_DESCR_EOF }
 };
 
 static const size_t expectedTokensSize = sizeof(expectedTokens) / sizeof(Token);
 
-static int TestToken(const Token* token);
+static void TestToken(const Token* token);
 static int CompareToken(const Token* a, const Token* b);
 
 void TestScanner(const char* asmFile)
@@ -51,8 +52,14 @@ void TestScanner(const char* asmFile)
 	Token token;
 	do
 	{
+		if(expectedN == 23)
+		{
+			const char* breakPoint = "I'm a breakpoint";
+			(void)breakPoint;
+		}
+
 		ScannerNext(&scanner, &token);
-		assert(!TestToken(&token));
+		TestToken(&token);
 	} while(token.descrId != TOKEN_DESCR_EOF);
 
 	assert(expectedN == expectedTokensSize);
@@ -60,19 +67,13 @@ void TestScanner(const char* asmFile)
 	ScannerClose(&scanner);
 }
 
-static int TestToken(const Token* token)
+static void TestToken(const Token* token)
 {
-	if(expectedN >= expectedTokensSize)
-	{
-		return -1;
-	}
+	assert(expectedN < expectedTokensSize);
+
 	const Token* expectedToken = &expectedTokens[expectedN];
-	int r = CompareToken(token, expectedToken);
-	if(!r)
-	{
-		++expectedN;
-	}
-	return r;
+	assert(!CompareToken(token, expectedToken));
+	++expectedN;
 }
 
 static int CompareToken(const Token* a, const Token* b)

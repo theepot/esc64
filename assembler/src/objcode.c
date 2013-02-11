@@ -30,8 +30,6 @@ void ObjectWriterInit(ObjectWriter* writer, const char* path)
 	writer->absSectionCount = 0;
 	writer->relocSectionCount = 0;
 
-//	writer->relocFirstOffset = OBJ_RECORD_ILLEGAL_OFFSET;
-//	writer->absFirstOffset = OBJ_RECORD_ILLEGAL_OFFSET;
 	writer->absPrevNextOffset = OBJ_HEADER_ABS_SECTION_OFFSET_OFFSET;
 	writer->relocPrevNextOffset = OBJ_HEADER_RELOC_SECTION_OFFSET_OFFSET;
 
@@ -68,7 +66,7 @@ void ObjectReaderClose(ObjectReader* reader)
 
 void ObjWriteDataSection(ObjectWriter* writer, Byte_t placement, UWord_t address)
 {
-	EnterSection(writer, SECTION_TYPE_DATA, placement, placement == OBJ_ABS ? address : 0xFF, 0);
+	EnterSection(writer, SECTION_TYPE_DATA, placement, placement == OBJ_ABS ? address : 0xFFFF, 0);
 	writer->dataSize = 0;
 
 	//write data specific fields
@@ -89,7 +87,7 @@ void ObjWriteDataSection(ObjectWriter* writer, Byte_t placement, UWord_t address
 
 void ObjWriteBssSection(ObjectWriter* writer, Byte_t placement, UWord_t address, UWord_t size)
 {
-	EnterSection(writer, SECTION_TYPE_BSS, placement, placement == OBJ_ABS ? address : 0xFF, size);
+	EnterSection(writer, SECTION_TYPE_BSS, placement, placement == OBJ_ABS ? address : 0xFFFF, size);
 }
 
 void ObjWriteData(ObjectWriter* writer, const void* data, size_t dataSize)
@@ -97,30 +95,29 @@ void ObjWriteData(ObjectWriter* writer, const void* data, size_t dataSize)
 #ifdef ESC_DEBUG
 	assert(writer->type == SECTION_TYPE_DATA);
 #endif
-	RecordWrite(&writer->dataWriter, writer->stream, data, dataSize);
+	RecordWrite(&writer->dataWriter, writer->stream, data, dataSize * 2);
 	writer->dataSize += dataSize;
 }
 
 void ObjWriteInstr(ObjectWriter* writer, const Instruction* instr)
 {
 	UWord_t instrWord =	(instr->descr->opcode << OPCODE_OFFSET)
-			| (instr->operands[0] << OPERAND0_OFFSET)
-			| (instr->operands[1] << OPERAND1_OFFSET)
-			| (instr->operands[2] << OPERAND2_OFFSET);
+			| ((instr->operands[0] & OPERAND0_MASK) << OPERAND0_OFFSET)
+			| ((instr->operands[1] & OPERAND1_MASK) << OPERAND1_OFFSET)
+			| ((instr->operands[2] & OPERAND2_MASK) << OPERAND2_OFFSET);
 
 	if(instr->descr->isWide)
 	{
-		const size_t size = 2;
-		UWord_t buf[size];
+		UWord_t buf[2];
 		buf[0] = HTON_WORD(instrWord);
 		buf[1] = HTON_WORD(instr->operands[3]);
 
-		ObjWriteData(writer, buf, size * sizeof (UWord_t));
+		ObjWriteData(writer, buf, 2);
 	}
 	else
 	{
 		UWord_t x = HTON_WORD(instrWord);
-		ObjWriteData(writer, &x, sizeof x);
+		ObjWriteData(writer, &x, 1);
 	}
 }
 
@@ -338,14 +335,11 @@ int ObjDataReaderInit(ObjDataReader* dataReader, ObjectReader* objReader)
 
 size_t ObjDataReaderRead(ObjDataReader* reader, void* data, size_t dataSize)
 {
-	return RecordRead(&reader->dataReader, reader->stream, data, dataSize);
+	return RecordRead(&reader->dataReader, reader->stream, data, dataSize * 2);
 }
 
 static void EnterSection(ObjectWriter* writer, Byte_t type, Byte_t placement, UWord_t addr, UWord_t size)
 {
-//	IOSeekEnd(writer->stream);
-//	ObjSize_t newOffset = IOGetFilePos(writer->stream);
-
 	FlushSection(writer);
 
 	IOSeekEnd(writer->stream);
@@ -398,7 +392,7 @@ static void FlushSection(ObjectWriter* writer)
 		if(writer->type == SECTION_TYPE_DATA)
 		{
 			IOSetFilePos(writer->stream, writer->offset + OBJ_SECTION_SIZE_OFFSET);
-			IOWriteWord(writer->stream, writer->dataSize);
+			IOWriteWord(writer->stream, writer->dataSize);	//size
 
 			RecordWriterClose(&writer->exprWriter, writer->stream);
 			RecordWriterClose(&writer->dataWriter, writer->stream);
@@ -428,28 +422,6 @@ static void UpdatePrevNext(ObjectWriter* writer)
 	IOWriteObjSize(writer->stream, writer->offset);
 	*prevNext = writer->offset + OBJ_SECTION_NEXT_OFFSET;
 }
-
-//static void UpdateFirstOffset(ObjectWriter* writer, ObjSize_t newOffset)
-//{
-//	switch(writer->placement)
-//	{
-//	case OBJ_ABS:
-//		if(writer->absFirstOffset == OBJ_RECORD_ILLEGAL_OFFSET)
-//		{
-//			writer->absFirstOffset = newOffset;
-//		}
-//		break;
-//	case OBJ_RELOC:
-//		if(writer->relocFirstOffset == OBJ_RECORD_ILLEGAL_OFFSET)
-//		{
-//			writer->relocFirstOffset = newOffset;
-//		}
-//		break;
-//	default:
-//		assert(0 && "Illegal placement");
-//		break;
-//	}
-//}
 
 static void WriteSymbol(RecordWriter* writer, FILE* stream, const Symbol* sym)
 {
@@ -492,15 +464,6 @@ static void ReadSection(ObjectReader* reader, ObjSize_t offset)
 
 static void ReadHeader(ObjectReader* reader, ObjectHeader* header)
 {
-	//		- local symbol total name size	: UWord_t	///< size of names of all local symbols
-	//		- global symbol total name size	: UWord_t 	///< size of names of all global symbols
-	//		- local symbol count			: UWord_t
-	//		- global symbol count			: UWord_t
-	//		- abs section count				: UWord_t
-	//		- reloc section count			: UWord_t
-	//		- abs section offset			: ObjSize_t
-	//		- reloc section offset			: ObjSize_t
-
 	header->localSymTotNameSize = IOReadWord(reader->stream);
 	header->globalSymTotNameSize = IOReadWord(reader->stream);
 	header->localSymCount = IOReadWord(reader->stream);

@@ -11,9 +11,7 @@ static Hash_t Hash(const void* str);
 
 static const ReservedWord reservedWords[] =
 {
-	{ "align", TOKEN_DESCR_DIR_ALIGN },
 	{ "ascii", TOKEN_DESCR_DIR_ASCII },
-	{ "byte", TOKEN_DESCR_DIR_BYTE },
 	{ "word", TOKEN_DESCR_DIR_WORD },
 	{ "global", TOKEN_DESCR_DIR_GLOBAL },
 	{ "section", TOKEN_DESCR_DIR_SECTION },

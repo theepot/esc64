@@ -33,6 +33,7 @@ typedef struct ExeWriter_
  * @param path		Path to executable. File will be overwritten or created
  */
 void ExeWriterInit(ExeWriter* writer, const char* path);
+
 /**
  * @brief			Closes executable writer
  */
@@ -50,8 +51,16 @@ void ExeWriteBss(ExeWriter* writer, UWord_t address, UWord_t size);
  * @param address	Address of data section
  * @param size		Size of data section
  * @param data		Pointer to raw data in data section
+ * @return			Offset of data in executable file
  */
-void ExeWriteData(ExeWriter* writer, UWord_t address, UWord_t size, const void* data);
+ObjSize_t ExeWriteData(ExeWriter* writer, UWord_t address, UWord_t size, const void* data);
+
+/**
+ * @brief				Sets word [dataOffset + address*2] to value
+ * @param dataOffset 	Offset of data
+ * @param address		offset from dataOffset in words
+ */
+void ExeUpdateDataWord(ExeWriter* writer, ObjSize_t dataOffset, UWord_t address, UWord_t value);
 
 /**
  * @brief			Describes ExeReader state
@@ -80,6 +89,7 @@ typedef struct ExeReader_
  * @param path		Path to executable
  */
 void ExeReaderInit(ExeReader* reader, const char* path);
+
 /**
  * @brief			Closes an executable reader.
  * @param reader	Reader structure to be closed
@@ -95,6 +105,7 @@ void ExeReaderClose(ExeReader* reader);
  * @return			Non-zero if EOF is reached, Zero otherwise
  */
 int ExeReadNext(ExeReader* reader);
+
 /**
  * @brief			Read data of data section
  *
@@ -104,5 +115,13 @@ int ExeReadNext(ExeReader* reader);
  * @param data		Buffer to read data into. If NULL, data is discarded
  */
 void ExeReadData(ExeReader* reader, void* data);
+
+typedef struct SectionLinkInfo_
+{
+	UWord_t address;
+	UWord_t size;
+} SectionLinkInfo;
+
+void Link(const char* exeName, const char** objFiles, size_t objFileCount);
 
 #endif

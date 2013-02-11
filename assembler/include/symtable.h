@@ -7,30 +7,29 @@
 #include "esctypes.h"
 #include "hashset.h"
 
-//TODO use string pool to store strings
-//TODO multiple pages of hashsets are not needed anymore
-
 typedef struct SymTableEntry_
 {
+	size_t symSize;
 	const char* sym;
 	UWord_t addr;
 } SymTableEntry;
 
-typedef struct SymTableSet_
-{
-	HashSet set;
-	//TODO remove, obsolete
-	//struct SymTableSet_* next;
-} SymTableSet;
+#define SYM_TABLE_GET_SIZE(s)	((s) * (sizeof (SymTableEntry) + sizeof (Hash_t)))
 
 typedef struct SymTable_
 {
-	SymTableSet* rootSet;
+	HashSet set;
+	struct
+	{
+		char* mem;
+		size_t size;
+		size_t i;
+	} strPool;
 } SymTable;
 
-void SymTableInit(SymTable* table, size_t setSize);
+void SymTableInit(SymTable* table, void* setMem, size_t setMemSize, void* strMem, size_t strMemSize);
 
-int SymTableInsert(SymTable* table, const char* sym, UWord_t addr);
-UWord_t SymTableFind(SymTable* table, const char* sym);
+int SymTableInsert(SymTable* table, const char* sym, size_t symSize, UWord_t addr);
+int SymTableFind(SymTable* table, const char* sym, size_t symSize, UWord_t* address);
 
 #endif

@@ -2,6 +2,7 @@
 #define ESCTYPES_INCLUDED
 
 #include <stdint.h>
+#include <arpa/inet.h>
 
 typedef unsigned char Byte_t;
 

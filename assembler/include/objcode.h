@@ -1,6 +1,8 @@
 #ifndef OBJCODE_INCLUDED
 #define OBJCODE_INCLUDED
 
+//TODO should not write empty sections
+
 #include <stdio.h>
 
 #include "esctypes.h"
@@ -140,7 +142,7 @@ typedef struct ObjectWriter_
 	Byte_t placement;				///< placement type of current section (absolute or relocatable)
 	ObjSize_t offset;				///< offset of current section
 
-	UWord_t dataSize;				///< total size of data record (if in data section)
+	UWord_t dataSize;				///< total size of data record in words (if in data section)
 
 	Byte_t dataWriterBuf[DATA_WRITER_BUF_SIZE];
 	RecordWriter dataWriter;		///< to write data in data section
@@ -156,8 +158,14 @@ void ObjectWriterInit(ObjectWriter* writer, const char* path);
 void ObjectWriterClose(ObjectWriter*writer);
 
 void ObjWriteDataSection(ObjectWriter* writer, Byte_t placement, UWord_t address);
+/**
+* @param size		Size in words
+ */
 void ObjWriteBssSection(ObjectWriter* writer, Byte_t placement, UWord_t address, UWord_t size);
 
+/**
+ * @param dataSize	Size in words
+ */
 void ObjWriteData(ObjectWriter* writer, const void* data, size_t dataSize);
 void ObjWriteInstr(ObjectWriter* writer, const Instruction* instr);
 void ObjWriteLocalSym(ObjectWriter* writer, const Symbol* sym);
@@ -222,6 +230,9 @@ typedef struct ObjDataReader_
 } ObjDataReader;
 
 int ObjDataReaderInit(ObjDataReader* dataReader, ObjectReader* objReader);
+/**
+ * @param dataSize	Size in words
+ */
 size_t ObjDataReaderRead(ObjDataReader* reader, void* data, size_t dataSize);
 
 #endif

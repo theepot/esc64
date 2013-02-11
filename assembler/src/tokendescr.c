@@ -5,7 +5,7 @@
 
 const static InstructionDescr INSTR_DESCR_ADD =
 {
-	.opcode = 0x01,
+	.opcode = OPCODE_ADD,
 	.isWide = 0,
 	.argList = ARGLIST3(
 		ARG(ARG_TYPE_REG, OP0),
@@ -14,7 +14,7 @@ const static InstructionDescr INSTR_DESCR_ADD =
 };
 const static InstructionDescr INSTR_DESCR_SUB =
 {
-	.opcode = 0x02,
+	.opcode = OPCODE_SUB,
 	.isWide = 0,
 	.argList = ARGLIST3(
 		ARG(ARG_TYPE_REG, OP0),
@@ -23,7 +23,7 @@ const static InstructionDescr INSTR_DESCR_SUB =
 };
 const static InstructionDescr INSTR_DESCR_OR =
 {
-	.opcode = 0x03,
+	.opcode = OPCODE_OR,
 	.isWide = 0,
 	.argList = ARGLIST3(
 		ARG(ARG_TYPE_REG, OP0),
@@ -32,7 +32,7 @@ const static InstructionDescr INSTR_DESCR_OR =
 };
 const static InstructionDescr INSTR_DESCR_XOR =
 {
-	.opcode = 0x04,
+	.opcode = OPCODE_XOR,
 	.isWide = 0,
 	.argList = ARGLIST3(
 		ARG(ARG_TYPE_REG, OP0),
@@ -41,7 +41,7 @@ const static InstructionDescr INSTR_DESCR_XOR =
 };
 const static InstructionDescr INSTR_DESCR_AND =
 {
-	.opcode = 0x05,
+	.opcode = OPCODE_AND,
 	.isWide = 0,
 	.argList = ARGLIST3(
 		ARG(ARG_TYPE_REG, OP0),
@@ -50,7 +50,7 @@ const static InstructionDescr INSTR_DESCR_AND =
 };
 const static InstructionDescr INSTR_DESCR_MOV_WIDE =
 {
-	.opcode = 0x10,
+	.opcode = OPCODE_MOV_WIDE,
 	.isWide = 1,
 	.argList = ARGLIST2(
 		ARG(ARG_TYPE_REG, OP0),
@@ -58,7 +58,7 @@ const static InstructionDescr INSTR_DESCR_MOV_WIDE =
 };
 const static InstructionDescr INSTR_DESCR_MOV =
 {
-	.opcode = 0x06,
+	.opcode = OPCODE_MOV,
 	.isWide = 0,
 	.argList = ARGLIST2(
 		ARG(ARG_TYPE_REG, OP0),
@@ -66,7 +66,7 @@ const static InstructionDescr INSTR_DESCR_MOV =
 };
 const static InstructionDescr INSTR_DESCR_MOV_EQ =
 {
-	.opcode = 0x07,
+	.opcode = OPCODE_MOV_EQ,
 	.isWide = 0,
 	.argList = 	ARGLIST2(
 		ARG(ARG_TYPE_REG, OP0),
@@ -74,7 +74,7 @@ const static InstructionDescr INSTR_DESCR_MOV_EQ =
 };
 const static InstructionDescr INSTR_DESCR_MOV_NEQ =
 {
-	.opcode = 0x08,
+	.opcode = OPCODE_MOV_NEQ,
 	.isWide = 0,
 	.argList = 	ARGLIST2(
 		ARG(ARG_TYPE_REG, OP0),
@@ -82,7 +82,7 @@ const static InstructionDescr INSTR_DESCR_MOV_NEQ =
 };
 const static InstructionDescr INSTR_DESCR_MOV_LESS =
 {
-	.opcode = 0x09,
+	.opcode = OPCODE_MOV_LESS,
 	.isWide = 0,
 	.argList = 	ARGLIST2(
 		ARG(ARG_TYPE_REG, OP0),
@@ -90,7 +90,7 @@ const static InstructionDescr INSTR_DESCR_MOV_LESS =
 };
 const static InstructionDescr INSTR_DESCR_MOV_LESS_EQ =
 {
-	.opcode = 0x0A,
+	.opcode = OPCODE_MOV_LESS_EQ,
 	.isWide = 0,
 	.argList = 	ARGLIST2(
 		ARG(ARG_TYPE_REG, OP0),
@@ -98,7 +98,7 @@ const static InstructionDescr INSTR_DESCR_MOV_LESS_EQ =
 };
 const static InstructionDescr INSTR_DESCR_CMP =
 {
-	.opcode = 0x0B,
+	.opcode = OPCODE_CMP,
 	.isWide = 0,
 	.argList = 	ARGLIST2(
 		ARG(ARG_TYPE_REG, OP1),
@@ -106,23 +106,23 @@ const static InstructionDescr INSTR_DESCR_CMP =
 };
 const static InstructionDescr INSTR_DESCR_LDR =
 {
-	.opcode = 0x0C,
+	.opcode = OPCODE_LDR,
 	.isWide = 0,
 	.argList = 	ARGLIST2(
 		ARG(ARG_TYPE_REG, OP0),
-		ARG(ARG_TYPE_IMM, OP3))
+		ARG(ARG_TYPE_REG, OP1))
 };
 const static InstructionDescr INSTR_DESCR_STR =
 {
-	.opcode = 0x0D,
+	.opcode = OPCODE_STR,
 	.isWide = 0,
 	.argList = 	ARGLIST2(
-		ARG(ARG_TYPE_IMM, OP3),
+		ARG(ARG_TYPE_REG, OP0),
 		ARG(ARG_TYPE_REG, OP1))
 };
 const static InstructionDescr INSTR_DESCR_CALL =
 {
-	.opcode = 0x0E,
+	.opcode = OPCODE_CALL,
 	.isWide = 0,
 	.argList = 	ARGLIST1(
 		ARG(ARG_TYPE_REG, OP1))
@@ -151,9 +151,7 @@ static const TokenDescr tokenDescrTable[TOKEN_DESCR_TABLE_SIZE] =
 		[TOKEN_DESCR_OPCODE_STR]			= { "STR", TOKEN_CLASS_OPCODE, TOKEN_VALUE_TYPE_NONE, &INSTR_DESCR_STR },
 		[TOKEN_DESCR_OPCODE_CALL]			= { "CALL", TOKEN_CLASS_OPCODE, TOKEN_VALUE_TYPE_NONE, &INSTR_DESCR_CALL },
 		[TOKEN_DESCR_DIR_WORD]				= { "WORD", TOKEN_CLASS_DIRECTIVE, TOKEN_VALUE_TYPE_NONE, NULL },
-		[TOKEN_DESCR_DIR_ALIGN]				= { "ALIGN", TOKEN_CLASS_DIRECTIVE, TOKEN_VALUE_TYPE_NONE, NULL },
 		[TOKEN_DESCR_DIR_ASCII]				= { "ASCII", TOKEN_CLASS_DIRECTIVE, TOKEN_VALUE_TYPE_NONE, NULL },
-		[TOKEN_DESCR_DIR_BYTE]				= { "BYTE", TOKEN_CLASS_DIRECTIVE, TOKEN_VALUE_TYPE_NONE, NULL },
 		[TOKEN_DESCR_DIR_GLOBAL]			= { "GLOBAL", TOKEN_CLASS_DIRECTIVE, TOKEN_VALUE_TYPE_NONE, NULL },
 		[TOKEN_DESCR_DIR_SECTION]			= { "SECTION", TOKEN_CLASS_DIRECTIVE, TOKEN_VALUE_TYPE_NONE, NULL },
 		[TOKEN_DESCR_COMMA]					= { ",", TOKEN_CLASS_PUNCTUATION, TOKEN_VALUE_TYPE_NONE, NULL },
