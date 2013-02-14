@@ -1,6 +1,6 @@
 #include "opcodetrans.h"
 #include <string.h>
-#include <tokendescr.h>
+#include <esc64asm/tokendescr.h>
 
 static TokenDescrId descrTable[OPCODE_MAX];
 

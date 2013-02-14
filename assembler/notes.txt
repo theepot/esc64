@@ -1,3 +1,0 @@
-TODO's:
-- add a field in the object header that describes the total of symbol name sizes (local and global seperate)
-- have data, symbol and expression iterators store information about variable memory allocation on each iteration so that the variable part can be allocated accordingly

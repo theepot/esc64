@@ -1,7 +1,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <objcode.h>
+#include <esc64asm/objcode.h>
 #include "opcodetrans.h"
 
 static void PrintSection(ObjectReader* objReader);

@@ -1,8 +1,8 @@
 #include <assert.h>
-#include <scanner.h>
-#include <objcode.h>
-#include <parser.h>
-#include <reswords.h>
+#include <esc64asm/scanner.h>
+#include <esc64asm/objcode.h>
+#include <esc64asm/parser.h>
+#include <esc64asm/reswords.h>
 
 int main(int argc, char** argv)
 {
