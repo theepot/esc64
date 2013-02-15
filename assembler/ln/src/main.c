@@ -5,6 +5,8 @@
 
 int main(int argc, char** argv)
 {
+	puts("wtf?");
+
 	assert(argc >= 3);
 	const char* exeFile = argv[1];
 	const char** objFiles = (const char**)&argv[2];
