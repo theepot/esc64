@@ -127,6 +127,10 @@ void Link(const char* exeName, const char** objFiles, size_t objFileCount)
 	SymTableInit(&globalSymTable, setMem, setMemSize, strMem, globalSymNameSize);
 	LoadGlobalSymbols(objFiles, objFileCount, &globalSymTable);
 
+	printf("GLOBAL SYMBOL TABLE:\n");
+	SymTableDump(&globalSymTable, stdout);
+	printf("GLOBAL SYMBOL TABLE END\n");
+
 	//emit code / link
 	ExeWriter exeWriter;
 	ExeWriterInit(&exeWriter, exeName);
@@ -145,6 +149,10 @@ void Link(const char* exeName, const char** objFiles, size_t objFileCount)
 		char localStrMem[header.localSymTotNameSize];
 		SymTableInit(&localSymTable, localSetMem, localSetMemSize, localStrMem, header.localSymTotNameSize);
 		LoadSymbols(&objReader, &localSymTable, OBJ_SECTION_LOCAL_SYM_RECORD_OFFSET);
+
+		printf("LOCAL SYMBOL TABLE:\n");
+		SymTableDump(&localSymTable, stdout);
+		printf("LOCAL SYMBOL TABLE END\n");
 
 		//emit and link data
 		ObjectReaderStart(&objReader, header.absSectionOffset);

@@ -10,6 +10,7 @@
 typedef struct ReservedWord_
 {
 	const char* name;
+	size_t nameLen;
 	TokenDescrId descrId;
 } ReservedWord;
 
@@ -17,7 +18,7 @@ typedef struct ReservedWord_
 extern const size_t RESERVED_WORDS_SIZE;
 
 void ReservedWordsInit(void);
-TokenDescrId FindReservedWord(const char* name);
+TokenDescrId FindReservedWord(const char* name, size_t nameLen);
 void ReservedWordsDump(FILE* stream);
 
 #endif

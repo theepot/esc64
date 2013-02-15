@@ -328,15 +328,13 @@ static int BufferSymbol(Scanner* scanner)
 		c = Read(scanner);
 	} while(c == '_' || isalnum(c));
 
-	PushBuf(scanner, '\0');
-
 	return 0;
 }
 
 static void GetLabelDecl(Scanner* scanner, Token* token)
 {
 	const char* name = scanner->buf;
-	if(FindReservedWord(name) != TOKEN_DESCR_INVALID)
+	if(FindReservedWord(name, ScannerStrLen(scanner)) != TOKEN_DESCR_INVALID)
 	{
 		ScannerError(scanner, "Declared label is reserved word");
 	}
@@ -348,7 +346,7 @@ static void GetLabelDecl(Scanner* scanner, Token* token)
 static void GetLabelRef(Scanner* scanner, Token* token)
 {
 	const char* name = scanner->buf;
-	if(FindReservedWord(name) != TOKEN_DESCR_INVALID)
+	if(FindReservedWord(name, ScannerStrLen(scanner)) != TOKEN_DESCR_INVALID)
 	{
 		ScannerError(scanner, "Referenced label is reserved word");
 	}
@@ -361,7 +359,7 @@ static void GetDirective(Scanner* scanner, Token* token)
 {
 	const char* name = scanner->buf;
 
-	TokenDescrId descrId = FindReservedWord(name);
+	TokenDescrId descrId = FindReservedWord(name, ScannerStrLen(scanner));
 	if(descrId == TOKEN_DESCR_INVALID || GetTokenDescr(descrId)->tokenClass != TOKEN_CLASS_DIRECTIVE)
 	{
 		ScannerError(scanner, "Illegal directive");
@@ -379,31 +377,40 @@ static int GetRegisterRef(Scanner* scanner, Token* token)
 	r7 SP
 	*/
 
-	if(!strcasecmp(scanner->buf, "pc"))
+#ifdef EQ
+#error EQ was already defined
+#else
+#define EQ(s)\
+	(scanner->bufIndex == sizeof (s) - 1 && !strncasecmp(scanner->buf, (s), sizeof (s) - 1))
+#endif
+
+	if(EQ("pc"))
 	{
 		token->descrId = TOKEN_DESCR_REGISTER_REF;
 		token->intValue = REG_PC;
 		return 0;
 	}
-	else if(!strcasecmp(scanner->buf, "lr"))
+	else if(EQ("lr"))
 	{
 		token->descrId = TOKEN_DESCR_REGISTER_REF;
 		token->intValue = REG_LR;
 		return 0;
 	}
-	else if(!strcasecmp(scanner->buf, "sp"))
+	else if(EQ("sp"))
 	{
 		token->descrId = TOKEN_DESCR_REGISTER_REF;
 		token->intValue = REG_SP;
 		return 0;
 	}
 
+#undef EQ
+
 	return GetRegisterNumeric(scanner, token);
 }
 
 static int GetRegisterNumeric(Scanner* scanner, Token* token)
 {
-	const size_t sz = scanner->bufIndex - 1; //don't include null-terminator
+	const size_t sz = scanner->bufIndex;
 	if(sz < 2)
 	{
 		return -1;
@@ -440,7 +447,7 @@ static int GetRegisterNumeric(Scanner* scanner, Token* token)
 static int GetOpcode(Scanner* scanner, Token* token)
 {
 	const char* name = scanner->buf;
-	TokenDescrId descrId = FindReservedWord(name);
+	TokenDescrId descrId = FindReservedWord(name, ScannerStrLen(scanner));
 	if(descrId == TOKEN_DESCR_INVALID)
 	{
 		return -1;

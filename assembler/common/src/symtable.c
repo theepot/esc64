@@ -5,6 +5,7 @@
 
 static int CompareEntry(const void* a, const void* b);
 static Hash_t HashEntry(const void* entry);
+static void DumpEntry(FILE* stream, const void* entry_);
 
 static const char* PutString(SymTable* table, const char* str, size_t strSize);
 
@@ -40,6 +41,11 @@ int SymTableFind(SymTable* table, const char* sym, size_t symSize, UWord_t* addr
 		*address = out->addr;
 	}
 	return r;
+}
+
+void SymTableDump(SymTable* table, FILE* stream)
+{
+	HashSetDump(stream, &table->set, DumpEntry);
 }
 
 static int CompareEntry(const void* a_, const void* b_)
@@ -80,6 +86,19 @@ static const char* PutString(SymTable* table, const char* str, size_t strSize)
 	table->strPool.i = iNew;
 
 	return r;
+}
+
+static void DumpEntry(FILE* stream, const void* entry_)
+{
+	const SymTableEntry* entry = (const SymTableEntry*)entry_;
+
+	fprintf(stream, "symSize=%u; sym=`", entry->symSize);
+	size_t i;
+	for(i = 0; i < entry->symSize; ++i)
+	{
+		putc(entry->sym[i], stream);
+	}
+	fprintf(stream, "'; addr=0x%X(%u);", entry->addr, entry->addr);
 }
 
 

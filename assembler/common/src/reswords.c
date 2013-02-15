@@ -10,26 +10,28 @@ static int Compare(const void* a, const void* b);
 static void Dump(FILE* stream, const void* item);
 static Hash_t Hash(const void* str);
 
+#define RES_WORD(s, t)	{ (s), sizeof (s) - 1, (t) }
+
 static const ReservedWord reservedWords[] =
 {
-	{ "ascii", TOKEN_DESCR_DIR_ASCII },
-	{ "word", TOKEN_DESCR_DIR_WORD },
-	{ "global", TOKEN_DESCR_DIR_GLOBAL },
-	{ "section", TOKEN_DESCR_DIR_SECTION },
-	{ "add", TOKEN_DESCR_OPCODE_ADD },
-	{ "sub", TOKEN_DESCR_OPCODE_SUB },
-	{ "or", TOKEN_DESCR_OPCODE_OR },
-	{ "xor", TOKEN_DESCR_OPCODE_XOR },
-	{ "and", TOKEN_DESCR_OPCODE_AND },
-	{ "mov", TOKEN_DESCR_PSEUDO_OPCODE_MOV },
-	{ "moveq", TOKEN_DESCR_OPCODE_MOV_EQ },
-	{ "movnq", TOKEN_DESCR_OPCODE_MOV_NEQ },
-	{ "movls", TOKEN_DESCR_OPCODE_MOV_LESS },
-	{ "movlq", TOKEN_DESCR_OPCODE_MOV_LESS_EQ },
-	{ "cmp", TOKEN_DESCR_OPCODE_CMP },
-	{ "ldr", TOKEN_DESCR_OPCODE_LDR },
-	{ "str", TOKEN_DESCR_OPCODE_STR },
-	{ "call", TOKEN_DESCR_OPCODE_CALL }
+	RES_WORD("ascii", TOKEN_DESCR_DIR_ASCII),
+	RES_WORD("word", TOKEN_DESCR_DIR_WORD),
+	RES_WORD("global", TOKEN_DESCR_DIR_GLOBAL),
+	RES_WORD("section", TOKEN_DESCR_DIR_SECTION),
+	RES_WORD("add", TOKEN_DESCR_OPCODE_ADD),
+	RES_WORD("sub", TOKEN_DESCR_OPCODE_SUB),
+	RES_WORD("or", TOKEN_DESCR_OPCODE_OR),
+	RES_WORD("xor", TOKEN_DESCR_OPCODE_XOR),
+	RES_WORD("and", TOKEN_DESCR_OPCODE_AND),
+	RES_WORD("mov", TOKEN_DESCR_PSEUDO_OPCODE_MOV),
+	RES_WORD("moveq", TOKEN_DESCR_OPCODE_MOV_EQ),
+	RES_WORD("movnq", TOKEN_DESCR_OPCODE_MOV_NEQ),
+	RES_WORD("movls", TOKEN_DESCR_OPCODE_MOV_LESS),
+	RES_WORD("movlq", TOKEN_DESCR_OPCODE_MOV_LESS_EQ),
+	RES_WORD("cmp", TOKEN_DESCR_OPCODE_CMP),
+	RES_WORD("ldr", TOKEN_DESCR_OPCODE_LDR),
+	RES_WORD("str", TOKEN_DESCR_OPCODE_STR),
+	RES_WORD("call", TOKEN_DESCR_OPCODE_CALL)
 };
 
 #ifdef ESC_TEST
@@ -54,9 +56,9 @@ void ReservedWordsInit(void)
 	}
 }
 
-TokenDescrId FindReservedWord(const char* name)
+TokenDescrId FindReservedWord(const char* name, size_t nameLen)
 {
-	const ReservedWord find = { name, 0 };
+	const ReservedWord find = { name, nameLen, 0 };
 	ReservedWord* word = NULL;
 	if(!HashSetFind(&set, &find, (void**)&word))
 	{
@@ -70,11 +72,17 @@ void ReservedWordsDump(FILE* stream)
 	HashSetDump(stdout, &set, Dump);
 }
 
-static int Compare(const void* a, const void* b)
+static int Compare(const void* a_, const void* b_)
 {
-	const ReservedWord* a_ = (const ReservedWord*)a;
-	const ReservedWord* b_ = (const ReservedWord*)b;
-	return !strcasecmp(a_->name, b_->name);
+	const ReservedWord* a = (const ReservedWord*)a_;
+	const ReservedWord* b = (const ReservedWord*)b_;
+
+	if(a->nameLen != b->nameLen)
+	{
+		return 0;
+	}
+
+	return !strncasecmp(a->name, b->name, a->nameLen);
 }
 
 static void Dump(FILE* stream, const void* item)
@@ -83,22 +91,25 @@ static void Dump(FILE* stream, const void* item)
 	fprintf(stream, "%s", item_->name);
 }
 
-static Hash_t Hash(const void* item)
+static Hash_t Hash(const void* entry_)
 {
-	const ReservedWord* word = (const ReservedWord*)item;
-	const char* str = word->name;
+	const ReservedWord* entry = (const ReservedWord*)entry_;
+	Hash_t hash = 0;
 
-	Hash_t hash = 5381;
-	int c;
-	while((c = *str++) != '\0')
+	size_t i;
+	for(i = 0; i < entry->nameLen; ++i)
 	{
-		hash = ((hash << 5) + hash) + c;
+		Hash_t c = entry->name[i];
+		hash += c;
+		hash += hash << 10;
+		hash ^= hash >> 6;
 	}
+	hash += hash << 3;
+	hash ^= hash >> 11;
+	hash += hash << 15;
 
 	return hash;
 }
-
-
 
 
 

@@ -41,8 +41,8 @@ static const Token expectedTokens[] =
 
 static const size_t expectedTokensSize = sizeof(expectedTokens) / sizeof(Token);
 
-static void TestToken(const Token* token);
-static int CompareToken(const Token* a, const Token* b);
+static void TestToken(Scanner* scanner, const Token* token);
+static int CompareToken(Scanner* scanner, const Token* a, const Token* b);
 
 void TestScanner(const char* asmFile)
 {
@@ -52,14 +52,14 @@ void TestScanner(const char* asmFile)
 	Token token;
 	do
 	{
-		if(expectedN == 23)
+		if(expectedN == 7)
 		{
 			const char* breakPoint = "I'm a breakpoint";
 			(void)breakPoint;
 		}
 
 		ScannerNext(&scanner, &token);
-		TestToken(&token);
+		TestToken(&scanner, &token);
 	} while(token.descrId != TOKEN_DESCR_EOF);
 
 	assert(expectedN == expectedTokensSize);
@@ -67,16 +67,16 @@ void TestScanner(const char* asmFile)
 	ScannerClose(&scanner);
 }
 
-static void TestToken(const Token* token)
+static void TestToken(Scanner* scanner, const Token* token)
 {
 	assert(expectedN < expectedTokensSize);
 
 	const Token* expectedToken = &expectedTokens[expectedN];
-	assert(!CompareToken(token, expectedToken));
+	assert(!CompareToken(scanner, token, expectedToken));
 	++expectedN;
 }
 
-static int CompareToken(const Token* a, const Token* b)
+static int CompareToken(Scanner* scanner, const Token* a, const Token* b)
 {
 	if(a->descrId != b->descrId)
 	{
@@ -93,7 +93,7 @@ static int CompareToken(const Token* a, const Token* b)
 		break;
 
 	case TOKEN_VALUE_TYPE_STRING:
-		if(strcmp(a->strValue, b->strValue))
+		if(strncmp(a->strValue, b->strValue, ScannerStrLen(scanner)))
 		{
 			return -1;
 		}
