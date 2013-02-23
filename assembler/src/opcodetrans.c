@@ -1,4 +1,4 @@
-#include "opcodetrans.h"
+#include <esc64asm/opcodetrans.h>
 #include <string.h>
 #include <esc64asm/tokendescr.h>
 
