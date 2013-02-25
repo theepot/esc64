@@ -12,6 +12,8 @@
 #define RGS_GP5				5
 #define RGS_GP6				6
 #define RGS_PC				7
+#define RGS_LR				RGS_GP6
+#define RGS_SP				RGS_GP5
 
 #define RGS_LOADSRC_USEQ		0
 #define RGS_LOADSRC_OP0 		1
@@ -40,6 +42,9 @@
 
 #define	ERROR_WIRE_ILLEGAL_OPCODE		1
 #define ERROR_WIRE_ILLEGAL_STATE		2
+
+#define IN_INSTRUCTION_DELAY	50
+#define OUT_INSTRUCTION_DELAY	50
 
 typedef enum opcode {
 	op_reset = 0,
@@ -96,10 +101,8 @@ typedef enum opcode {
 	op_mov_on_notcarry = 51,
 	op_mov_on_carry_and_notzero = 52,
 	op_mov_on_notzero = 53,
-	op_mov_on_carry_notequals_zero = 54,
 	op_mov_on_notcarry_or_notzero = 55,
 	op_mov_on_carry_and_zero = 56,
-	op_mov_on_carry_equals_zero = 57,
 	op_mov_on_zero = 58,
 	op_mov_on_notcarry_or_zero = 59,
 	op_mov_on_carry = 60,
@@ -111,10 +114,8 @@ typedef enum opcode {
 	op_mov_literal_on_notcarry = 66,
 	op_mov_literal_on_carry_and_notzero = 67,
 	op_mov_literal_on_notzero = 68,
-	op_mov_literal_on_carry_notequals_zero = 69,
 	op_mov_literal_on_notcarry_or_notzero = 70,
 	op_mov_literal_on_carry_and_zero = 71,
-	op_mov_literal_on_carry_equals_zero = 72,
 	op_mov_literal_on_zero = 73,
 	op_mov_literal_on_notcarry_or_zero = 74,
 	op_mov_literal_on_carry = 75,
@@ -131,6 +132,10 @@ typedef enum opcode {
 	op_store_with_offset = 86,
 	op_call = 87,
 	op_call_literal = 88,
+	op_in = 89,
+	op_out = 90,
+	op_push = 91,
+	op_pop = 92,
 	op_halt = 127
 } opcode;
 

@@ -7,14 +7,21 @@
 	`define REGSEL_STRUCT 1
 	`define BREG_STRUCT 1
 	`define MSEQ_STRUCT 1
+	`define SRAM_STRUCT 1
 `endif
 
 `include "../cpu/cpu.v"
+
+`ifdef SRAM_STRUCT
+`include "../sram/sram_s.v"
+`else
 `include "../sram/sram.v"
+`endif
 
 `define CLOCK_PERIOD 1600
 
 module computer();
+	reg [63:0] tick_counter;
 	reg clock, notReset;
 	
 	//cpu
@@ -30,6 +37,7 @@ module computer();
 		$dumpvars(0);
 		
 		//cpu.status.r.out = 0;
+		tick_counter = 0;
 		notReset = 0;
 		clock = 0;
 		#900 notReset = 1;
@@ -43,15 +51,18 @@ module computer();
 
 	always begin
 		#(`CLOCK_PERIOD / 2) clock = ~clock;
-		if(cpu.irOpcode == 7'b1111111) begin
-			$display("halt");
+		tick_counter = tick_counter + 1;
+		if(cpu.irOpcode === 7'b1111111) begin
+			$display("halt @ tick %d", tick_counter / 2);
+			$display("dumping ram");
 			#5 $writememb("ram_out.lst", ram.mem, 0, (1<<15)-1);
 			$finish;
 		end
+		if(cpu.error !== 2'b00) begin
+			$display("error %d @ tick %d", cpu.error, tick_counter / 2);
+			$finish;
+		end
 	end
-	
-	//error monitor wires
-	wire [1:0] error = cpu.error;
 	
 	//ISA monitor wires
 	wire [15:0] reg0 = cpu.registers.r[0].content;
@@ -70,5 +81,6 @@ module computer();
 	wire [2:0] op0 = cpu.regselOp0;
 	wire [2:0] op1 = cpu.regselOp1;
 	wire [2:0] op2 = cpu.regselOp2;
-
+	
+	wire at_fetch = cpu._mSeq.roms_addr[12:0] === 12'd512 ? 1'b1 : 1'b0;
 endmodule

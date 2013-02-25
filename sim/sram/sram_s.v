@@ -1,8 +1,6 @@
 `ifndef _SRAM_INCLUDED_
 `define _SRAM_INCLUDED_
 
-//TODO: a write cycle should also be able to be controlled by notCS while notWE is low.
-
 module sram(addr, data, notOE, notWE, notCS);
 	parameter ADDR_WIDTH = 16;
 	parameter DATA_WIDTH = 16;
@@ -32,17 +30,12 @@ module sram(addr, data, notOE, notWE, notCS);
 		end
 		
 	end
+	
+	wire doWrite = !notWE & !notCS;
+	
+	always @ (negedge doWrite) begin
+		mem[addr] = data;
 
-	always @ (negedge notWE) begin
-		if(!notCS) begin
-			addr_latch = addr;
-		end
-	end
-
-	always @ (posedge notWE) begin
-		if(!notCS) begin
-			mem[addr_latch] = data;
-		end
 	end
 
 endmodule

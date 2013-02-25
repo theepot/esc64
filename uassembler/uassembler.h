@@ -62,7 +62,7 @@ void set_next(uassembler* uasm, next_sel nxt);
 void goto_address(uassembler* uasm, int address);
 void goto_reset(uassembler* uasm);
 void goto_fetch(uassembler* uasm);
-void goto_next(uassembler* uasm);
+void goto_next_free(uassembler* uasm);
 void goto_op_entry(uassembler* uasm, int opcode, int carry_zero_mask);
 void copy_fields_from_previous(uassembler* uasm);
 void check_current_addr(uassembler* uasm);

@@ -4,16 +4,40 @@
 static void do_all_conditional_movs()
 {
 	mov_literal(GP1, 0);
-	mov_on_zero(GP1, GP2);
+	mov_on_notcarry_and_notzero(GP1, GP2);
+
+	mov_literal(GP1, 0);
+	mov_on_notcarry_and_zero(GP1, GP2);
 
 	mov_literal(GP1, 0);
 	mov_on_notcarry(GP1, GP2);
 
 	mov_literal(GP1, 0);
+	mov_on_carry_and_notzero(GP1, GP2);
+
+	mov_literal(GP1, 0);
 	mov_on_notzero(GP1, GP2);
 
 	mov_literal(GP1, 0);
+	mov_on_notcarry_or_notzero(GP1, GP2);
+
+	mov_literal(GP1, 0);
+	mov_on_carry_and_zero(GP1, GP2);
+
+	mov_literal(GP1, 0);
+	mov_on_zero(GP1, GP2);
+
+	mov_literal(GP1, 0);
 	mov_on_notcarry_or_zero(GP1, GP2);
+
+	mov_literal(GP1, 0);
+	mov_on_carry(GP1, GP2);
+
+	mov_literal(GP1, 0);
+	mov_on_carry_or_notzero(GP1, GP2);
+
+	mov_literal(GP1, 0);
+	mov_on_carry_or_zero(GP1, GP2);
 }
 
 void asm_prgm(void)
