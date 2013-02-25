@@ -7,7 +7,6 @@
 
 extern void TestScanner(const char* asmFile);
 extern int TestSymTable(void);
-extern void TestObjFile(const char* path);
 extern void TestReservedWords(void);
 extern void TestParser(const char* asmFile, const char* objFile);
 extern void TestRecords(const char* filePath);

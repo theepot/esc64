@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <esc64asm/objcode.h>
-#include "opcodetrans.h"
+#include <esc64asm/opcodetrans.h>
 
 static void PrintSection(ObjectReader* objReader);
 static void PrintData(ObjectReader* objReader, size_t dataSize);

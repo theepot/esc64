@@ -127,6 +127,10 @@ void Link(const char* exeName, const char** objFiles, size_t objFileCount)
 	SymTableInit(&globalSymTable, setMem, setMemSize, strMem, globalSymNameSize);
 	LoadGlobalSymbols(objFiles, objFileCount, &globalSymTable);
 
+	printf("GLOBAL SYMBOL TABLE:\n");
+	SymTableDump(&globalSymTable, stdout);
+	printf("GLOBAL SYMBOL TABLE END\n");
+
 	//emit code / link
 	ExeWriter exeWriter;
 	ExeWriterInit(&exeWriter, exeName);
@@ -145,6 +149,10 @@ void Link(const char* exeName, const char** objFiles, size_t objFileCount)
 		char localStrMem[header.localSymTotNameSize];
 		SymTableInit(&localSymTable, localSetMem, localSetMemSize, localStrMem, header.localSymTotNameSize);
 		LoadSymbols(&objReader, &localSymTable, OBJ_SECTION_LOCAL_SYM_RECORD_OFFSET);
+
+		printf("LOCAL SYMBOL TABLE:\n");
+		SymTableDump(&localSymTable, stdout);
+		printf("LOCAL SYMBOL TABLE END\n");
 
 		//emit and link data
 		ObjectReaderStart(&objReader, header.absSectionOffset);
@@ -238,7 +246,11 @@ static void LoadSymbols(ObjectReader* objReader, SymTable* symTable, ObjSize_t s
 	ObjSymIterator it;
 	while(!ObjReaderNextSection(objReader))
 	{
-		ObjSymIteratorInit(&it, objReader, symRecordOffset);
+		if(ObjSymIteratorInit(&it, objReader, symRecordOffset))
+		{
+			continue;
+		}
+
 		while(!ObjSymIteratorNext(&it))
 		{
 			//TODO read symbol name directly into string pool
@@ -290,7 +302,10 @@ static void Emit(ObjectReader* objReader, ExeWriter* exeWriter, SymTable* global
 static void LinkSection(ExeWriter* exeWriter, SymTable* globalTable, SymTable* localTable, ObjectReader* objReader, ObjSize_t dataOffset)
 {
 	ObjExprIterator exprIt;
-	ObjExprIteratorInit(&exprIt, objReader);
+	if(ObjExprIteratorInit(&exprIt, objReader))
+	{
+		return;
+	}
 
 	while(!ObjExprIteratorNext(&exprIt))
 	{
@@ -305,10 +320,10 @@ static void LinkSection(ExeWriter* exeWriter, SymTable* globalTable, SymTable* l
 
 static int FindSymbol(SymTable* globalTable, SymTable* localTable, const char* name, size_t nameLength, UWord_t* address)
 {
-	if(SymTableFind(localTable, name, nameLength, address) || SymTableFind(globalTable, name, nameLength, address))
+	if(!SymTableFind(localTable, name, nameLength, address) || !SymTableFind(globalTable, name, nameLength, address))
 	{
-		return -1;
+		return 0;
 	}
 
-	return 0;
+	return -1;
 }

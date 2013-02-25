@@ -388,7 +388,7 @@ static void ParsePseudoMov(Parser* parser)
 
 	case TOKEN_DESCR_NUMBER:
 #ifdef ESC_DEBUG
-		printf("\tpseudo instruction `mov' evaluated to `mov lref->reg'\n");
+		printf("\tpseudo instruction `mov' evaluated to `mov imm->reg'\n");
 #endif
 		instr.descr = GetTokenDescr(TOKEN_DESCR_OPCODE_MOV_WIDE)->instructionDescr;
 		instr.operands[3] = t->intValue;
@@ -396,7 +396,7 @@ static void ParsePseudoMov(Parser* parser)
 
 	case TOKEN_DESCR_LABEL_REF:
 #ifdef ESC_DEBUG
-		printf("\tpseudo instruction `mov' evaluated to `mov imm->reg'\n");
+		printf("\tpseudo instruction `mov' evaluated to `mov lref->reg'\n");
 #endif
 		instr.descr = GetTokenDescr(TOKEN_DESCR_OPCODE_MOV_WIDE)->instructionDescr;
 		Expression expr;

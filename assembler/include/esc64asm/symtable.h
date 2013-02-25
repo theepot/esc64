@@ -32,4 +32,6 @@ void SymTableInit(SymTable* table, void* setMem, size_t setMemSize, void* strMem
 int SymTableInsert(SymTable* table, const char* sym, size_t symSize, UWord_t addr);
 int SymTableFind(SymTable* table, const char* sym, size_t symSize, UWord_t* address);
 
+void SymTableDump(SymTable* table, FILE* stream);
+
 #endif
