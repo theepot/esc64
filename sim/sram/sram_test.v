@@ -35,7 +35,7 @@ module sram_test();
 		notOE = 1;
 		notWE = 1;
 		notCS = 1;
-		#1 notCS = 0;
+		notCS = 0;
 		
 		for (i = 4'H3; i <= 4'HA; i = i + 4'H1) begin
 			#100	addr = i;
@@ -47,22 +47,6 @@ module sram_test();
 				
 			#100	dataBusOE = 0;
 		end
-		
-		#100	addr = 4'H0;
-		
-		#100	notOE = 0;
-		#100	if(dataBus !== 4'HF) begin
-			$display("ERROR: sram: addr=%X; data=%X; (data should be %X)", addr, dataBus, 4'HF);
-		end
-		#100	notOE = 1;
-		
-		#100	addr = 4'H1;
-		
-		#100	notOE = 0;
-		#100	if(dataBus !== 4'HE) begin
-			$display("ERROR: sram: addr=%X; data=%X; (data should be %X)", addr, dataBus, 4'HE);
-		end
-		#100	notOE = 1;
 		
 		for(i = 4'H3; i <= 4'HA; i = i + 4'H1) begin
 			#100	addr = i;

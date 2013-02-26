@@ -20,8 +20,8 @@ bin_table_collumn_description field_descrps[] = {
 	{.name = "aluNotShiftOE", .width = 1, .active_high = L},
 	{.name = "aluCSel", .width = 1, .active_high = H},
 	{.name = "aluUCIn", .width = 1, .active_high = H},
-	{.name = "memNotRead", .width = 1, .active_high = L},
-	{.name = "memNotWrite", .width = 1, .active_high = L},
+	{.name = "memRead", .width = 1, .active_high = H},
+	{.name = "memWrite", .width = 1, .active_high = H},
 	{.name = "irNotLoad", .width = 1, .active_high = L},
 	{.name = "next", .width = UROM_ADDR_WIDTH, .active_high = H},
 	{.name = "nextsel", .width = 1, .active_high = H}
@@ -36,8 +36,8 @@ typedef enum {
 	gpreg_oe_sel_2,
 	gpreg_oe_sel_3,
 	gpreg_oe_sel_4,
-	gpreg_oe_sel_5,
-	gpreg_oe_sel_6,
+	gpreg_oe_sel_sp,
+	gpreg_oe_sel_lr,
 	gpreg_oe_sel_pc,
 	gpreg_oe_sel_op0,
 	gpreg_oe_sel_op1,
@@ -50,8 +50,8 @@ typedef enum {
 	gpreg_ld_sel_2,
 	gpreg_ld_sel_3,
 	gpreg_ld_sel_4,
-	gpreg_ld_sel_5,
-	gpreg_ld_sel_6,
+	gpreg_ld_sel_sp,
+	gpreg_ld_sel_lr,
 	gpreg_ld_sel_pc,
 	gpreg_ld_sel_op0,
 } gpreg_ld_sel;
@@ -167,11 +167,11 @@ void mem(mem_action action)
 {
 	if(action == mem_action_read)
 	{
-		assert_signal(u, "memNotRead");
+		assert_signal(u, "memRead");
 	}
 	else
 	{
-		assert_signal(u, "memNotWrite");
+		assert_signal(u, "memWrite");
 	}
 }
 
@@ -186,7 +186,7 @@ void create_2op_alu_instruction(enum opcode op, int alu_fun, carry_sel c)
 		breg_ld();
 		gpreg_oe(gpreg_oe_sel_op2);
 	set_next(u, next_sel_next_free);
-	goto_next(u);
+	goto_next_free(u);
 		alu_enable(alu_fun);
 		carry_set(c);
 		status_ld();
@@ -214,8 +214,15 @@ void create_conditional_mov_instruction(opcode op, int condition)
 
 void create_conditional_mov_literal_instruction(opcode op, int condition)
 {
-	create_nop_instruction(op, ~condition);
+	//create_nop_instruction(op, ~condition);
+	goto_op_entry(u, op, ~condition);
+	pc_inc();
+	set_next(u, next_sel_fetch);
+
 	goto_op_entry(u, op, condition);
+	gpreg_oe(gpreg_oe_sel_pc);
+	set_next(u, next_sel_next_free);
+	goto_next_free(u);
 	pc_inc();
 	gpreg_oe(gpreg_oe_sel_pc);
 	mem(mem_action_read);
@@ -264,57 +271,60 @@ int main(int argc, char** argv)
 	fill_opcode_entrys_with_illegal_instructions();
 
 	//reset
-	goto_op_entry(u, op_reset, ALWAYS);
 	//goto_reset(u);
+	goto_op_entry(u, op_reset, ALWAYS);
 	set_next(u, next_sel_next_free);
-	goto_next(u);
+	goto_next_free(u);
 	alu_enable(ALU_F_ZERO);
 	gpreg_ld(gpreg_ld_sel_0);
 	set_next(u, next_sel_next_free);
-	goto_next(u);
+	goto_next_free(u);
 	alu_enable(ALU_F_ZERO);
 	gpreg_ld(gpreg_ld_sel_1);
 	set_next(u, next_sel_next_free);
-	goto_next(u);
+	goto_next_free(u);
 	alu_enable(ALU_F_ZERO);
 	gpreg_ld(gpreg_ld_sel_2);
 	set_next(u, next_sel_next_free);
-	goto_next(u);
+	goto_next_free(u);
 	alu_enable(ALU_F_ZERO);
 	gpreg_ld(gpreg_ld_sel_3);
 	set_next(u, next_sel_next_free);
-	goto_next(u);
+	goto_next_free(u);
 	alu_enable(ALU_F_ZERO);
 	gpreg_ld(gpreg_ld_sel_4);
 	set_next(u, next_sel_next_free);
-	goto_next(u);
+	goto_next_free(u);
 	alu_enable(ALU_F_ZERO);
-	gpreg_ld(gpreg_ld_sel_5);
+	gpreg_ld(gpreg_ld_sel_sp);
 	set_next(u, next_sel_next_free);
-	goto_next(u);
+	goto_next_free(u);
 	alu_enable(ALU_F_ZERO);
-	gpreg_ld(gpreg_ld_sel_6);
+	gpreg_ld(gpreg_ld_sel_lr);
 	carry_set(carry_sel_zero);
 	ir_ld();
-	gpreg_oe(gpreg_oe_sel_5);
+	gpreg_oe(gpreg_oe_sel_sp);
 	breg_ld();
 	set_next(u, next_sel_next_free);
-	goto_next(u);
+	goto_next_free(u);
 	alu_enable(ALU_F_A_PLUS_ONE);
 	carry_set(carry_sel_one);
-	gpreg_oe(gpreg_oe_sel_5);
+	gpreg_oe(gpreg_oe_sel_sp);
 	status_ld();
 	set_next(u, next_sel_fetch);
 
 	//fetch
 	goto_fetch(u);
 	gpreg_oe(gpreg_oe_sel_pc);
+	set_next(u, next_sel_next_free);
+	goto_next_free(u);
+	gpreg_oe(gpreg_oe_sel_pc);
 	mem(mem_action_read);
 	pc_inc();
 	ir_ld();
 	set_next(u, next_sel_next_free);
 
-	goto_next(u);
+	goto_next_free(u);
 	set_next(u, next_sel_op_entry);
 	
 	//mov
@@ -335,17 +345,11 @@ int main(int argc, char** argv)
 	//mov on notzero
 	create_conditional_mov_instruction(op_mov_on_notzero, CARRY_NOT_ZERO | NOT_CARRY_NOT_ZERO);
 
-	//mov on carry notequals zero
-	create_conditional_mov_instruction(op_mov_on_carry_notequals_zero, CARRY_NOT_ZERO | NOT_CARRY_ZERO);
-
 	//mov on notcarry or notzero
 	create_conditional_mov_instruction(op_mov_on_notcarry_or_notzero, CARRY_NOT_ZERO | NOT_CARRY_ZERO | NOT_CARRY_NOT_ZERO);
 
 	//mov on carry and zero
 	create_conditional_mov_instruction(op_mov_on_carry_and_zero, CARRY_ZERO);
-
-	//mov on carry equals zero
-	create_conditional_mov_instruction(op_mov_on_carry_equals_zero, CARRY_ZERO | NOT_CARRY_NOT_ZERO);
 
 	//mov on zero
 	create_conditional_mov_instruction(op_mov_on_zero, CARRY_ZERO | NOT_CARRY_ZERO);
@@ -380,17 +384,11 @@ int main(int argc, char** argv)
 	//mov literal on notzero
 	create_conditional_mov_literal_instruction(op_mov_literal_on_notzero, CARRY_NOT_ZERO | NOT_CARRY_NOT_ZERO);
 
-	//mov literal on carry notequals zero
-	create_conditional_mov_literal_instruction(op_mov_literal_on_carry_notequals_zero, CARRY_NOT_ZERO | NOT_CARRY_ZERO);
-
 	//mov literal on notcarry or notzero
 	create_conditional_mov_literal_instruction(op_mov_literal_on_notcarry_or_notzero, CARRY_NOT_ZERO | NOT_CARRY_ZERO | NOT_CARRY_NOT_ZERO);
 
 	//mov literal on carry and zero
 	create_conditional_mov_literal_instruction(op_mov_literal_on_carry_and_zero, CARRY_ZERO);
-
-	//mov literal on carry equals zero
-	create_conditional_mov_literal_instruction(op_mov_literal_on_carry_equals_zero, CARRY_ZERO | NOT_CARRY_NOT_ZERO);
 
 	//mov literal on zero
 	create_conditional_mov_literal_instruction(op_mov_literal_on_zero, CARRY_ZERO | NOT_CARRY_ZERO);
@@ -433,7 +431,7 @@ int main(int argc, char** argv)
 	breg_ld();
 	gpreg_oe(gpreg_oe_sel_op2);
 	set_next(u, next_sel_next_free);
-	goto_next(u);
+	goto_next_free(u);
 	alu_enable(ALU_F_SUB);
 	status_ld();
 	carry_set(carry_sel_one);
@@ -479,44 +477,155 @@ int main(int argc, char** argv)
 	gpreg_oe(gpreg_oe_sel_op1);
 	gpreg_ld(gpreg_ld_sel_op0);
 	alu_enable(ALU_F_NOT_A);
+	status_ld();
 	set_next(u, next_sel_fetch);
 
 
 	//load
 	goto_op_entry(u, op_load, ALWAYS);
+		gpreg_oe(gpreg_oe_sel_op1);
+		set_next(u, next_sel_next_free);
+	goto_next_free(u);
+		gpreg_oe(gpreg_oe_sel_op1);
+		mem(mem_action_read);
+		gpreg_ld(gpreg_ld_sel_op0);
+	set_next(u, next_sel_fetch);
+
+	//store
+	goto_op_entry(u, op_store, ALWAYS);
+		gpreg_oe(gpreg_oe_sel_op2);
+		breg_ld();
+		set_next(u, next_sel_next_free);
+	goto_next_free(u);
+		alu_enable(ALU_F_B);
+		gpreg_oe(gpreg_oe_sel_op1);
+		set_next(u, next_sel_next_free);
+	goto_next_free(u);
+		alu_enable(ALU_F_B);
+		gpreg_oe(gpreg_oe_sel_op1);
+		mem(mem_action_write);
+		set_next(u, next_sel_next_free);
+	goto_next_free(u);
+		alu_enable(ALU_F_B);
+		gpreg_oe(gpreg_oe_sel_op1);
+		set_next(u, next_sel_fetch);
+
+	//in
+	goto_op_entry(u, op_in, ALWAYS);
+	gpreg_oe(gpreg_oe_sel_op1);
+	set_next(u, next_sel_next_free);
+	goto_next_free(u);
+	{
+		int n;
+		for(n = 0; n < IN_INSTRUCTION_DELAY; ++n)
+		{
+			gpreg_oe(gpreg_oe_sel_op1);
+			mem(mem_action_read);
+			set_next(u, next_sel_next_free);
+			goto_next_free(u);
+		}
+	}
 	gpreg_oe(gpreg_oe_sel_op1);
 	mem(mem_action_read);
 	gpreg_ld(gpreg_ld_sel_op0);
 	set_next(u, next_sel_fetch);
 
-	//store
-	goto_op_entry(u, op_store, ALWAYS);
-	gpreg_oe(gpreg_oe_sel_op2);
-	breg_ld();
-	set_next(u, next_sel_next_free);
-	goto_next(u);
+	//out
+	goto_op_entry(u, op_out, ALWAYS);
+		gpreg_oe(gpreg_oe_sel_op2);
+		breg_ld();
+		set_next(u, next_sel_next_free);
+	goto_next_free(u);
+		alu_enable(ALU_F_B);
+		gpreg_oe(gpreg_oe_sel_op1);
+		set_next(u, next_sel_next_free);
+	goto_next_free(u);
+	{
+		int n;
+		for(n = 0; n < OUT_INSTRUCTION_DELAY; ++n)
+		{
+			alu_enable(ALU_F_B);
+			gpreg_oe(gpreg_oe_sel_op1);
+			mem(mem_action_write);
+			set_next(u, next_sel_next_free);
+			goto_next_free(u);
+		}
+	}
 	alu_enable(ALU_F_B);
 	gpreg_oe(gpreg_oe_sel_op1);
-	mem(mem_action_write);
-	set_next(u, next_sel_next_free);
-	goto_next(u);
-	gpreg_oe(gpreg_oe_sel_op1);
 	set_next(u, next_sel_fetch);
+
 
 	//call
 	goto_op_entry(u, op_call, ALWAYS);
 	gpreg_oe(gpreg_oe_sel_pc);
 	alu_enable(ALU_F_A);
-	gpreg_ld(gpreg_ld_sel_6);
+	gpreg_ld(gpreg_ld_sel_lr);
 	set_next(u, next_sel_next_free);
-	goto_next(u);
+	goto_next_free(u);
 	gpreg_oe(gpreg_oe_sel_op1);
 	alu_enable(ALU_F_A);
 	gpreg_ld(gpreg_ld_sel_pc);
 	set_next(u, next_sel_fetch);
 
+	//call literal
+	goto_op_entry(u, op_call_literal, ALWAYS);
+	gpreg_oe(gpreg_oe_sel_pc);
+	alu_enable(ALU_F_A_PLUS_ONE);
+	carry_set(carry_sel_one);
+	gpreg_ld(gpreg_ld_sel_lr);
+	set_next(u, next_sel_next_free);
+	goto_next_free(u);
+	gpreg_oe(gpreg_oe_sel_pc);
+	mem(mem_action_read);
+	gpreg_ld(gpreg_ld_sel_pc);
+	set_next(u, next_sel_fetch);
+
+	//push
+	goto_op_entry(u, op_push, ALWAYS);
+		gpreg_oe(gpreg_oe_sel_op1);
+		breg_ld();
+		set_next(u, next_sel_next_free);
+	goto_next_free(u);
+		alu_enable(ALU_F_B);
+		gpreg_oe(gpreg_oe_sel_sp);
+		set_next(u, next_sel_next_free);
+	goto_next_free(u);
+		alu_enable(ALU_F_B);
+		gpreg_oe(gpreg_oe_sel_sp);
+		mem(mem_action_write);
+		set_next(u, next_sel_next_free);
+	goto_next_free(u);//TODO: this uop might not be necessary
+		alu_enable(ALU_F_B);
+		gpreg_oe(gpreg_oe_sel_sp);
+		set_next(u, next_sel_next_free);
+	goto_next_free(u);
+		gpreg_oe(gpreg_oe_sel_sp);
+		alu_enable(ALU_F_A_MINUS_ONE);
+		carry_set(carry_sel_zero);
+		gpreg_ld(gpreg_ld_sel_sp);
+		set_next(u, next_sel_fetch);
+
+	//pop
+	goto_op_entry(u, op_pop, ALWAYS);
+		gpreg_oe(gpreg_oe_sel_sp);
+		alu_enable(ALU_F_A_PLUS_ONE);
+		carry_set(carry_sel_one);
+		gpreg_ld(gpreg_ld_sel_sp);
+		set_next(u, next_sel_next_free);
+	goto_next_free(u);
+		gpreg_oe(gpreg_oe_sel_sp);
+		set_next(u, next_sel_next_free);
+	goto_next_free(u);
+		gpreg_oe(gpreg_oe_sel_sp);
+		mem(mem_action_read);
+		gpreg_ld(gpreg_ld_sel_op0);
+	set_next(u, next_sel_fetch);
+
+
 	//halt
-	//TODO: implement
+	goto_op_entry(u, op_halt, ALWAYS);
+	set_next(u, next_sel_current);
 
 	print_verilog(u, 1);
 

@@ -178,7 +178,7 @@ void goto_fetch(uassembler* uasm)
 	goto_address(uasm, uasm->addr_fetch);
 }
 
-void goto_next(uassembler* uasm)
+void goto_next_free(uassembler* uasm)
 {
 	uasm->current_at_op_entry = 0;
 	goto_address(uasm, uasm->addr_free);

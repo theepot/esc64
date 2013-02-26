@@ -2,16 +2,12 @@ List of TODO things:
 	-rename control lines from the microsequencer
 	-memfile parameter of memory devices should have consistent names
 	-rename ALU's signal fcin to s(tatus)r(register)cin
-	-change the Makefile's of all the simulations so that source directories get included by -I<path>, and get rid including relative paths
+	-change the Makefile's of all the simulations so that source directories get included by -I<path>, and get rid of including relative paths
 	
 	-All active low in/outputs should either have a not in it's name, or a graphical bar above it.
 	
-	-add new instructions:
-		inc, dec, 
-		all combination's of conditional mov's
-		
 	-create big diagnostics program
 	
-	-schematic bootstrapper
+	-schematic bootstrapper/circuit tester
 	
-	-urom: clear all registers at reset
+	-create verilog simulation of usart_device

@@ -5,14 +5,18 @@
 static void store_stuff(int addr, int content)
 {
 	mov_literal(GP0, addr);
-	mov_literal(GP1, content);
-	store(GP0, GP1);
+	mov_literal(GP1, addr+1);
+	mov_literal(GP2, content);
+	store(GP0, GP2);
+	out(GP1, GP2);
 }
 
 static void load_stuff(int addr)
 {
 	mov_literal(GP0, addr);
+	mov_literal(GP1, addr+1);
 	load(GP2, GP0);
+	in(GP3, GP1);
 }
 
 static int locations[] = {

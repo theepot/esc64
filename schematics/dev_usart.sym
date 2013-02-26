@@ -345,7 +345,7 @@ P 2300 800 2000 800 1 0 0
 T 2300 800 5 10 0 1 0 6 1
 pintype=in
 T 1945 795 5 10 1 1 0 6 1
-pinlabel=notCS
+pinlabel=CS
 T 2095 845 5 10 1 1 0 0 1
 pinnumber=16
 T 2300 800 5 10 0 1 0 6 1
@@ -356,7 +356,7 @@ P 2300 200 2000 200 1 0 0
 T 2300 200 5 10 0 1 0 6 1
 pintype=in
 T 1945 195 5 10 1 1 0 6 1
-pinlabel=notOE
+pinlabel=notRD
 T 2095 245 5 10 1 1 0 0 1
 pinnumber=17
 T 2300 200 5 10 0 1 0 6 1
@@ -375,6 +375,6 @@ pinseq=18
 }
 B 300 0 1700 5800 3 0 0 0 -1 -1 0 -1 -1 -1 -1 -1
 T 300 5900 8 10 1 1 0 0 1
-device=sram
+device=dev_usart
 T 1800 5900 8 10 1 1 0 0 1
 refdes=U?

@@ -1,6 +1,3 @@
-`include "../sram/sram.v"
-`include "../regFile/regFile.v"
-
 `ifdef STATUS_STRUCT
 `include "../status/status_s.v"
 `else
@@ -26,9 +23,9 @@
 `endif
 
 `ifdef BREG_STRUCT
-`include "../74xxx/octRegister_74377.v"
+`include "../breg/breg_s.v"
 `else
-`include "../register/register.v"
+`include "../breg/breg.v"
 `endif
 
 `ifdef MSEQ_STRUCT
@@ -37,7 +34,8 @@
 `include "../mSeq/mSeq.v"
 `endif
 
-
+`include "../regFile/regFile.v"
+`include "../rwRegister/rwRegister_s.v"//TODO: include right version depending on simulation level
 
 module cpu(clock, notReset, aBus, yBus, memNotRead, memNotWrite);
 	input clock, notReset;
@@ -46,7 +44,7 @@ module cpu(clock, notReset, aBus, yBus, memNotRead, memNotWrite);
 	
 	wire clock, notReset, memNotRead, memNotWrite;
 	
-	//misc
+	//busses
 	wire [15:0] aBus;
 	wire [15:0] yBus;
 
@@ -62,10 +60,9 @@ module cpu(clock, notReset, aBus, yBus, memNotRead, memNotWrite);
 	wire [2:0] regselOp2; //regsel < ir
 	wire [7:0] regselRegOEs; //regsel > r0..r7
 	wire [7:0] regselRegNotLoads; //regsel > r0..r7
-
 	regSel _regsel(regselOE, regselLoad, regselOESource, regselLoadSource, regselOEuSel, regselLoaduSel, regselOp0, regselOp1, regselOp2, regselRegOEs, regselRegNotLoads);
 
-	//registers
+	//general purpose registers
 	wire pcInc;
 	regFile registers(clock, aBus, yBus, regselRegOEs, regselRegNotLoads, notReset, pcInc);
 
@@ -78,22 +75,17 @@ module cpu(clock, notReset, aBus, yBus, memNotRead, memNotWrite);
 	statusRegister status(clock, statusNotLoad, statusCIn, statusCOut, statusZIn, statusZOut);
 
 	//ALU
-	wire[15:0] aluB; //alu < aluBReg
-	wire aluBRegNotLoad; //aluBReg < useq
 	wire aluNotALUOE; //alu < useq
 	wire aluNotShiftOE; //alu < useq
-	
-`ifdef BREG_STRUCT
-	octRegister_74377 bRegL(clock, aluBRegNotLoad, aBus[7:0], aluB[7:0]);
-	octRegister_74377 bRegH(clock, aluBRegNotLoad, aBus[15:8], aluB[15:8]);
-`else
-	register aluBReg(clock, notReset, aluBRegNotLoad, 1, aBus, aluB);
-`endif
-
 	wire [4:0] aluF; //alu < useq
 	wire aluCSel; //alu < useq
 	wire aluUCIn; //alu < useq
 	alu _alu(aBus, aluB, yBus, aluF, aluCSel, aluUCIn, statusCOut, statusCIn, statusZIn, aluNotALUOE, aluNotShiftOE);
+	
+	//B register
+	wire[15:0] aluB; //alu < aluBReg
+	wire aluBRegNotLoad; //aluBReg < useq
+	bRegister breg(clock, aluBRegNotLoad, aBus, aluB);
 	
 	//instruction register
 	wire irNotLoad; //ir < useq
@@ -107,6 +99,12 @@ module cpu(clock, notReset, aBus, yBus, memNotRead, memNotWrite);
 	//error signals
 	wire [1:0] error;
 	
+	//read & write signals
+	rwRegister _rwRegister(clock, notReset, memWrite, memRead, memNotWrite, memNotRead);
+	
+	wire memRead;
+	wire memWrite;
+		
 	assign error = control[27:26]; //2, H
 	assign statusNotLoad = control[25]; //1,L
 	assign regselOE = control[24]; //1,H
@@ -122,8 +120,8 @@ module cpu(clock, notReset, aBus, yBus, memNotRead, memNotWrite);
 	assign aluNotShiftOE = control[5]; //1,L
 	assign aluCSel = control[4]; //1,H
 	assign aluUCIn = control[3]; //1,H
-	assign memNotRead = control[2]; //1,L
-	assign memNotWrite = control[1]; //1,L
+	assign memRead = control[2]; //1,L
+	assign memWrite = control[1]; //1,L
 	assign irNotLoad = control[0]; //1,L
 
 endmodule

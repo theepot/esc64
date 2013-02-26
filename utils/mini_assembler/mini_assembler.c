@@ -6,33 +6,6 @@
 #include <string.h>
 #include <cpu.h>
 
-/*#define MEM_SIZE (2048)
-#define LABELS_MAX (256)
-
-#define GP0	RGS_GP0
-#define GP1	RGS_GP1
-#define GP2	RGS_GP2
-#define GP3 	RGS_GP3
-#define GP4	RGS_GP4
-#define GP5	RGS_GP5
-#define LR	RGS_GP6
-#define PC	RGS_PC*/
-
-/*typedef struct {
-	int opcode;
-	int op0, op1, op2;
-	int valid;
-	const char* comment;
-	int is_literal;
-	int literal; //or label id when is_reference is true
-	int is_reference;
-} instruction;
-
-typedef struct {
-	const char* name;
-	int value;
-} label;*/
-
 struct globals_struct globals;
 
 int label_find_by_name(const char* const name)
@@ -264,11 +237,6 @@ void mov_on_notzero(const int dst, const int src)
 	add_instruction(op_mov_on_notzero, dst, src, 0, "mov_on_notzero");
 }
 
-void mov_on_carry_notequals_zero(const int dst, const int src)
-{
-	add_instruction(op_mov_on_carry_notequals_zero, dst, src, 0, "mov_on_carry_notequals_zero");
-}
-
 void mov_on_notcarry_or_notzero(const int dst, const int src)
 {
 	add_instruction(op_mov_on_notcarry_or_notzero, dst, src, 0, "mov_on_notcarry_or_notzero");
@@ -277,11 +245,6 @@ void mov_on_notcarry_or_notzero(const int dst, const int src)
 void mov_on_carry_and_zero(const int dst, const int src)
 {
 	add_instruction(op_mov_on_carry_and_zero, dst, src, 0, "mov_on_carry_and_zero");
-}
-
-void mov_on_carry_equals_zero(const int dst, const int src)
-{
-	add_instruction(op_mov_on_carry_equals_zero, dst, src, 0, "mov_on_carry_equals_zero");
 }
 
 void mov_on_zero(const int dst, const int src)
@@ -345,12 +308,6 @@ void mov_literal_on_notzero(const int dst, const int literal)
 	add_literal(literal, 0);
 }
 
-void mov_literal_on_carry_notequals_zero(const int dst, const int literal)
-{
-	add_instruction(op_mov_literal_on_carry_notequals_zero, dst, 0, 0, "mov_literal_on_carry_notequals_zero");
-	add_literal(literal, 0);
-}
-
 void mov_literal_on_notcarry_or_notzero(const int dst, const int literal)
 {
 	add_instruction(op_mov_literal_on_notcarry_or_notzero, dst, 0, 0, "mov_literal_on_notcarry_or_notzero");
@@ -360,12 +317,6 @@ void mov_literal_on_notcarry_or_notzero(const int dst, const int literal)
 void mov_literal_on_carry_and_zero(const int dst, const int literal)
 {
 	add_instruction(op_mov_literal_on_carry_and_zero, dst, 0, 0, "mov_literal_on_carry_and_zero");
-	add_literal(literal, 0);
-}
-
-void mov_literal_on_carry_equals_zero(const int dst, const int literal)
-{
-	add_instruction(op_mov_literal_on_carry_equals_zero, dst, 0, 0, "mov_literal_on_carry_equals_zero");
 	add_literal(literal, 0);
 }
 
@@ -402,91 +353,79 @@ void mov_literal_on_carry_or_zero(const int dst, const int literal)
 void mov_literal_labeled(const int dst, const char* const name)
 {
 	add_instruction(op_mov_literal, dst, 0, 0, "move_literal labeled");
-	add_literal_labeled(name, 0);
+	add_literal_labeled(name, name);
 }
 
 void mov_literal_on_notcarry_and_notzero_labeled(const int dst, const char* const name)
 {
 	add_instruction(op_mov_literal_on_notcarry_and_notzero, dst, 0, 0, "mov_literal_on_notcarry_and_notzero labeled");
-	add_literal_labeled(name, 0);
+	add_literal_labeled(name, name);
 }
 
 void mov_literal_on_notcarry_and_zero_labeled(const int dst, const char* const name)
 {
 	add_instruction(op_mov_literal_on_notcarry_and_zero, dst, 0, 0, "mov_literal_on_notcarry_and_zero labeled");
-	add_literal_labeled(name, 0);
+	add_literal_labeled(name, name);
 }
 
 void mov_literal_on_notcarry_labeled(const int dst, const char* const name)
 {
 	add_instruction(op_mov_literal_on_notcarry, dst, 0, 0, "mov_literal_on_notcarry labeled");
-	add_literal_labeled(name, 0);
+	add_literal_labeled(name, name);
 }
 
 void mov_literal_on_carry_and_notzero_labeled(const int dst, const char* const name)
 {
 	add_instruction(op_mov_literal_on_carry_and_notzero, dst, 0, 0, "mov_literal_on_carry_and_notzero labeled");
-	add_literal_labeled(name, 0);
+	add_literal_labeled(name, name);
 }
 
 void mov_literal_on_notzero_labeled(const int dst, const char* const name)
 {
 	add_instruction(op_mov_literal_on_notzero, dst, 0, 0, "mov_literal_on_notzero labeled");
-	add_literal_labeled(name, 0);
-}
-
-void mov_literal_on_carry_notequals_zero_labeled(const int dst, const char* const name)
-{
-	add_instruction(op_mov_literal_on_carry_notequals_zero, dst, 0, 0, "mov_literal_on_carry_notequals_zero labeled");
-	add_literal_labeled(name, 0);
+	add_literal_labeled(name, name);
 }
 
 void mov_literal_on_notcarry_or_notzero_labeled(const int dst, const char* const name)
 {
 	add_instruction(op_mov_literal_on_notcarry_or_notzero, dst, 0, 0, "mov_literal_on_notcarry_or_notzero labeled");
-	add_literal_labeled(name, 0);
+	add_literal_labeled(name, name);
 }
 
 void mov_literal_on_carry_and_zero_labeled(const int dst, const char* const name)
 {
 	add_instruction(op_mov_literal_on_carry_and_zero, dst, 0, 0, "mov_literal_on_carry_and_zero labeled");
-	add_literal_labeled(name, 0);
-}
-
-void mov_literal_on_carry_equals_zero_labeled(const int dst, const char* const name)
-{
-	add_instruction(op_mov_literal_on_carry_equals_zero, dst, 0, 0, "mov_literal_on_carry_equals_zero labeled");
-	add_literal_labeled(name, 0);
+	add_literal_labeled(name, name);
 }
 
 void mov_literal_on_zero_labeled(const int dst, const char* const name)
 {
 	add_instruction(op_mov_literal_on_zero, dst, 0, 0, "mov_literal_on_zero labeled");
-	add_literal_labeled(name, 0);
+	add_literal_labeled(name, name);
 }
 
 void mov_literal_on_notcarry_or_zero_labeled(const int dst, const char* const name)
 {
 	add_instruction(op_mov_literal_on_notcarry_or_zero, dst, 0, 0, "mov_literal_on_notcarry_or_zero labeled");
-	add_literal_labeled(name, 0);
+	add_literal_labeled(name, name);
 }
 
 void mov_literal_on_carry_labeled(const int dst, const char* const name)
 {
 	add_instruction(op_mov_literal_on_carry, dst, 0, 0, "mov_literal_on_carry labeled");
-	add_literal_labeled(name, 0);
+	add_literal_labeled(name, name);
 }
 
 void mov_literal_on_carry_or_notzero_labeled(const int dst, const char* const name)
 {
 	add_instruction(op_mov_literal_on_carry_or_notzero, dst, 0, 0, "mov_literal_on_carry_or_notzero labeled");
-	add_literal_labeled(name, 0);
+	add_literal_labeled(name, name);
 }
 
 void mov_literal_on_carry_or_zero_labeled(const int dst, const char* const name)
 {
 	add_instruction(op_mov_literal_on_carry_or_zero, dst, 0, 0, "mov_literal_on_carry_or_zero labeled");
-	add_literal_labeled(name, 0);
+	add_literal_labeled(name, name);
 }
 
 void add(const int dst, const int a, const int b)
@@ -564,9 +503,49 @@ void call(const int addr_reg)
 	add_instruction(op_call, 0, addr_reg, 0, "call");
 }
 
+void call_literal(const int addr)
+{
+	add_instruction(op_call_literal, 0, 0, 0, "call_literal");
+	add_literal(addr, 0);
+}
+void call_literal_labeled(const char* const name)
+{
+	add_instruction(op_call_literal, 0, 0, 0, "call_literal");
+	add_literal_labeled(name, name);
+}
+
+void in(const int dst, const int src)
+{
+	add_instruction(op_in, dst, src, 0, "in");
+}
+
+void out(const int dst, const int src)
+{
+	add_instruction(op_out, 0, dst, src, "store");
+}
+
 void cmp(const int a, const int b)
 {
 	add_instruction(op_cmp, 0, a, b, "compare");
+}
+
+void halt()
+{
+	add_instruction(op_halt, 0, 0, 0, "halt");
+}
+
+void push(int a)
+{
+	add_instruction(op_push, 0, a, 0, "push");
+	//store(SP, r);
+	//dec(SP, SP);
+}
+
+void pop(int a)
+{
+	add_instruction(op_pop, a, 0, 0, "pop");
+	//inc(SP, SP);
+	//load(r, SP);
 }
 
 //pseudo operations
@@ -575,9 +554,24 @@ void jump(const char* const name)
 	mov_literal_labeled(PC, name);
 }
 
-void halt()
+
+
+void save_all(void)
 {
-	add_instruction(op_halt, 0, 0, 0, "halt");
+	push(GP0);
+	push(GP1);
+	push(GP2);
+	push(GP3);
+	push(GP4);
+}
+
+void restore_all(void)
+{
+	pop(GP4);
+	pop(GP3);
+	pop(GP2);
+	pop(GP1);
+	pop(GP0);
 }
 
 extern void asm_prgm(void);
@@ -595,194 +589,6 @@ int main(int argc, char** argv)
 
 	asm_prgm();
 
-//BEGIN (test)	
-/*	unsigned dest = 0x7FFF;
-#define FN3(f, a, b, e, z, c) \
-	dest -= 3; \
-	fprintf(stderr, "@%05u expect: %04X, %c, %c\n", dest, (e), (z) ? '1' : '0', (c) ? '1' : '0'); \
-	mov_literal(GP0, (a)); \
-	mov_literal(GP1, (b)); \
-	mov_literal(GP2, dest); \
-	f(GP0, GP0, GP1); \
-	store(GP2, GP0); \
-	mov_literal(GP0, 1); \
-	mov(GP1, GP0); \
-	mov_literal(GP2, dest+1); \
-	mov_literal(GP3, dest+2); \
-	mov_literal(GP4, 0); \
-	mov_on_not_zero(GP0, GP4); \
-	mov_on_not_carry(GP1, GP4); \
-	store(GP2, GP0); \
-	store(GP3, GP1);
-	
-#define FN2(f, a, e, z, c) \
-	dest -= 3; \
-	fprintf(stderr, "@%05u expect: %04X, %c, %c\n", dest, (e), (z) ? '1' : '0', (c) ? '1' : '0'); \
-	mov_literal(GP1, (a)); \
-	mov_literal(GP2, dest); \
-	f(GP0, GP1); \
-	store(GP2, GP0); \
-	mov_literal(GP0, 1); \
-	mov(GP1, GP0); \
-	mov_literal(GP2, dest+1); \
-	mov_literal(GP3, dest+2); \
-	mov_literal(GP4, 0); \
-	mov_on_not_zero(GP0, GP4); \
-	mov_on_not_carry(GP1, GP4); \
-	store(GP2, GP0); \
-	store(GP3, GP1);
-
-#define ADD(a, b, e, z, c) FN3(add, a, b, e, z, c)
-#define SUB(a, b, e, z, c) FN3(sub, a, b, e, z, c)
-#define OR(a, b, e, z, c) FN3(or, a, b, e, z, c)
-#define XOR(a, b, e, z, c) FN3(xor, a, b, e, z, c)
-#define AND(a, b, e, z, c) FN3(and, a, b, e, z, c)
-#define SHIFTL(a, e, z, c) FN2(shiftl, a, e, z, c)
-#define SHIFTR(a, e, z, c) FN2(shiftr, a, e, z, c)
-	
-	ADD(2, 1, 3, 0, 0);
-	ADD(0xFFFF, 1, 0, 1, 1);
-	ADD(0xFFFF, 2, 1, 0, 1);
-	
-	SUB(0xFF, 0xF, 0xFF-0xF, 0, 1);
-	SUB(1, 10, 0xFFF7, 0, 0);
-	SUB(7, 7, 7-7, 1, 1);
-	
-	OR(123, 0, 123, 0, 0);
-	OR(0, 0, 0, 1, 0);
-	
-	XOR(0xAAAA, 0xAAAA, 0, 1, 0);
-	XOR(0xAAAA, 0xBBBB, 0xAAAA^0xBBBB, 0, 0);
-	
-	AND(0xFC, 0x3F, 0xFC&0x3F, 0, 0);
-	AND(0xF0F0, 0, 0, 1, 0);
-	
-	SHIFTL(0x0001, 0x0002, 0, 0);
-	SHIFTL(0x8001, 0x0002, 0, 1);
-	SHIFTL(0x0000, 0x0000, 1, 0);
-	SHIFTL(0x8000, 0x0000, 1, 1);
-	
-	SHIFTR(0x1000, 0x0800, 0, 0);
-	SHIFTR(0x1001, 0x0800, 0, 1);
-	SHIFTR(0x0000, 0x0000, 1, 0);
-	SHIFTR(0x0001, 0x0000, 1, 1);
-	
-	halt();*/
-//END (test)
-	
-	/*mov_literal(0, 10);
-	mov_literal(1, 5);
-	mov_literal_labeled(2, "sub0");
-	call(2);
-	call(2);
-	halt();
-	
-	lbl("sub0"); //start sub0
-	add(0, 0, 1);
-	mov(PC, LR); //return*/
-	
-		/*mov_literal(0, 10);	//r0 = 10
-		mov_literal(1, 1);	//r1 = 1
-		mov_literal(5, 1);	//r5 = 0
-		mov_literal_labeled(2, "end0");	//r2 = end0
-		
-	lbl("loop0");
-		sub(0, 0, 1);
-		mov_on_equal(PC, 2);
-		
-		sub(GP5, GP5, 1);
-		store(GP5, 0);
-		
-		jump("loop0");
-	lbl("end0");
-	
-		mov_literal(0, 10);	//r0 = 10
-		mov_literal_labeled(2, "end1");	//r2 = end1
-	
-	lbl("loop1");
-		sub(0, 0, 1);
-		mov_on_equal(PC, 2);
-		
-		load(3, GP5);
-		add(GP5, GP5, 1);
-		
-		jump("loop1");
-	lbl("end1");
-	
-		halt();*/
-	
-	/*mov_literal(0, 10);
-	mov_literal(1, 10);
-	mov_literal_labeled(2, "end");
-	cmp(0, 1);
-	//mov_on_less_than_or_equal(PC, 2);
-	mov_on_not_equal(PC, 2);
-	add(0, 0, 1);
-	lbl("end");
-	halt();*/
-	
-	
-	/*mov_literal(1, 4);
-	mov_literal_labeled(0, "fib");
-	call(0);
-	halt();
-
-	//0 = call target
-	//1 = n
-	//2 = 1
-	//3 = 2
-lbl("fib");
-	//constants
-	mov(2, 1);
-	mov(3, 2);
-
-lbl("fib_r");
-	//if n < 2 then return n
-	mov_literal_labeled(0, "retN");	//jump target for then
-	cmp(1, 2);		//if n <= 1
-	mov_on_less_than_or_equal(PC, 0);			//then goto retN
-	
-	
-	//a = fib(n - 1)
-	sub(SP, SP, 2);	//push return address
-	store(SP, LR);
-	sub(LR, LR, 2);	//push n
-	store(SP, 1);
-	
-	mov_literal_labeled(0, "fib_r");	//fib_r, call target
-	sub(1, 1, 2);	//n = n - 1
-	call(0);			//call fib(n - 1)
-	
-	sub(SP, SP, 2);	//push a
-	store(SP, 0);
-	
-	//b = fib(n - 2)
-	add(SP, SP, 2);	//peek n
-	load(1, SP);
-	sub(SP, SP, 2);
-	
-	sub(1, 1, 3);	//n = n - 2
-	
-	mov_literal_labeled(0, "fib_r");	//fib_r, call target
-	call(0);		//call fib(n - 2)
-	
-	load(1, SP);		//pop a from stack
-	add(SP, SP, 2);
-	
-	add(1, 0, 1);	//n = a + b
-	
-	//cleanup	
-	add(SP, SP, 2);	//pop n
-	mov(LR, SP);		//pop return address
-	add(SP, SP, 2);
-	
-	//fallthrough
-lbl("retN");
-	mov(0, 1);
-	mov(PC, LR);*/
-	
-	
-	
 	//end program
 	print_memory();
 	return 0;
