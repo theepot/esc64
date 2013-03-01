@@ -8,15 +8,13 @@
 
 #include <esc64asm/ioutils.h>
 
-static void EnterSection(ObjectWriter* writer, Byte_t type, Byte_t placement, UWord_t addr, UWord_t size);
+static void EnterSection(ObjectWriter* writer, byte_t type, byte_t placement, uword_t addr, uword_t size);
 static void FlushSection(ObjectWriter* writer);
 static void UpdatePrevNext(ObjectWriter* writer);
 //static void UpdateFirstOffset(ObjectWriter* writer, ObjSize_t newOffset);
 static void WriteSymbol(RecordWriter* writer, FILE* stream, const Symbol* sym);
 static void FlushHeader(ObjectWriter* writer);
-
-static void ReadSection(ObjectReader* reader, ObjSize_t offset);
-static void ReadHeader(ObjectReader* reader, ObjectHeader* header);
+//static void ObjReadSection(ObjectReader* reader, objsize_t offset);
 
 void ObjectWriterInit(ObjectWriter* writer, const char* path)
 {
@@ -46,17 +44,45 @@ void ObjectWriterClose(ObjectWriter*writer)
 	fclose(writer->stream);
 }
 
-void ObjectReaderInit(ObjectReader* reader, const char* path, ObjectHeader* header)
+void ObjectReaderInit(ObjectReader* reader, const char* path)
 {
 	reader->stream = fopen(path, "rb");
 	assert(reader->stream);
 	reader->next = OBJ_RECORD_ILLEGAL_OFFSET;
-	ReadHeader(reader, header);
+	IOSeekForward(reader->stream, OBJ_HEADER_SIZE);
 }
 
-void ObjectReaderStart(ObjectReader* reader, ObjSize_t firstOffset)
+void ObjReadHeader(ObjectReader* reader, ObjectHeader* header)
+{
+	//TODO check if this is even necessary
+	objsize_t head = IOGetFilePos(reader->stream);
+	IOSetFilePos(reader->stream, 0);
+
+	header->localSymTotNameSize = IOReadWord(reader->stream);
+	header->globalSymTotNameSize = IOReadWord(reader->stream);
+	header->localSymCount = IOReadWord(reader->stream);
+	header->globalSymCount = IOReadWord(reader->stream);
+	header->absSectionCount = IOReadWord(reader->stream);
+	header->relocSectionCount = IOReadWord(reader->stream);
+	header->absSectionOffset = IOReadObjSize(reader->stream);
+	header->relocSectionOffset = IOReadObjSize(reader->stream);
+
+	//TODO and this
+	IOSetFilePos(reader->stream, head);
+}
+
+void ObjectReaderStart(ObjectReader* reader, objsize_t firstOffset)
 {
 	reader->next = firstOffset;
+}
+
+void ObjReadSection(ObjectReader* reader, objsize_t offset)
+{
+	IOSetFilePos(reader->stream, offset);
+	reader->type = IOReadByte(reader->stream);		//type
+	reader->next = IOReadObjSize(reader->stream);	//next
+
+	reader->offset = offset;
 }
 
 void ObjectReaderClose(ObjectReader* reader)
@@ -64,7 +90,7 @@ void ObjectReaderClose(ObjectReader* reader)
 	fclose(reader->stream);
 }
 
-void ObjWriteDataSection(ObjectWriter* writer, Byte_t placement, UWord_t address)
+void ObjWriteDataSection(ObjectWriter* writer, byte_t placement, uword_t address)
 {
 	EnterSection(writer, SECTION_TYPE_DATA, placement, placement == OBJ_ABS ? address : 0xFFFF, 0);
 	writer->dataSize = 0;
@@ -85,7 +111,7 @@ void ObjWriteDataSection(ObjectWriter* writer, Byte_t placement, UWord_t address
 	IOWriteObjSize(writer->stream, OBJ_RECORD_ILLEGAL_OFFSET);	//data record offset
 }
 
-void ObjWriteBssSection(ObjectWriter* writer, Byte_t placement, UWord_t address, UWord_t size)
+void ObjWriteBssSection(ObjectWriter* writer, byte_t placement, uword_t address, uword_t size)
 {
 	EnterSection(writer, SECTION_TYPE_BSS, placement, placement == OBJ_ABS ? address : 0xFFFF, size);
 }
@@ -101,14 +127,14 @@ void ObjWriteData(ObjectWriter* writer, const void* data, size_t dataSize)
 
 void ObjWriteInstr(ObjectWriter* writer, const Instruction* instr)
 {
-	UWord_t instrWord =	(instr->descr->opcode << OPCODE_OFFSET)
+	uword_t instrWord =	(instr->descr->opcode << OPCODE_OFFSET)
 			| ((instr->operands[0] & OPERAND0_MASK) << OPERAND0_OFFSET)
 			| ((instr->operands[1] & OPERAND1_MASK) << OPERAND1_OFFSET)
 			| ((instr->operands[2] & OPERAND2_MASK) << OPERAND2_OFFSET);
 
 	if(instr->descr->isWide)
 	{
-		UWord_t buf[2];
+		uword_t buf[2];
 		buf[0] = HTON_WORD(instrWord);
 		buf[1] = HTON_WORD(instr->operands[3]);
 
@@ -116,7 +142,7 @@ void ObjWriteInstr(ObjectWriter* writer, const Instruction* instr)
 	}
 	else
 	{
-		UWord_t x = HTON_WORD(instrWord);
+		uword_t x = HTON_WORD(instrWord);
 		ObjWriteData(writer, &x, 1);
 	}
 }
@@ -150,14 +176,14 @@ void ObjWriteExpr(ObjectWriter* writer, const Expression* expr)
 #endif
 
 	const size_t bufSize = sizeof expr->nameLen + expr->nameLen + sizeof expr->address;
-	Byte_t buf[bufSize];
+	byte_t buf[bufSize];
 	void* p = buf;
 
-	UWord_t address = HTON_WORD(expr->address);
+	uword_t address = HTON_WORD(expr->address);
 	memcpy(p, &address, sizeof address);			//address
 	p += sizeof address;
 
-	UWord_t nameLen = HTON_WORD(expr->nameLen);
+	uword_t nameLen = HTON_WORD(expr->nameLen);
 	memcpy(p, &nameLen, sizeof nameLen);			//nameLen
 	p += sizeof nameLen;
 
@@ -173,7 +199,7 @@ int ObjReaderNextSection(ObjectReader* reader)
 		return -1;
 	}
 
-	ReadSection(reader, reader->next);
+	ObjReadSection(reader, reader->next);
 	return 0;
 
 //	IOSetFilePos(reader->stream, reader->offset + OBJ_SECTION_NEXT_OFFSET);
@@ -187,7 +213,7 @@ int ObjReaderNextSection(ObjectReader* reader)
 //	return 0;
 }
 
-UWord_t ObjReadAddress(ObjectReader* reader)
+uword_t ObjReadAddress(ObjectReader* reader)
 {
 	IOSetFilePos(
 			reader->stream,
@@ -196,7 +222,7 @@ UWord_t ObjReadAddress(ObjectReader* reader)
 }
 
 
-UWord_t ObjReadSize(ObjectReader* reader)
+uword_t ObjReadSize(ObjectReader* reader)
 {
 	IOSetFilePos(
 				reader->stream,
@@ -204,11 +230,29 @@ UWord_t ObjReadSize(ObjectReader* reader)
 	return IOReadWord(reader->stream);
 }
 
-int ObjSymIteratorInit(ObjSymIterator* it, ObjectReader* reader, ObjSize_t offset)
+byte_t ObjReadType(ObjectReader* reader)
+{
+	IOSetFilePos(
+			reader->stream,
+			reader->offset + OBJ_SECTION_TYPE_OFFSET);
+	return IOReadByte(reader->stream);
+}
+
+objsize_t ObjGetSectionOffset(ObjectReader* reader)
+{
+	return reader->offset;
+}
+
+objsize_t ObjGetDataOffset(ObjectReader* reader)
+{
+	return reader->offset + OBJ_SECTION_DATA_RECORD_OFFSET;
+}
+
+int ObjSymIteratorInit(ObjSymIterator* it, ObjectReader* reader, objsize_t offset)
 {
 	it->stream = reader->stream;
 	IOSetFilePos(it->stream, reader->offset + offset);
-	ObjSize_t recordOffset = IOReadObjSize(it->stream);
+	objsize_t recordOffset = IOReadObjSize(it->stream);
 	if(recordOffset == OBJ_RECORD_ILLEGAL_OFFSET)
 	{
 		return -1;
@@ -224,20 +268,20 @@ int ObjSymIteratorNext(ObjSymIterator* it)
 {
 	assert(it->state == OBJ_IT_STATE_START);
 
-	size_t toRead = sizeof (UWord_t) + sizeof (UWord_t);
-	Byte_t buf[toRead];
+	size_t toRead = sizeof (uword_t) + sizeof (uword_t);
+	byte_t buf[toRead];
 	void* p = buf;
 	if(RecordRead(&it->symReader, it->stream, buf, toRead) != toRead)
 	{
 		return -1;
 	}
 
-	UWord_t rawValue;
+	uword_t rawValue;
 	memcpy(&rawValue, p, sizeof rawValue);
 	p += sizeof rawValue;
-	it->curSym.value = NTOH_WORD(rawValue);			//value
+	it->curSym.address = NTOH_WORD(rawValue);			//value
 
-	UWord_t rawNameSize;
+	uword_t rawNameSize;
 	memcpy(&rawNameSize, p, sizeof rawNameSize);
 	it->curSym.nameLen = NTOH_WORD(rawNameSize);	//nameSize
 
@@ -265,7 +309,7 @@ int ObjExprIteratorInit(ObjExprIterator* it, ObjectReader* reader)
 
 	it->stream = reader->stream;
 	IOSetFilePos(it->stream, reader->offset + OBJ_SECTION_EXPR_RECORD_OFFSET);
-	ObjSize_t recordOffset = IOReadObjSize(it->stream);
+	objsize_t recordOffset = IOReadObjSize(it->stream);
 	if(recordOffset == OBJ_RECORD_ILLEGAL_OFFSET)
 	{
 		return -1;
@@ -281,20 +325,20 @@ int ObjExprIteratorNext(ObjExprIterator* it)
 {
 	assert(it->state == OBJ_IT_STATE_START);
 
-	size_t toRead = sizeof (UWord_t) + sizeof (UWord_t);
-	Byte_t buf[toRead];
+	size_t toRead = sizeof (uword_t) + sizeof (uword_t);
+	byte_t buf[toRead];
 	void* p = buf;
 	if(RecordRead(&it->exprReader, it->stream, buf, toRead) != toRead)
 	{
 		return -1;
 	}
 
-	UWord_t rawAddress;
+	uword_t rawAddress;
 	memcpy(&rawAddress, p, sizeof rawAddress);
 	p += sizeof rawAddress;
 	it->curExpr.address = NTOH_WORD(rawAddress);	//address
 
-	UWord_t rawNameSize;
+	uword_t rawNameSize;
 	memcpy(&rawNameSize, p, sizeof rawNameSize);
 	it->curExpr.nameLen = NTOH_WORD(rawNameSize);	//nameSize
 
@@ -322,7 +366,7 @@ int ObjDataReaderInit(ObjDataReader* dataReader, ObjectReader* objReader)
 
 	dataReader->stream = objReader->stream;
 	IOSetFilePos(dataReader->stream, objReader->offset + OBJ_SECTION_DATA_RECORD_OFFSET);
-	ObjSize_t firstOffset = IOReadObjSize(dataReader->stream);
+	objsize_t firstOffset = IOReadObjSize(dataReader->stream);
 	if(firstOffset == OBJ_RECORD_ILLEGAL_OFFSET)
 	{
 		return -1;
@@ -338,7 +382,7 @@ size_t ObjDataReaderRead(ObjDataReader* reader, void* data, size_t dataSize)
 	return RecordRead(&reader->dataReader, reader->stream, data, dataSize * 2);
 }
 
-static void EnterSection(ObjectWriter* writer, Byte_t type, Byte_t placement, UWord_t addr, UWord_t size)
+static void EnterSection(ObjectWriter* writer, byte_t type, byte_t placement, uword_t addr, uword_t size)
 {
 	FlushSection(writer);
 
@@ -404,7 +448,7 @@ static void FlushSection(ObjectWriter* writer)
 
 static void UpdatePrevNext(ObjectWriter* writer)
 {
-	ObjSize_t* prevNext;
+	objsize_t* prevNext;
 	switch(writer->placement)
 	{
 	case OBJ_ABS:
@@ -425,15 +469,15 @@ static void UpdatePrevNext(ObjectWriter* writer)
 
 static void WriteSymbol(RecordWriter* writer, FILE* stream, const Symbol* sym)
 {
-	const size_t bufSize = sizeof sym->nameLen + sym->nameLen + sizeof sym->value;
-	Byte_t buf[bufSize];
+	const size_t bufSize = sizeof sym->nameLen + sym->nameLen + sizeof sym->address;
+	byte_t buf[bufSize];
 	void* p = buf;
 
-	UWord_t value = HTON_WORD(sym->value);
+	uword_t value = HTON_WORD(sym->address);
 	memcpy(p, &value, sizeof value);			//value
-	p += sizeof sym->value;
+	p += sizeof sym->address;
 
-	UWord_t nameLen = HTON_WORD(sym->nameLen);
+	uword_t nameLen = HTON_WORD(sym->nameLen);
 	memcpy(p, &nameLen, sizeof nameLen);		//nameLen
 	p += sizeof sym->nameLen;
 
@@ -451,25 +495,4 @@ static void FlushHeader(ObjectWriter* writer)
 	IOWriteWord(writer->stream, writer->globalSymCount);
 	IOWriteWord(writer->stream, writer->absSectionCount);
 	IOWriteWord(writer->stream, writer->relocSectionCount);
-}
-
-static void ReadSection(ObjectReader* reader, ObjSize_t offset)
-{
-	IOSetFilePos(reader->stream, offset);
-	reader->type = IOReadByte(reader->stream);		//type
-	reader->next = IOReadObjSize(reader->stream);	//next
-
-	reader->offset = offset;
-}
-
-static void ReadHeader(ObjectReader* reader, ObjectHeader* header)
-{
-	header->localSymTotNameSize = IOReadWord(reader->stream);
-	header->globalSymTotNameSize = IOReadWord(reader->stream);
-	header->localSymCount = IOReadWord(reader->stream);
-	header->globalSymCount = IOReadWord(reader->stream);
-	header->absSectionCount = IOReadWord(reader->stream);
-	header->relocSectionCount = IOReadWord(reader->stream);
-	header->absSectionOffset = IOReadObjSize(reader->stream);
-	header->relocSectionOffset = IOReadObjSize(reader->stream);
 }

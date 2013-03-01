@@ -4,6 +4,6 @@
 #include <esc64asm/tokendescr.h>
 
 void OpcodeTransInit(void);
-TokenDescrId OpcodeToId(UWord_t opcode);
+TokenDescrId OpcodeToId(uword_t opcode);
 
 #endif

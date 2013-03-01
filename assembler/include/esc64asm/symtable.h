@@ -11,7 +11,7 @@ typedef struct SymTableEntry_
 {
 	size_t symSize;
 	const char* sym;
-	UWord_t addr;
+	uword_t addr;
 } SymTableEntry;
 
 #define SYM_TABLE_GET_SIZE(s)	((s) * (sizeof (SymTableEntry) + sizeof (Hash_t)))
@@ -29,8 +29,8 @@ typedef struct SymTable_
 
 void SymTableInit(SymTable* table, void* setMem, size_t setMemSize, void* strMem, size_t strMemSize);
 
-int SymTableInsert(SymTable* table, const char* sym, size_t symSize, UWord_t addr);
-int SymTableFind(SymTable* table, const char* sym, size_t symSize, UWord_t* address);
+int SymTableInsert(SymTable* table, const char* sym, size_t symSize, uword_t addr);
+int SymTableFind(SymTable* table, const char* sym, size_t symSize, uword_t* address);
 
 void SymTableDump(SymTable* table, FILE* stream);
 

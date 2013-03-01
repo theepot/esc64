@@ -8,7 +8,7 @@
 #include <esc64asm/esctypes.h>
 
 //TODO wtf is this doing here?
-#define SCANNER_BUF_SIZE 64
+//#define SCANNER_BUF_SIZE 64
 
 #define REG_MAX	7
 #define REG(n)	(n)
@@ -106,7 +106,7 @@ typedef enum TokenValueType_
 	TOKEN_VALUE_TYPE_STRING
 } TokenValueType;
 
-typedef UWord_t Opcode_t;
+typedef uword_t Opcode_t;
 
 typedef enum ArgDescrType_
 {

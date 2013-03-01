@@ -6,11 +6,11 @@
 
 static void PrintSection(ObjectReader* objReader);
 static void PrintData(ObjectReader* objReader, size_t dataSize);
-static void PrintSymbols(ObjectReader* objReader, ObjSize_t offset);
+static void PrintSymbols(ObjectReader* objReader, objsize_t offset);
 static void PrintExpr(ObjectReader* objReader);
 static void PrintData(ObjectReader* objReader, size_t dataSize);
-static void PrintInstruction(UWord_t instrWord);
-static const char* SectionTypeToString(Byte_t type);
+static void PrintInstruction(uword_t instrWord);
+static const char* SectionTypeToString(byte_t type);
 
 int main(int argc, char** argv)
 {
@@ -19,7 +19,8 @@ int main(int argc, char** argv)
 	OpcodeTransInit();
 	ObjectReader objReader;
 	ObjectHeader header;
-	ObjectReaderInit(&objReader, argv[1], &header);
+	ObjectReaderInit(&objReader, argv[1]);
+	ObjReadHeader(&objReader, &header);
 	ObjectReaderStart(&objReader, header.absSectionOffset);
 	while(!ObjReaderNextSection(&objReader))
 	{
@@ -31,8 +32,8 @@ int main(int argc, char** argv)
 
 static void PrintSection(ObjectReader* objReader)
 {
-	UWord_t address = ObjReadAddress(objReader);
-	UWord_t size = ObjReadSize(objReader);
+	uword_t address = ObjReadAddress(objReader);
+	uword_t size = ObjReadSize(objReader);
 
 	printf(
 			"%s section address=0x%X(%u); size=0x%X(%u)\n",
@@ -89,22 +90,22 @@ static void PrintData(ObjectReader* objReader, size_t dataSize)
 {
 	ObjDataReader dataReader;
 	ObjDataReaderInit(&dataReader, objReader);
-	UWord_t dataBuf[dataSize];
+	uword_t dataBuf[dataSize];
 	ObjDataReaderRead(&dataReader, dataBuf, dataSize);
 	size_t i;
 
 	for(i = 0; i < dataSize; ++i)
 	{
-		UWord_t word = NTOH_WORD(dataBuf[i]);
+		uword_t word = NTOH_WORD(dataBuf[i]);
 		printf("\t\t0x%04X", word);
 		PrintInstruction(word);
 		putchar('\n');
 	}
 }
 
-static void PrintInstruction(UWord_t instrWord)
+static void PrintInstruction(uword_t instrWord)
 {
-	UWord_t opcode = (instrWord >> OPCODE_OFFSET) & OPCODE_MASK;
+	uword_t opcode = (instrWord >> OPCODE_OFFSET) & OPCODE_MASK;
 	TokenDescrId id = OpcodeToId(opcode);
 	if(id == TOKEN_DESCR_INVALID)
 	{
@@ -112,14 +113,14 @@ static void PrintInstruction(UWord_t instrWord)
 	}
 
 	const TokenDescr* descr = GetTokenDescr(id);
-	Byte_t op0 = (instrWord >> OPERAND0_OFFSET) & OPERAND0_MASK;
-	Byte_t op1 = (instrWord >> OPERAND1_OFFSET) & OPERAND1_MASK;
-	Byte_t op2 = (instrWord >> OPERAND2_OFFSET) & OPERAND2_MASK;
+	byte_t op0 = (instrWord >> OPERAND0_OFFSET) & OPERAND0_MASK;
+	byte_t op1 = (instrWord >> OPERAND1_OFFSET) & OPERAND1_MASK;
+	byte_t op2 = (instrWord >> OPERAND2_OFFSET) & OPERAND2_MASK;
 
 	printf("\t%s\t%u, %u, %u", descr->name, op0, op1, op2);
 }
 
-static const char* SectionTypeToString(Byte_t type)
+static const char* SectionTypeToString(byte_t type)
 {
 	switch(type)
 	{
@@ -134,7 +135,7 @@ static const char* SectionTypeToString(Byte_t type)
 	}
 }
 
-static void PrintSymbols(ObjectReader* objReader, ObjSize_t offset)
+static void PrintSymbols(ObjectReader* objReader, objsize_t offset)
 {
 	ObjSymIterator localSymIt;
 	if(ObjSymIteratorInit(&localSymIt, objReader, offset))
@@ -150,7 +151,7 @@ static void PrintSymbols(ObjectReader* objReader, ObjSize_t offset)
 		ObjSymIteratorReadName(&localSymIt, name);
 		const Symbol* sym = ObjSymIteratorGetSym(&localSymIt);
 
-		printf("\t\t`%s' = 0x%X(%u)\n", sym->name, sym->value, sym->value);
+		printf("\t\t`%s' = 0x%X(%u)\n", sym->name, sym->address, sym->address);
 	}
 }
 

@@ -13,7 +13,7 @@ static void FlushRecordData(RecordWriter* writer, FILE* stream, const void* extr
 static void GetRecordData(RecordReader* reader, FILE* stream, void* buf, size_t amount);
 static int LoadRecord(RecordReader* reader, FILE* stream);
 
-void RecordWriterInit(RecordWriter* writer, void* buf, size_t bufSize, ObjSize_t firstOffset)
+void RecordWriterInit(RecordWriter* writer, void* buf, size_t bufSize, objsize_t firstOffset)
 {
 	writer->buf = buf;
 	writer->bufSize = bufSize;
@@ -26,7 +26,7 @@ void RecordWriterClose(RecordWriter* writer, FILE* stream)
 	FlushRecordData(writer, stream, NULL, 0);
 }
 
-void RecordReaderInit(RecordReader* reader, FILE* stream, ObjSize_t firstOffset)
+void RecordReaderInit(RecordReader* reader, FILE* stream, objsize_t firstOffset)
 {
 	reader->nextOffset = firstOffset;
 	LoadRecord(reader, stream);
@@ -108,7 +108,7 @@ static void FlushRecordData(RecordWriter* writer, FILE* stream, const void* extr
 	}
 
 	IOSeekEnd(stream);
-	ObjSize_t recordStart = IOGetFilePos(stream);
+	objsize_t recordStart = IOGetFilePos(stream);
 
 	//write record
 	IOWriteWord(stream, writer->bufIndex + extraSize);	//size
@@ -123,7 +123,7 @@ static void FlushRecordData(RecordWriter* writer, FILE* stream, const void* extr
 	}
 
 	//update previous next-field
-	ObjSize_t head = IOGetFilePos(stream);
+	objsize_t head = IOGetFilePos(stream);
 	IOSetFilePos(stream, writer->prevNextOffset);
 	IOWriteObjSize(stream, recordStart);
 	IOSetFilePos(stream, head); //TODO remove, not needed

@@ -6,7 +6,7 @@
 static struct TestPair
 {
 	const char* key;
-	UWord_t value;
+	uword_t value;
 } pairs[] =
 {
 #include "symtable_test_data.inl"
@@ -21,7 +21,7 @@ int TestSymTable(void)
 	const size_t symTableSize = (pairCount << 1) - (pairCount >> 1);
 
 	size_t setMemSize = SYM_TABLE_GET_SIZE(symTableSize);
-	Byte_t setMem[setMemSize];
+	byte_t setMem[setMemSize];
 
 	size_t strMemSize = GetStrMemSize();
 	char strMem[strMemSize];
@@ -47,7 +47,7 @@ int TestSymTable(void)
 
 	for(i = 0; i < pairCount; ++i)
 	{
-		UWord_t value;
+		uword_t value;
 		assert(!SymTableFind(&symTable, pairs[i].key, strlen(pairs[i].key), &value));
 		assert(pairs[i].value == value);
 	}

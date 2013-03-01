@@ -3,14 +3,14 @@
 #include <assert.h>
 #include <arpa/inet.h>
 
-ObjSize_t IOGetFilePos(FILE* stream)
+objsize_t IOGetFilePos(FILE* stream)
 {
-	ObjSize_t offset = ftell(stream);
+	objsize_t offset = ftell(stream);
 	assert(offset != -1L);
 	return offset;
 }
 
-void IOSetFilePos(FILE* stream, ObjSize_t offset)
+void IOSetFilePos(FILE* stream, objsize_t offset)
 {
 	assert(!fseek(stream, offset, SEEK_SET));
 }
@@ -20,28 +20,33 @@ void IOSeekEnd(FILE* stream)
 	assert(!fseek(stream, 0, SEEK_END));
 }
 
-void IOWriteWord(FILE* stream, UWord_t word)
+void IOSeekForward(FILE* stream, objsize_t offset)
 {
-	UWord_t x = HTON_WORD(word);
+	assert(!fseek(stream, offset, SEEK_CUR));
+}
+
+void IOWriteWord(FILE* stream, uword_t word)
+{
+	uword_t x = HTON_WORD(word);
 	IOWrite(stream, &x, sizeof x);
 }
 
-UWord_t IOReadWord(FILE* stream)
+uword_t IOReadWord(FILE* stream)
 {
-	UWord_t x;
+	uword_t x;
 	IORead(stream, &x, sizeof x);
 	return NTOH_WORD(x);
 }
 
-void IOWriteObjSize(FILE* stream, ObjSize_t objSize)
+void IOWriteObjSize(FILE* stream, objsize_t objSize)
 {
-	ObjSize_t x = HTON_OBJSIZE(objSize);
+	objsize_t x = HTON_OBJSIZE(objSize);
 	IOWrite(stream, &x, sizeof x);
 }
 
-ObjSize_t IOReadObjSize(FILE* stream)
+objsize_t IOReadObjSize(FILE* stream)
 {
-	ObjSize_t x;
+	objsize_t x;
 	IORead(stream, &x, sizeof x);
 	return NTOH_OBJSIZE(x);
 }
@@ -54,7 +59,7 @@ void IOWrite(FILE* stream, const void* data, size_t dataSize)
 #endif
 }
 
-void IOWriteRepeated(FILE* stream, size_t amount, Byte_t val)
+void IOWriteRepeated(FILE* stream, size_t amount, byte_t val)
 {
 	size_t i;
 	for(i = 0; i < amount; ++i)
@@ -63,7 +68,7 @@ void IOWriteRepeated(FILE* stream, size_t amount, Byte_t val)
 	}
 }
 
-void IOWriteByte(FILE* stream, Byte_t byte)
+void IOWriteByte(FILE* stream, byte_t byte)
 {
 	IOWrite(stream, &byte, 1);
 }
@@ -78,7 +83,7 @@ size_t TryIORead(FILE* stream, void* data, size_t dataSize)
 	return fread(data, dataSize, 1, stream);
 }
 
-int TryIOReadByte(FILE* stream, Byte_t* out)
+int TryIOReadByte(FILE* stream, byte_t* out)
 {
 	if(TryIORead(stream, out, 1) == 1)
 	{
@@ -90,9 +95,9 @@ int TryIOReadByte(FILE* stream, Byte_t* out)
 	}
 }
 
-Byte_t IOReadByte(FILE* stream)
+byte_t IOReadByte(FILE* stream)
 {
-	Byte_t byte;
+	byte_t byte;
 	IORead(stream, &byte, 1);
 	return byte;
 }

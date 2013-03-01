@@ -4,15 +4,17 @@
 #include <stdint.h>
 #include <arpa/inet.h>
 
-typedef unsigned char Byte_t;
+typedef unsigned char byte_t;
 
-typedef int16_t Word_t;
-typedef uint16_t UWord_t;
+typedef int16_t		word_t;
+typedef uint16_t	uword_t;
+typedef uint32_t	udword_t;
+typedef int32_t		dword_t;
 
 #define NTOH_WORD(x)	ntohs((x))
 #define HTON_WORD(x)	htons((x))
 
-typedef uint32_t ObjSize_t;
+typedef uint32_t	objsize_t;
 
 #define HTON_OBJSIZE(x)	htonl((x))
 #define NTOH_OBJSIZE(x)	ntohl((x))

@@ -29,7 +29,7 @@ void OpcodeTransInit(void)
 	descrTable[OPCODE_CALL] = TOKEN_DESCR_OPCODE_CALL;
 }
 
-TokenDescrId OpcodeToId(UWord_t opcode)
+TokenDescrId OpcodeToId(uword_t opcode)
 {
 	return opcode < OPCODE_MAX ? descrTable[opcode] : TOKEN_DESCR_INVALID;
 }

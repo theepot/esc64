@@ -14,9 +14,9 @@
 #define TYPE_DATA			0
 #define TYPE_BSS			1
 
-static UWord_t Section_n_to_size(int section)
+static uword_t Section_n_to_size(int section)
 {
-	UWord_t result  = (section * 54321) % MAX_SECTION_SIZE;
+	uword_t result  = (section * 54321) % MAX_SECTION_SIZE;
 	if(result == 0)
 	{
 		result += 100;
@@ -30,7 +30,7 @@ static int Section_n_to_type(int section)
 	return (section * 13521) % 1;
 }
 
-static void Section_n_to_data(int section, uint8_t* data, UWord_t size)
+static void Section_n_to_data(int section, uint8_t* data, uword_t size)
 {
 	int n;
 	for(n = 0; n < size; ++n)
@@ -46,8 +46,8 @@ static void write_test_sections(ExeWriter* writerPtr, int* out_section_addresses
 	{
 		out_section_addresses[section] = MAX_SECTION_SIZE * section;
 
-		UWord_t address = out_section_addresses[section];
-		UWord_t size = Section_n_to_size(section);
+		uword_t address = out_section_addresses[section];
+		uword_t size = Section_n_to_size(section);
 		int type = Section_n_to_type(section);
 		if(type == TYPE_DATA)
 		{
@@ -90,7 +90,7 @@ static void read_compare_sections(ExeReader* readerPtr, const int* section_addre
 		++no_sections_read;
 		int section_n = section_n_by_address(section_addresses, readerPtr->address);
 		assert(section_n != -1);
-		UWord_t size = readerPtr->size;
+		uword_t size = readerPtr->size;
 		assert(Section_n_to_size(section_n) == size);
 		if(readerPtr->type == SECTION_TYPE_DATA)
 		{

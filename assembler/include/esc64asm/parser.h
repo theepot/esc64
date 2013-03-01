@@ -46,7 +46,7 @@ typedef struct Parser_
 	Scanner* scanner;
 	ObjectWriter* objWriter;
 	Token curToken;
-	UWord_t pc;
+	uword_t pc;
 	unsigned line;
 } Parser;
 

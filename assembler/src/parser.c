@@ -23,7 +23,7 @@ static void ParseDirSection(Parser* parser);
 static void ParseBssSection(Parser* parser);
 static void ParseDataSection(Parser* parser);
 static void EmitInstr(Parser* parser, Instruction* instr);
-static void EmitWord(Parser* parser, UWord_t word);
+static void EmitWord(Parser* parser, uword_t word);
 static void ParseInstruction(Parser* parser);
 static void ParseArgList(Parser* parser, Instruction* instr);
 static void ParseArg(Parser* parser, Instruction* instr, const ArgDescr* argDescr);
@@ -115,7 +115,7 @@ static int ParseLabelDecl(Parser* parser, Symbol* sym)
 
 	sym->name = t->strValue;
 	sym->nameLen = ScannerStrLen(parser->scanner);
-	sym->value = parser->pc;
+	sym->address = parser->pc;
 
 	return 0;
 }
@@ -249,9 +249,9 @@ static void ParseDirSection(Parser* parser)
 static void ParseBssSection(Parser* parser)
 {
 	const Token* t;
-	UWord_t size;
-	UWord_t address = ~0;
-	Byte_t placement = OBJ_RELOC;
+	uword_t size;
+	uword_t address = ~0;
+	byte_t placement = OBJ_RELOC;
 
 	Next(parser);
 	Expect(parser, TOKEN_DESCR_COMMA);
@@ -281,8 +281,8 @@ static void ParseBssSection(Parser* parser)
 static void ParseDataSection(Parser* parser)
 {
 	const Token* t;
-	UWord_t address = ~0;
-	Byte_t placement = OBJ_RELOC;
+	uword_t address = ~0;
+	byte_t placement = OBJ_RELOC;
 
 	t = Next(parser);
 	if(t->descrId == TOKEN_DESCR_COMMA)
@@ -334,12 +334,12 @@ static void EmitInstr(Parser* parser, Instruction* instr)
 	}
 }
 
-static void EmitWord(Parser* parser, UWord_t word)
+static void EmitWord(Parser* parser, uword_t word)
 {
 #ifdef ESC_DEBUG
 	printf("\tword 0x%X(%u)\n", word, word);
 #endif
-	UWord_t x = HTON_WORD(word);
+	uword_t x = HTON_WORD(word);
 	ObjWriteData(parser->objWriter, &x, 1);
 	++parser->pc;
 }

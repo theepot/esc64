@@ -17,7 +17,7 @@ void SymTableInit(SymTable* table, void* setMem, size_t setMemSize, void* strMem
 	table->strPool.i = 0;
 }
 
-int SymTableInsert(SymTable* table, const char* sym, size_t symSize, UWord_t addr)
+int SymTableInsert(SymTable* table, const char* sym, size_t symSize, uword_t addr)
 {
 	const char* sym_ = PutString(table, sym, symSize);
 	SymTableEntry entry = { symSize, sym_, addr };
@@ -31,7 +31,7 @@ int SymTableInsert(SymTable* table, const char* sym, size_t symSize, UWord_t add
 	return r;
 }
 
-int SymTableFind(SymTable* table, const char* sym, size_t symSize, UWord_t* address)
+int SymTableFind(SymTable* table, const char* sym, size_t symSize, uword_t* address)
 {
 	SymTableEntry entry = { symSize, sym, 0 };
 	SymTableEntry* out = NULL;

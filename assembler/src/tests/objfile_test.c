@@ -10,7 +10,7 @@ static void TestRead(const char* fileName);
 
 static void PrintSection(ObjectReader* objReader);
 static void PrintData(ObjectReader* objReader, size_t dataSize);
-static void PrintSymbols(ObjectReader* objReader, ObjSize_t offset);
+static void PrintSymbols(ObjectReader* objReader, objsize_t offset);
 static void PrintExpr(ObjectReader* objReader);
 static void PrintData(ObjectReader* objReader, size_t dataSize);
 
@@ -38,10 +38,10 @@ static void TestWrite(const char* fileName)
 	Symbol s1;
 	s1.name = "piet";
 	s1.nameLen = strlen(s1.name);
-	s1.value = 5;
+	s1.address = 5;
 	ObjWriteLocalSym(&writer, &s1);
 
-	Byte_t d1[] = { 0xA1, 0xB2, 0xC3, 0xD4, 0xE5, 0xF6 };
+	byte_t d1[] = { 0xA1, 0xB2, 0xC3, 0xD4, 0xE5, 0xF6 };
 	ObjWriteData(&writer, d1, sizeof d1);
 
 	//bss1
@@ -50,14 +50,14 @@ static void TestWrite(const char* fileName)
 	Symbol s2;
 	s2.name = "better_save_space";
 	s2.nameLen = strlen(s2.name);
-	s2.value = 0xBEEF;
+	s2.address = 0xBEEF;
 
 	ObjWriteGlobalSym(&writer, &s2);
 
 	//data2
 	ObjWriteDataSection(&writer, OBJ_ABS, 1000);
 
-	Byte_t d2[] = { 0xCA, 0xFE, 0xBA, 0xBE };
+	byte_t d2[] = { 0xCA, 0xFE, 0xBA, 0xBE };
 	ObjWriteData(&writer, d2, sizeof d2);
 
 	Expression expr;
@@ -74,7 +74,8 @@ static void TestRead(const char* fileName)
 {
 	ObjectReader objReader;
 	ObjectHeader header;
-	ObjectReaderInit(&objReader, fileName, &header);
+	ObjectReaderInit(&objReader, fileName);
+	ObjReadHeader(&objReader, &header);
 
 	puts("=== header begin ===");
 	printf(
@@ -106,8 +107,8 @@ static void TestRead(const char* fileName)
 static void PrintSection(ObjectReader* objReader)
 {
 	puts("=== section begin ===");
-	UWord_t address = ObjReadAddress(objReader);
-	UWord_t size = ObjReadSize(objReader);
+	uword_t address = ObjReadAddress(objReader);
+	uword_t size = ObjReadSize(objReader);
 	printf(
 			"type    = %u\n"
 			"next    = %u\n"
@@ -168,7 +169,7 @@ static void PrintData(ObjectReader* objReader, size_t dataSize)
 {
 	ObjDataReader dataReader;
 	ObjDataReaderInit(&dataReader, objReader);
-	Byte_t dataBuf[dataSize];
+	byte_t dataBuf[dataSize];
 	ObjDataReaderRead(&dataReader, dataBuf, dataSize);
 	size_t i;
 	for(i = 0; i < dataSize; ++i)
@@ -177,7 +178,7 @@ static void PrintData(ObjectReader* objReader, size_t dataSize)
 	}
 }
 
-static void PrintSymbols(ObjectReader* objReader, ObjSize_t offset)
+static void PrintSymbols(ObjectReader* objReader, objsize_t offset)
 {
 	ObjSymIterator localSymIt;
 	if(ObjSymIteratorInit(&localSymIt, objReader, offset))
@@ -194,6 +195,6 @@ static void PrintSymbols(ObjectReader* objReader, ObjSize_t offset)
 		const Symbol* sym = ObjSymIteratorGetSym(&localSymIt);
 		printf(
 				"symbol: name=`%s'; nameLen=%u; value=%u\n",
-				sym->name, sym->nameLen, sym->value);
+				sym->name, sym->nameLen, sym->address);
 	}
 }

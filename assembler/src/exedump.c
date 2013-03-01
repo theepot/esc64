@@ -26,8 +26,8 @@ int main(int argc, char** argv)
 
 static void PrintSection(ExeReader* exeReader)
 {
-	UWord_t addr = exeReader->address;
-	UWord_t size = exeReader->size;
+	uword_t addr = exeReader->address;
+	uword_t size = exeReader->size;
 
 	printf("section: type=%s; addr=0x%04X(%05u); size=0x%04X(%05u)\n", (exeReader->type == SECTION_TYPE_DATA ? "data" : "BSS"), addr, addr, size, size);
 
@@ -36,13 +36,13 @@ static void PrintSection(ExeReader* exeReader)
 		return;
 	}
 
-	UWord_t data[size];
+	uword_t data[size];
 	ExeReadData(exeReader, data);
 
 	size_t i;
 	for(i = 0; i < size; ++i)
 	{
-		UWord_t word = NTOH_WORD(data[i]);
+		uword_t word = NTOH_WORD(data[i]);
 
 		printf("\t0x%04X", word);
 

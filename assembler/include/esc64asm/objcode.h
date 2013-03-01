@@ -21,56 +21,56 @@ enum SectionType_
 //		- section []
 
 //	header structure
-//		- local symbol total name size	: UWord_t	///< size of names of all local symbols
-//		- global symbol total name size	: UWord_t 	///< size of names of all global symbols
-//		- local symbol count			: UWord_t
-//		- global symbol count			: UWord_t
-//		- abs section count				: UWord_t
-//		- reloc section count			: UWord_t
-//		- abs section offset			: ObjSize_t
-//		- reloc section offset			: ObjSize_t
+//		- local symbol total name size	: uword_t	///< size of names of all local symbols
+//		- global symbol total name size	: uword_t 	///< size of names of all global symbols
+//		- local symbol count			: uword_t
+//		- global symbol count			: uword_t
+//		- abs section count				: uword_t
+//		- reloc section count			: uword_t
+//		- abs section offset			: objsize_t
+//		- reloc section offset			: objsize_t
 #define OBJ_HEADER_LOCAL_SYM_TOT_NAME_SIZE_OFFSET	0
-#define OBJ_HEADER_GLOBAL_SYM_TOT_NAME_SIZE_OFFSET	(OBJ_HEADER_LOCAL_SYM_TOT_NAME_SIZE_OFFSET + sizeof (UWord_t))
-#define OBJ_HEADER_LOCAL_SYM_COUNT_OFFSET			(OBJ_HEADER_GLOBAL_SYM_TOT_NAME_SIZE_OFFSET + sizeof (UWord_t))
-#define OBJ_HEADER_GLOBAL_SYM_COUNT_OFFSET			(OBJ_HEADER_LOCAL_SYM_COUNT_OFFSET + sizeof (UWord_t))
-#define OBJ_HEADER_ABS_SECTION_COUNT_OFFSET			(OBJ_HEADER_GLOBAL_SYM_COUNT_OFFSET + sizeof (UWord_t))
-#define OBJ_HEADER_RELOC_SECTION_COUNT_OFFSET		(OBJ_HEADER_ABS_SECTION_COUNT_OFFSET + sizeof (UWord_t))
-#define OBJ_HEADER_ABS_SECTION_OFFSET_OFFSET		(OBJ_HEADER_RELOC_SECTION_COUNT_OFFSET + sizeof (UWord_t))
-#define OBJ_HEADER_RELOC_SECTION_OFFSET_OFFSET		(OBJ_HEADER_ABS_SECTION_OFFSET_OFFSET + sizeof (ObjSize_t))
-#define OBJ_HEADER_SIZE								(OBJ_HEADER_RELOC_SECTION_OFFSET_OFFSET + sizeof (ObjSize_t))
+#define OBJ_HEADER_GLOBAL_SYM_TOT_NAME_SIZE_OFFSET	(OBJ_HEADER_LOCAL_SYM_TOT_NAME_SIZE_OFFSET + sizeof (uword_t))
+#define OBJ_HEADER_LOCAL_SYM_COUNT_OFFSET			(OBJ_HEADER_GLOBAL_SYM_TOT_NAME_SIZE_OFFSET + sizeof (uword_t))
+#define OBJ_HEADER_GLOBAL_SYM_COUNT_OFFSET			(OBJ_HEADER_LOCAL_SYM_COUNT_OFFSET + sizeof (uword_t))
+#define OBJ_HEADER_ABS_SECTION_COUNT_OFFSET			(OBJ_HEADER_GLOBAL_SYM_COUNT_OFFSET + sizeof (uword_t))
+#define OBJ_HEADER_RELOC_SECTION_COUNT_OFFSET		(OBJ_HEADER_ABS_SECTION_COUNT_OFFSET + sizeof (uword_t))
+#define OBJ_HEADER_ABS_SECTION_OFFSET_OFFSET		(OBJ_HEADER_RELOC_SECTION_COUNT_OFFSET + sizeof (uword_t))
+#define OBJ_HEADER_RELOC_SECTION_OFFSET_OFFSET		(OBJ_HEADER_ABS_SECTION_OFFSET_OFFSET + sizeof (objsize_t))
+#define OBJ_HEADER_SIZE								(OBJ_HEADER_RELOC_SECTION_OFFSET_OFFSET + sizeof (objsize_t))
 
 typedef struct ObjectHeader_
 {
-	UWord_t localSymTotNameSize;
-	UWord_t globalSymTotNameSize;
-	UWord_t localSymCount;
-	UWord_t globalSymCount;
-	UWord_t absSectionCount;
-	UWord_t relocSectionCount;
-	ObjSize_t absSectionOffset;
-	ObjSize_t relocSectionOffset;
+	uword_t localSymTotNameSize;
+	uword_t globalSymTotNameSize;
+	uword_t localSymCount;
+	uword_t globalSymCount;
+	uword_t absSectionCount;
+	uword_t relocSectionCount;
+	objsize_t absSectionOffset;
+	objsize_t relocSectionOffset;
 } ObjectHeader;
 
 //	section structure
-//		- type							: Byte_t
-//		- next							: ObjSize_t
-//		- address						: UWord_t
-//		- size							: UWord_t
-//		- local symbol record offset	: ObjSize_t
-//		- global symbol record offset	: ObjSize_t
+//		- type							: byte_t
+//		- next							: objsize_t
+//		- address						: uword_t
+//		- size							: uword_t
+//		- local symbol record offset	: objsize_t
+//		- global symbol record offset	: objsize_t
 //		<<if type = data>>
-//		- unlinked exp record offset	: ObjSize_t
-//		- data record offset			: ObjSize_t
+//		- unlinked exp record offset	: objsize_t
+//		- data record offset			: objsize_t
 //		<<end type = data>>
 #define OBJ_SECTION_TYPE_OFFSET					0
-#define OBJ_SECTION_NEXT_OFFSET					(OBJ_SECTION_TYPE_OFFSET + sizeof (Byte_t))
-#define OBJ_SECTION_ADDRESS_OFFSET				(OBJ_SECTION_NEXT_OFFSET + sizeof (ObjSize_t))
-#define OBJ_SECTION_SIZE_OFFSET					(OBJ_SECTION_ADDRESS_OFFSET + sizeof (UWord_t))
-#define OBJ_SECTION_LOCAL_SYM_RECORD_OFFSET		(OBJ_SECTION_SIZE_OFFSET + sizeof (UWord_t))
-#define OBJ_SECTION_GLOBAL_SYM_RECORD_OFFSET	(OBJ_SECTION_LOCAL_SYM_RECORD_OFFSET + sizeof (ObjSize_t))
+#define OBJ_SECTION_NEXT_OFFSET					(OBJ_SECTION_TYPE_OFFSET + sizeof (byte_t))
+#define OBJ_SECTION_ADDRESS_OFFSET				(OBJ_SECTION_NEXT_OFFSET + sizeof (objsize_t))
+#define OBJ_SECTION_SIZE_OFFSET					(OBJ_SECTION_ADDRESS_OFFSET + sizeof (uword_t))
+#define OBJ_SECTION_LOCAL_SYM_RECORD_OFFSET		(OBJ_SECTION_SIZE_OFFSET + sizeof (uword_t))
+#define OBJ_SECTION_GLOBAL_SYM_RECORD_OFFSET	(OBJ_SECTION_LOCAL_SYM_RECORD_OFFSET + sizeof (objsize_t))
 //data section specific
-#define OBJ_SECTION_EXPR_RECORD_OFFSET			(OBJ_SECTION_GLOBAL_SYM_RECORD_OFFSET + sizeof (ObjSize_t))
-#define OBJ_SECTION_DATA_RECORD_OFFSET			(OBJ_SECTION_EXPR_RECORD_OFFSET + sizeof (ObjSize_t))
+#define OBJ_SECTION_EXPR_RECORD_OFFSET			(OBJ_SECTION_GLOBAL_SYM_RECORD_OFFSET + sizeof (objsize_t))
+#define OBJ_SECTION_DATA_RECORD_OFFSET			(OBJ_SECTION_EXPR_RECORD_OFFSET + sizeof (objsize_t))
 
 //	instruction structure
 //		16       9     6     3     0  [ 16    0 ]
@@ -89,31 +89,31 @@ typedef struct ObjectHeader_
 typedef struct Instruction_
 {
 	const InstructionDescr* descr;
-	UWord_t operands[INSTRUCTION_MAX_OPERANDS];
+	uword_t operands[INSTRUCTION_MAX_OPERANDS];
 } Instruction;
 
 //	symbol structure
-//		value		: UWord_t
-//		nameSize	: UWord_t
+//		value		: uword_t
+//		nameSize	: uword_t
 //		name		: <nameSize>
 
 typedef struct Symbol_
 {
 	const char* name;
-	UWord_t nameLen;
-	UWord_t value;
+	uword_t nameLen;
+	uword_t address;
 } Symbol;
 
 //	expressions structure
-//		value		: UWord_t
-//		nameSize	: UWord_t
+//		value		: uword_t
+//		nameSize	: uword_t
 //		name		: <nameSize>
 
 typedef struct Expression_
 {
-	UWord_t address;	///< address of unlinked word
+	uword_t address;	///< address of unlinked word
 	const char* name;	///< name of unlinked symbol
-	UWord_t nameLen;
+	uword_t nameLen;
 } Expression;
 
 #define DATA_WRITER_BUF_SIZE		32
@@ -128,40 +128,40 @@ typedef struct ObjectWriter_
 {
 	FILE* stream;
 
-	UWord_t localSymTotNameSize;
-	UWord_t globalSymTotNameSize;
-	UWord_t localSymCount;
-	UWord_t globalSymCount;
-	UWord_t absSectionCount;
-	UWord_t relocSectionCount;
+	uword_t localSymTotNameSize;
+	uword_t globalSymTotNameSize;
+	uword_t localSymCount;
+	uword_t globalSymCount;
+	uword_t absSectionCount;
+	uword_t relocSectionCount;
 
-	ObjSize_t relocPrevNextOffset;	///< offset of next-field of the previous relocatable section
-	ObjSize_t absPrevNextOffset;	///< offset of next-field of the previous absolute section
+	objsize_t relocPrevNextOffset;	///< offset of next-field of the previous relocatable section
+	objsize_t absPrevNextOffset;	///< offset of next-field of the previous absolute section
 
-	Byte_t type;					///< type of current section
-	Byte_t placement;				///< placement type of current section (absolute or relocatable)
-	ObjSize_t offset;				///< offset of current section
+	byte_t type;					///< type of current section
+	byte_t placement;				///< placement type of current section (absolute or relocatable)
+	objsize_t offset;				///< offset of current section
 
-	UWord_t dataSize;				///< total size of data record in words (if in data section)
+	uword_t dataSize;				///< total size of data record in words (if in data section)
 
-	Byte_t dataWriterBuf[DATA_WRITER_BUF_SIZE];
+	byte_t dataWriterBuf[DATA_WRITER_BUF_SIZE];
 	RecordWriter dataWriter;		///< to write data in data section
-	Byte_t localSymWriterBuf[LOCAL_SYM_WRITER_BUF_SIZE];
+	byte_t localSymWriterBuf[LOCAL_SYM_WRITER_BUF_SIZE];
 	RecordWriter localSymWriter;
-	Byte_t globalSymWriterBuf[GLOBAL_SYM_WRITER_BUF_SIZE];
+	byte_t globalSymWriterBuf[GLOBAL_SYM_WRITER_BUF_SIZE];
 	RecordWriter globalSymWriter;
-	Byte_t exprWriterBuf[EXPR_WRITER_BUF_SIZE];
+	byte_t exprWriterBuf[EXPR_WRITER_BUF_SIZE];
 	RecordWriter exprWriter;
 } ObjectWriter;
 
 void ObjectWriterInit(ObjectWriter* writer, const char* path);
 void ObjectWriterClose(ObjectWriter*writer);
 
-void ObjWriteDataSection(ObjectWriter* writer, Byte_t placement, UWord_t address);
+void ObjWriteDataSection(ObjectWriter* writer, byte_t placement, uword_t address);
 /**
 * @param size		Size in words
  */
-void ObjWriteBssSection(ObjectWriter* writer, Byte_t placement, UWord_t address, UWord_t size);
+void ObjWriteBssSection(ObjectWriter* writer, byte_t placement, uword_t address, uword_t size);
 
 /**
  * @param dataSize	Size in words
@@ -176,18 +176,23 @@ typedef struct ObjectReader_
 {
 	FILE* stream;
 
-	Byte_t type;			///< type of current section
-	ObjSize_t offset;		///< offset of current section
-	ObjSize_t next;			///< offset of next section
+	byte_t type;			///< type of current section
+	objsize_t offset;		///< offset of current section
+	objsize_t next;			///< offset of next section
 } ObjectReader;
 
-void ObjectReaderInit(ObjectReader* reader, const char* path, ObjectHeader* header);
-void ObjectReaderStart(ObjectReader* reader, ObjSize_t firstOffset);
+void ObjectReaderInit(ObjectReader* reader, const char* path);
+void ObjReadHeader(ObjectReader* reader, ObjectHeader* header);
+void ObjectReaderStart(ObjectReader* reader, objsize_t firstOffset);
+void ObjReadSection(ObjectReader* reader, objsize_t offset);
 void ObjectReaderClose(ObjectReader* reader);
 int ObjReaderNextSection(ObjectReader* reader);
 
-UWord_t ObjReadAddress(ObjectReader* reader);
-UWord_t ObjReadSize(ObjectReader* reader);
+uword_t ObjReadAddress(ObjectReader* reader);
+uword_t ObjReadSize(ObjectReader* reader);
+byte_t ObjReadType(ObjectReader* reader);
+objsize_t ObjGetSectionOffset(ObjectReader* reader);
+objsize_t ObjGetDataOffset(ObjectReader* reader);
 
 void ObjInitDataRecordReader(ObjectReader* objReader, RecordReader* dataReader);
 
@@ -205,7 +210,7 @@ typedef struct ObjSymIterator_
 	Symbol curSym;
 } ObjSymIterator;
 
-int ObjSymIteratorInit(ObjSymIterator* it, ObjectReader* reader, ObjSize_t offset);
+int ObjSymIteratorInit(ObjSymIterator* it, ObjectReader* reader, objsize_t offset);
 int ObjSymIteratorNext(ObjSymIterator* it);
 void ObjSymIteratorReadName(ObjSymIterator* it, void* buf);
 const Symbol* ObjSymIteratorGetSym(ObjSymIterator* it);

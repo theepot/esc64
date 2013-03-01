@@ -24,7 +24,8 @@ set(
 	${SOURCE_DIR}/reswords.c
 	${SOURCE_DIR}/scanner.c
 	${SOURCE_DIR}/symtable.c
-	${SOURCE_DIR}/tokendescr.c)
+	${SOURCE_DIR}/tokendescr.c
+	${SOURCE_DIR}/freelist.c)
 
 set(
 	AS_SOURCES
@@ -48,7 +49,12 @@ set(
 	${TEST_DIR}/record_test.c
 	${TEST_DIR}/reswords_test.c
 	${TEST_DIR}/scanner_test.c
-	${TEST_DIR}/symtable_test.c)
+	${TEST_DIR}/symtable_test.c
+	${TEST_DIR}/freelist_test.c)
+
+set(
+	EXEDUMP_SOURCES
+	${SOURCE_DIR}/exedump.c)
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${LIB_DIR})
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
@@ -70,4 +76,7 @@ target_link_libraries(esc-objdump esc-asm-common)
 
 add_executable(esc-unit-tests ${UNIT_TEST_SOURCES})
 target_link_libraries(esc-unit-tests esc-asm-common)
+
+add_executable(esc-exedump ${EXEDUMP_SOURCES})
+target_link_libraries(esc-exedump esc-asm-common)
 

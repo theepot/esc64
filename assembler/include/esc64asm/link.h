@@ -4,6 +4,7 @@
 #include <stdio.h>
 
 #include <esc64asm/esctypes.h>
+#include <esc64asm/symtable.h>
 
 //	executable structure
 //		- section[]
@@ -44,7 +45,7 @@ void ExeWriterClose(ExeWriter* writer);
  * @param address	Address of BSS section
  * @param size		Size of BSS section
  */
-void ExeWriteBss(ExeWriter* writer, UWord_t address, UWord_t size);
+void ExeWriteBss(ExeWriter* writer, uword_t address, uword_t size);
 
 /**
  * @brief			Write a data section
@@ -53,14 +54,14 @@ void ExeWriteBss(ExeWriter* writer, UWord_t address, UWord_t size);
  * @param data		Pointer to raw data in data section
  * @return			Offset of data in executable file
  */
-ObjSize_t ExeWriteData(ExeWriter* writer, UWord_t address, UWord_t size, const void* data);
+objsize_t ExeWriteData(ExeWriter* writer, uword_t address, uword_t size, const void* data);
 
 /**
  * @brief				Sets word [dataOffset + address*2] to value
  * @param dataOffset 	Offset of data
  * @param address		offset from dataOffset in words
  */
-void ExeUpdateDataWord(ExeWriter* writer, ObjSize_t dataOffset, UWord_t address, UWord_t value);
+void ExeUpdateDataWord(ExeWriter* writer, objsize_t dataOffset, uword_t address, uword_t value);
 
 /**
  * @brief			Describes ExeReader state
@@ -77,9 +78,9 @@ typedef enum ExeReaderState_
 typedef struct ExeReader_
 {
 	FILE* stream;			///< Input stream
-	Byte_t type;			///< Type of current section
-	UWord_t address;		///< Address of current section
-	UWord_t size;			///< Size of current section
+	byte_t type;			///< Type of current section
+	uword_t address;		///< Address of current section
+	uword_t size;			///< Size of current section
 	ExeReaderState state;	///< State of the reader
 } ExeReader;
 
@@ -116,11 +117,38 @@ int ExeReadNext(ExeReader* reader);
  */
 void ExeReadData(ExeReader* reader, void* data);
 
-typedef struct SectionLinkInfo_
+typedef struct SectionLinkHandle_
 {
-	UWord_t address;
-	UWord_t size;
-} SectionLinkInfo;
+	uword_t address;
+	uword_t size;
+	objsize_t offset;
+} SectionLinkHandle;
+
+typedef struct SectionLinkHandleList_
+{
+	size_t count;
+	SectionLinkHandle* sections;
+} SectionLinkHandleList;
+
+typedef struct ObjectLinkHandle_
+{
+	const char* path;
+	SectionLinkHandle* sections;
+	SectionLinkHandleList absSectionList;
+	SectionLinkHandleList relocSectionList;
+} ObjectLinkHandle;
+
+typedef struct Linker_
+{
+	size_t objectCount;
+	size_t sectionCount;
+	size_t globalSymCount;
+	size_t globalSymNameSize;
+
+	ObjectLinkHandle* objects;
+
+	SymTable globalSymTable;
+} Linker;
 
 void Link(const char* exeName, const char** objFiles, size_t objFileCount);
 
