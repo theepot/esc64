@@ -3,7 +3,7 @@
 #include <assert.h>
 
 static void DumpNode(const FreeListNode* node, FILE* stream);
-static void Allocate(FreeList* freeList, FreeListNode* node, uword_t address, udword_t size);
+static void Split(FreeList* freeList, FreeListNode* node, uword_t address, udword_t size);
 static FreeListNode* AllocNode(FreeList* freeList);
 static FreeListNode* FindNode(FreeList* freeList, uword_t address, udword_t size);
 static void UpdateLastNode(FreeList* freeList);
@@ -62,7 +62,7 @@ int FreeListAllocStatic(FreeList* freeList, uword_t address, udword_t size)
 		return -1;
 	}
 
-	Allocate(freeList, node, address, size);
+	Split(freeList, node, address, size);
 	return 0;
 }
 
@@ -94,7 +94,7 @@ static void DumpNode(const FreeListNode* node, FILE* stream)
 	}
 }
 
-static void Allocate(FreeList* freeList, FreeListNode* node, uword_t address, udword_t size)
+static void Split(FreeList* freeList, FreeListNode* node, uword_t address, udword_t size)
 {
 	if(node->address == address)
 	{
@@ -142,7 +142,8 @@ static FreeListNode* AllocNode(FreeList* freeList)
 
 static FreeListNode* FindNode(FreeList* freeList, uword_t address, udword_t size)
 {
-	if(freeList->lastNode.address <= address && freeList->lastNode.size >= size)
+	if(freeList->lastNode.address <= address
+			&& freeList->lastNode.address + freeList->lastNode.size >= address + size)
 	{
 		return &freeList->lastNode;
 	}
@@ -151,7 +152,8 @@ static FreeListNode* FindNode(FreeList* freeList, uword_t address, udword_t size
 	for(i = 0; i < freeList->nodeIndex; ++i)
 	{
 		FreeListNode* cur = &freeList->nodes[i];
-		if(cur->address <= address && cur->size >= size)
+		if(cur->address <= address
+				&& cur->address + cur->size >= address + size)
 		{
 			return cur;
 		}
@@ -162,7 +164,7 @@ static FreeListNode* FindNode(FreeList* freeList, uword_t address, udword_t size
 
 static void UpdateLastNode(FreeList* freeList)
 {
-	FreeListNode* last = NULL;
+	size_t lastIndex = -1;
 	uword_t lastAddr = 0;
 	size_t i;
 
@@ -171,18 +173,25 @@ static void UpdateLastNode(FreeList* freeList)
 		FreeListNode* cur = &freeList->nodes[i];
 		if(cur->address > lastAddr)
 		{
-			last = cur;
+			lastIndex = i;
 			lastAddr = cur->address;
 		}
 	}
 
-	if(last == NULL)
+	if(lastIndex == -1)
 	{
 		freeList->lastNode.size = 0;
+		return;
+	}
+
+	freeList->lastNode = freeList->nodes[lastIndex];
+	if(lastIndex == freeList->nodeIndex - 1)
+	{
+		--freeList->nodeIndex;
 	}
 	else
 	{
-		freeList->lastNode = *last;
+		freeList->nodes[lastIndex].size = 0;
 	}
 }
 

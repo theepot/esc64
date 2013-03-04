@@ -121,15 +121,20 @@ void Link(const char* exeName, const char** objFiles, size_t objFileCount)
 	ObjectLinkHandle objects[objFileCount];
 	LinkInit(objFiles, objFileCount, objects, &linker);
 	SectionLinkHandle sections[linker.sectionCount];
-//	linker.sections = sections;
 
 	LoadObjects(&linker, sections);
+
 	//FIXME debug
+	puts("--- object dump before placement: ---");
 	DumpObjects(&linker);
 	//end debug
+
 	PlaceSections(&linker);
 
-	//TODO continue here :D
+	//FIXME debug
+	puts("--- object dump after placement: ---");
+	DumpObjects(&linker);
+	//end debug
 
 	//init global symbol table
 	size_t globalSymMemSize = SYM_TABLE_GET_SIZE((linker.globalSymCount << 1) - (linker.globalSymCount >> 1));
@@ -137,10 +142,12 @@ void Link(const char* exeName, const char** objFiles, size_t objFileCount)
 	char globalStrMem[linker.globalSymNameSize];
 	SymTableInit(&linker.globalSymTable, globalSymMem, globalSymMemSize, globalStrMem, linker.globalSymNameSize);
 	LoadGlobalSymbols(&linker);
-	//TODO temp debug
+
+	//FIXME debug
 	printf("GLOBAL SYMBOL TABLE:\n");
 	SymTableDump(&linker.globalSymTable, stdout);
 	printf("GLOBAL SYMBOL TABLE END\n");
+	//end debug
 
 	EmitAll(&linker);
 
@@ -310,7 +317,7 @@ static void PlaceSections(Linker* linker)
 	size_t i, j;
 
 	//place abs sections
-	for(i = 0; linker->objectCount; ++i)
+	for(i = 0; i < linker->objectCount; ++i)
 	{
 		ObjectLinkHandle* object = &linker->objects[i];
 		for(j = 0; j < object->absSectionList.count; ++j)
@@ -321,7 +328,7 @@ static void PlaceSections(Linker* linker)
 	}
 
 	//place reloc sections
-	for(i = 0; linker->objectCount; ++i)
+	for(i = 0; i < linker->objectCount; ++i)
 	{
 		ObjectLinkHandle* object = &linker->objects[i];
 		for(j = 0; j < object->relocSectionList.count; ++j)
@@ -332,9 +339,8 @@ static void PlaceSections(Linker* linker)
 	}
 
 	//FIXME debug
-	puts("FREELIST DUMP BEGIN");
 	FreeListDump(&freeList, stdout);
-	puts("FREELIST DUMP END");
+	//end debug
 }
 
 //static int SectionLinkInfoCompare(const void* a_, const void* b_)
@@ -364,11 +370,23 @@ static void LoadSymbols(ObjectReader* objReader, ObjectLinkHandle* object, SymTa
 	size_t sectionCount = object->relocSectionList.count + object->absSectionList.count;
 	ObjSymIterator symIt;
 
+	//FIXME debug
+	size_t symI;
+	//end debug
+
 	for(i = 0; i < sectionCount; ++i)
 	{
 		SectionLinkHandle* section = &object->sections[i];
 		ObjReadSection(objReader, section->offset);
-		ObjSymIteratorInit(&symIt, objReader, symRecordOffset);
+		if(ObjSymIteratorInit(&symIt, objReader, symRecordOffset))
+		{
+			continue;
+		}
+
+		//FIXME debug
+		symI = 0;
+		//end debug
+
 		while(!ObjSymIteratorNext(&symIt))
 		{
 			//TODO read directly into string buffer
@@ -377,6 +395,10 @@ static void LoadSymbols(ObjectReader* objReader, ObjectLinkHandle* object, SymTa
 
 			const Symbol* sym = ObjSymIteratorGetSym(&symIt);
 			assert(!SymTableInsert(symTable, sym->name, sym->nameLen, sym->address + section->address));
+
+			//FIXME debug
+			++symI;
+			//end debug
 		}
 	}
 }
@@ -433,6 +455,14 @@ static void LoadSymbols(ObjectReader* objReader, ObjectLinkHandle* object, SymTa
 static void EmitAll(Linker* linker)
 {
 	//TODO
+/*
+	foreach object
+		foreach section
+			write to executable
+			load local symbols
+		foreach section
+			fix unlinked expressions
+ */
 }
 
 //static int FindSymbol(SymTable* globalTable, SymTable* localTable, const char* name, size_t nameLength, uword_t* address)
@@ -448,8 +478,8 @@ static void EmitAll(Linker* linker)
 
 static void DumpObjects(Linker* linker)
 {
-	printf("OBJECT DUMP BEGIN");
-	printf("#objects=%u\n", linker->objectCount);
+	printf("OBJECT DUMP BEGIN\n");
+	printf("#objects=%u\n\n", linker->objectCount);
 	size_t i;
 	for(i = 0; i < linker->objectCount; ++i)
 	{
@@ -457,9 +487,9 @@ static void DumpObjects(Linker* linker)
 		printf("path=`%s'\n", object->path);
 		printf("sections:\n");
 		DumpSections(object->sections, object->relocSectionList.count + object->absSectionList.count);
-		printf("abs sections ");
+		printf("abs sections:\n");
 		DumpSections(object->absSectionList.sections, object->absSectionList.count);
-		printf("reloc sections ");
+		printf("reloc sections:\n");
 		DumpSections(object->relocSectionList.sections, object->relocSectionList.count);
 		printf("\n");
 	}
@@ -468,7 +498,7 @@ static void DumpObjects(Linker* linker)
 static void DumpSections(SectionLinkHandle* sections, size_t sectionCount)
 {
 	size_t i;
-	printf("#sections=%u\n:", sectionCount);
+	printf("\t#sections=%u\n", sectionCount);
 	for(i = 0; i < sectionCount; ++i)
 	{
 		SectionLinkHandle* section = &sections[i];
