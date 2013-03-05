@@ -117,8 +117,8 @@ const static InstructionDescr INSTR_DESCR_STR =
 	.opcode = OPCODE_STR,
 	.isWide = 0,
 	.argList = 	ARGLIST2(
-		ARG(ARG_TYPE_REG, OP0),
-		ARG(ARG_TYPE_REG, OP1))
+		ARG(ARG_TYPE_REG, OP1),
+		ARG(ARG_TYPE_REG, OP2))
 };
 const static InstructionDescr INSTR_DESCR_CALL =
 {

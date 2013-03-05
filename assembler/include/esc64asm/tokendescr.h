@@ -32,20 +32,20 @@
 #define OP3		(OP(3))
 
 #define OPCODE_ADD			0x01
-#define OPCODE_SUB			0x02
-#define OPCODE_OR			0x03
-#define OPCODE_XOR			0x04
-#define OPCODE_AND			0x05
-#define OPCODE_MOV			0x06
-#define OPCODE_MOV_EQ		0x07
-#define OPCODE_MOV_NEQ		0x08
-#define OPCODE_MOV_LESS		0x09
-#define OPCODE_MOV_WIDE		0x10
+#define OPCODE_SUB			0x05
+#define OPCODE_OR			0x0B
+#define OPCODE_XOR			0x0D
+#define OPCODE_AND			0x0F
+#define OPCODE_MOV			0x30
+#define OPCODE_MOV_EQ		0x3A
+#define OPCODE_MOV_NEQ		0x35
+#define OPCODE_MOV_LESS		0x33
+#define OPCODE_MOV_WIDE		0x3F
 #define OPCODE_MOV_LESS_EQ	0x0A
-#define OPCODE_CMP			0x0B
-#define OPCODE_LDR			0x0C
-#define OPCODE_STR			0x0D
-#define OPCODE_CALL			0x0E
+#define OPCODE_CMP			0x4E
+#define OPCODE_LDR			0x51
+#define OPCODE_STR			0x54
+#define OPCODE_CALL			0x57
 
 #define OPCODE_MAX			0x7F
 

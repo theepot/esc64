@@ -12,7 +12,9 @@ int main(int argc, char** argv)
 	const char** objFiles = (const char**)&argv[2];
 	size_t objFileCount = argc - 2;
 
-	Link(exeFile, objFiles, objFileCount);
+	ExeWriter exeWriter;
+	ExeWriterInit(&exeWriter, exeFile);
+	Link(&exeWriter, objFiles, objFileCount);
 
 	return 0;
 }

@@ -54,7 +54,12 @@ set(
 
 set(
 	EXEDUMP_SOURCES
-	${SOURCE_DIR}/exedump.c)
+	${SOURCE_DIR}/exedump.c
+	${SOURCE_DIR}/opcodetrans.c)
+
+set(
+	EXETOLST_SOURCES
+	${SOURCE_DIR}/exetolst.c)
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${LIB_DIR})
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
@@ -79,4 +84,7 @@ target_link_libraries(esc-unit-tests esc-asm-common)
 
 add_executable(esc-exedump ${EXEDUMP_SOURCES})
 target_link_libraries(esc-exedump esc-asm-common)
+
+add_executable(esc-exetolst ${EXETOLST_SOURCES})
+target_link_libraries(esc-exetolst esc-asm-common)
 

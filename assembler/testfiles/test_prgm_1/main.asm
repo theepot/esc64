@@ -6,6 +6,8 @@
 	mov		r3, copy		; prepare call
 	call	r3				; call copy
 
+.word 0xFFFF				;halt
+
 loop:
 	mov		pc, loop		; loop forever
 

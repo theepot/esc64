@@ -50,7 +50,7 @@ void ExeWriteBss(ExeWriter* writer, uword_t address, uword_t size);
 /**
  * @brief			Write a data section
  * @param address	Address of data section
- * @param size		Size of data section
+ * @param size		Size of data section in words
  * @param data		Pointer to raw data in data section
  * @return			Offset of data in executable file
  */
@@ -80,7 +80,7 @@ typedef struct ExeReader_
 	FILE* stream;			///< Input stream
 	byte_t type;			///< Type of current section
 	uword_t address;		///< Address of current section
-	uword_t size;			///< Size of current section
+	uword_t size;			///< Size of current section in words
 	ExeReaderState state;	///< State of the reader
 } ExeReader;
 
@@ -144,12 +144,11 @@ typedef struct Linker_
 	size_t sectionCount;
 	size_t globalSymCount;
 	size_t globalSymNameSize;
-
+	ExeWriter* exeWriter;
 	ObjectLinkHandle* objects;
-
 	SymTable globalSymTable;
 } Linker;
 
-void Link(const char* exeName, const char** objFiles, size_t objFileCount);
+void Link(ExeWriter* exeWriter, const char** objFiles, size_t objFileCount);
 
 #endif
