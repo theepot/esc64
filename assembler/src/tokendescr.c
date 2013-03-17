@@ -176,28 +176,32 @@ const static InstructionDescr INSTR_DESCR_JZ =
 {
 	.opcode = OPCODE_JZ,
 	.isWide = 1,
-	.argList = 	ARGLIST1(
+	.argList = 	ARGLIST2(
+		ARG(ARG_TYPE_REG, OP0),
 		ARG(ARG_TYPE_IMM, OP3))
 };
 const static InstructionDescr INSTR_DESCR_JNZ =
 {
 	.opcode = OPCODE_JNZ,
 	.isWide = 1,
-	.argList = 	ARGLIST1(
+	.argList = 	ARGLIST2(
+			ARG(ARG_TYPE_REG, OP0),
 			ARG(ARG_TYPE_IMM, OP3))
 };
 const static InstructionDescr INSTR_DESCR_JC =
 {
 	.opcode = OPCODE_JC,
 	.isWide = 1,
-	.argList = 	ARGLIST1(
+	.argList = 	ARGLIST2(
+			ARG(ARG_TYPE_REG, OP0),
 			ARG(ARG_TYPE_IMM, OP3))
 };
 const static InstructionDescr INSTR_DESCR_JNC =
 {
 	.opcode = OPCODE_JNC,
 	.isWide = 1,
-	.argList = 	ARGLIST1(
+	.argList = 	ARGLIST2(
+			ARG(ARG_TYPE_REG, OP0),
 			ARG(ARG_TYPE_IMM, OP3))
 };
 //end quickfix

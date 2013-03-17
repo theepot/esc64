@@ -19,27 +19,33 @@
 	
 loop:
 	shr		MULTIPLIER, MULTIPLIER
-	jnc		skip_add
+	jnc		pc, skip_add
 	
 	add		RES_LO, RES_LO, MULTIPLICAND
 	adc		RES_HI, RES_HI, INTERIM
 	
 skip_add:
 	shl		MULTIPLICAND, MULTIPLICAND
-	jc		carry1
+	jc		pc, carry1
 	
 	shl		INTERIM, INTERIM
-	
-	mov		MULTIPLIER, MULTIPLIER
-	jnz		loop
+
+;NOTE mov does not influence status (yet?)	
+;	mov		MULTIPLIER, MULTIPLIER
+	and		MULTIPLIER, MULTIPLIER, MULTIPLIER
+
+	jnz		pc, loop
 	mov		pc, return
 	
 carry1:
 	shl		INTERIM, INTERIM
 	inc		INTERIM, INTERIM	
 
-	mov		MULTIPLIER, MULTIPLIER
-	jnz		loop
+;NOTE mov does not influence status (yet?)	
+;	mov		MULTIPLIER, MULTIPLIER
+	and		MULTIPLIER, MULTIPLIER, MULTIPLIER
+	
+	jnz		pc, loop
 	
 return:
 	mov		r0, RES_LO
