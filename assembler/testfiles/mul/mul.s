@@ -32,7 +32,7 @@ skip_add:
 	
 	mov		MULTIPLIER, MULTIPLIER
 	jnz		loop
-	jmp		return
+	mov		pc, return
 	
 carry1:
 	shl		INTERIM, INTERIM

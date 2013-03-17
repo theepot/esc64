@@ -32,10 +32,15 @@
 #define OP3		(OP(3))
 
 #define OPCODE_ADD			0x01
+#define OPCODE_ADC			0x02
 #define OPCODE_SUB			0x05
+#define OPCODE_INC			0x09
+#define OPCODE_DEC			0x0A
 #define OPCODE_OR			0x0B
 #define OPCODE_XOR			0x0D
 #define OPCODE_AND			0x0F
+#define OPCODE_SHL			0x12
+#define OPCODE_SHR			0x21
 #define OPCODE_MOV			0x30
 #define OPCODE_MOV_EQ		0x3A
 #define OPCODE_MOV_NEQ		0x35
@@ -47,21 +52,34 @@
 #define OPCODE_STR			0x54
 #define OPCODE_CALL			0x57
 
+//FIXME quickfix, these are temporary opcode definitions. eventualy they will be aliases for mov pseudo-opcodes
+#define OPCODE_JZ			0x49
+#define OPCODE_JNZ			0x44
+#define OPCODE_JC			0x4B
+#define OPCODE_JNC			0x42
+//end quickfix
+
 #define OPCODE_MAX			0x7F
 
 typedef enum TokenDescrId_
 {
 	TOKEN_DESCR_NUMBER = 0,
+	TOKEN_DESCR_STRING,
 	TOKEN_DESCR_LABEL_DECL,
 	TOKEN_DESCR_LABEL_REF,
 	TOKEN_DESCR_REGISTER_REF,
 	TOKEN_DESCR_COMMA,
 
 	TOKEN_DESCR_OPCODE_ADD,
+	TOKEN_DESCR_OPCODE_ADC,
 	TOKEN_DESCR_OPCODE_SUB,
+	TOKEN_DESCR_OPCODE_INC,
+	TOKEN_DESCR_OPCODE_DEC,
 	TOKEN_DESCR_OPCODE_OR,
 	TOKEN_DESCR_OPCODE_XOR,
 	TOKEN_DESCR_OPCODE_AND,
+	TOKEN_DESCR_OPCODE_SHL,
+	TOKEN_DESCR_OPCODE_SHR,
 	TOKEN_DESCR_PSEUDO_OPCODE_MOV,
 	TOKEN_DESCR_OPCODE_MOV,
 	TOKEN_DESCR_OPCODE_MOV_WIDE,
@@ -73,6 +91,12 @@ typedef enum TokenDescrId_
 	TOKEN_DESCR_OPCODE_LDR,
 	TOKEN_DESCR_OPCODE_STR,
 	TOKEN_DESCR_OPCODE_CALL,
+	//FIXME quickfix, these are temporary opcode definitions. eventualy they will be aliases for mov pseudo-opcodes
+	TOKEN_DESCR_OPCODE_JZ,
+	TOKEN_DESCR_OPCODE_JNZ,
+	TOKEN_DESCR_OPCODE_JC,
+	TOKEN_DESCR_OPCODE_JNC,
+	//end quickfix
 
 	TOKEN_DESCR_DIR_WORD,
 	TOKEN_DESCR_DIR_ASCII,

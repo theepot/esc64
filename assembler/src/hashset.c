@@ -28,6 +28,11 @@ void HashSetInit(HashSet* set, void* mem, size_t memSize, size_t valSize, HashPr
 
 int HashSetInsert(HashSet* set, const void* value)
 {
+	if(set->elemCount == 0)
+	{
+		return HASHSET_ERROR_INSUFFICIENT_MEM;
+	}
+
 	Hash_t hash = GetHash(set, value);
 	size_t toSlot = hash % set->elemCount;
 	size_t i;
@@ -54,6 +59,11 @@ int HashSetInsert(HashSet* set, const void* value)
 
 int HashSetFind(HashSet* set, const void* valueFind, void** valueOut)
 {
+	if(set->elemCount == 0)
+	{
+		return HASHSET_ERROR_NOT_FOUND;
+	}
+
 	Hash_t hash = GetHash(set, valueFind);
 	size_t toSlot = hash % set->elemCount;
 	size_t i;
@@ -75,7 +85,7 @@ int HashSetFind(HashSet* set, const void* valueFind, void** valueOut)
 		}
 	}
 
-	return HASHSET_ERROR_INSUFFICIENT_MEM; //FIXME wtf? insufficient memory?
+	return HASHSET_ERROR_NOT_FOUND;
 }
 
 void HashSetDump(FILE* stream, HashSet* set, HashDumpProc hashDumpProc)

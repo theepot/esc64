@@ -462,7 +462,7 @@ static void ParseImmArg(Parser* parser, Instruction* instr, const ArgDescr* argD
 	case TOKEN_DESCR_LABEL_REF:
 		{
 			Expression expr;
-			expr.address = parser->pc;
+			expr.address = parser->pc + 1;
 			expr.name = t->strValue;
 			expr.nameLen = ScannerStrLen(parser->scanner);
 			ObjWriteExpr(parser->objWriter, &expr);
@@ -496,7 +496,15 @@ static void ParseRegArg(Parser* parser, Instruction* instr, const ArgDescr* argD
 
 __attribute__((noreturn)) static void UnexpectedToken(Parser* parser)
 {
-	fprintf(stderr, "Unexpected token at line %u near `%s'\n", parser->line, parser->scanner->buf);
+	fprintf(stderr, "Unexpected token at line %u near `", parser->line);
+	//FIXME quickfix
+	size_t i;
+	for(i = 0; i < parser->scanner->bufIndex; ++i)
+	{
+		putc(parser->scanner->buf[i], stderr);
+	}
+	fprintf(stderr, "'\n");
+	//end quickfix
 
 #ifdef ESC_DEBUG
 	fputs("DEBUG: Token dump:\t", stderr);

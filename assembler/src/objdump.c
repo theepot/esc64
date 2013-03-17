@@ -4,8 +4,8 @@
 #include <esc64asm/objcode.h>
 #include <esc64asm/opcodetrans.h>
 
+static void PrintHeader(const ObjectHeader* header);
 static void PrintSection(ObjectReader* objReader);
-static void PrintData(ObjectReader* objReader, size_t dataSize);
 static void PrintSymbols(ObjectReader* objReader, objsize_t offset);
 static void PrintExpr(ObjectReader* objReader);
 static void PrintData(ObjectReader* objReader, size_t dataSize);
@@ -20,14 +20,45 @@ int main(int argc, char** argv)
 	ObjectReader objReader;
 	ObjectHeader header;
 	ObjectReaderInit(&objReader, argv[1]);
+
 	ObjReadHeader(&objReader, &header);
+	PrintHeader(&header);
+
 	ObjectReaderStart(&objReader, header.absSectionOffset);
 	while(!ObjReaderNextSection(&objReader))
 	{
 		PrintSection(&objReader);
 	}
 
+	ObjectReaderStart(&objReader, header.relocSectionOffset);
+	while(!ObjReaderNextSection(&objReader))
+	{
+		PrintSection(&objReader);
+	}
+
 	return 0;
+}
+
+static void PrintHeader(const ObjectHeader* header)
+{
+	printf(
+			"header:\n"
+			"\tlocalSymTotNameSize=%u\n"
+			"\tglobalSymTotNameSize=%u\n"
+			"\tlocalSymCount=%u\n"
+			"\tglobalSymCount=%u\n"
+			"\tabsSectionCount=%u\n"
+			"\trelocSectionCount=%u\n"
+			"\tabsSectionOffset=%u\n"
+			"\trelocSectionOffset=%u\n",
+			header->localSymTotNameSize,
+			header->globalSymTotNameSize,
+			header->localSymCount,
+			header->globalSymCount,
+			header->absSectionCount,
+			header->relocSectionCount,
+			header->absSectionOffset,
+			header->relocSectionOffset);
 }
 
 static void PrintSection(ObjectReader* objReader)
@@ -97,7 +128,7 @@ static void PrintData(ObjectReader* objReader, size_t dataSize)
 	for(i = 0; i < dataSize; ++i)
 	{
 		uword_t word = NTOH_WORD(dataBuf[i]);
-		printf("\t\t0x%04X", word);
+		printf("\t\t@0x%04X:\t0x%04X", i, word);
 		PrintInstruction(word);
 		putchar('\n');
 	}

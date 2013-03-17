@@ -1,20 +1,29 @@
+.SUFFIXES:
+
+PROGRAM		:= program
+LST			:= $(PROGRAM).lst
+OBJECTS		:= copy.o main.o mem.o
+PP			:= $(foreach F,$(OBJECTS),$(subst .o,.pp.s,$(F)))
+
 .PHONY: all
 all: program.lst
 
 .PHONY: clean
 clean:
-	rm -f program.lst
-	rm -f program
-	rm -f copy.o
-	rm -f main.o
-	rm -f mem.o
+	rm -f $(PROGRAM)
+	rm -f $(LST)
+	rm -f $(PP)
+	rm -f $(OBJECTS)
 
-program.lst: program
-	esc-exetolst program.lst program
+$(LST): $(PROGRAM)
+	esc-exetolst $@ $^
 
-program: copy.o main.o mem.o
-	esc-ln program copy.o main.o mem.o
+$(PROGRAM): $(OBJECTS)
+	esc-ln $@ $^
 
-%.o: %.asm
+%.pp.s: %.s
+	gpp -n -o $@ $^
+
+%.o: %.pp.s
 	esc-as $@ $^
 

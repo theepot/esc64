@@ -47,7 +47,7 @@ static void PrintSection(ExeReader* exeReader)
 	for(i = 0; i < size; ++i)
 	{
 		uword_t word = NTOH_WORD(data[i]);
-		printf("\t0x%04X", word);
+		printf("\t@0x%04X:\t0x%04X", addr + i, word);
 		PrintInstruction(word);
 		putchar('\n');
 	}

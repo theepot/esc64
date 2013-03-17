@@ -11,6 +11,7 @@
 //FIXME doesn't process comments correctly
 
 static int Peek(Scanner* scanner);
+static int ReadRaw(Scanner* scanner);
 static int Read(Scanner* scanner);
 
 static void ClearBuf(Scanner* scanner);
@@ -19,8 +20,11 @@ static void PushBuf(Scanner* scanner, int c);
 static void IgnoreWhitespaces(Scanner* scanner);
 static int IsWhiteSpace(int c);
 
+static int GetString(Scanner* scanner, Token *token);
+static int GetEscSeq(Scanner* scanner, int* subst);
 static int GetNumber(Scanner* scanner, Token* token);
 static void GetHex(Scanner* scanner, Token* token);
+static int GetHexDigit(int c, int* d);
 static void GetOct(Scanner* scanner, Token* token);
 static void GetDec(Scanner* scanner, Token* token);
 
@@ -33,10 +37,7 @@ static int GetRegisterRef(Scanner* scanner, Token* token);
 static int GetRegisterNumeric(Scanner* scanner, Token* token);
 static int GetOpcode(Scanner* scanner, Token* token);
 
-static int GetComment(Scanner* scanner);
-
 static int GetReservedChar(Scanner* scanner, Token* token);
-
 static int GetEOL(Scanner* scanner, Token* token);
 
 __attribute__((noreturn)) static void ScannerError(Scanner* scanner, const char* errMsg);
@@ -63,11 +64,7 @@ void ScannerNext(Scanner* scanner, Token*  token)
 	{
 		token->descrId = TOKEN_DESCR_EOF;
 	}
-	else if(!GetComment(scanner))
-	{
-		token->descrId = TOKEN_DESCR_EOL;
-	}
-	else if(GetNumber(scanner, token) && GetSymbol(scanner, token) && GetReservedChar(scanner, token) && GetEOL(scanner, token))
+	else if(GetString(scanner, token) && GetNumber(scanner, token) && GetSymbol(scanner, token) && GetReservedChar(scanner, token) && GetEOL(scanner, token))
 	{
 		ScannerError(scanner, "Invalid sequence of characters");
 	}
@@ -120,9 +117,20 @@ static int Peek(Scanner* scanner)
 	return scanner->curChar;
 }
 
+static int ReadRaw(Scanner* scanner)
+{
+	return scanner->curChar = getc(scanner->stream);
+}
+
 static int Read(Scanner* scanner)
 {	
-	return scanner->curChar = getc(scanner->stream);
+	int c = ReadRaw(scanner);
+	if(c == ';')
+	{
+		while((c = ReadRaw(scanner)) != '\r' && c != '\n') continue;
+	}
+
+	return c;
 }
 
 static void ClearBuf(Scanner* scanner)
@@ -163,6 +171,82 @@ static int IsWhiteSpace(int c)
 	}
 }
 
+static int GetString(Scanner* scanner, Token *token)
+{
+	if(Peek(scanner) != '"')
+	{
+		return -1;
+	}
+
+	int c = ReadRaw(scanner);
+	while(c != '"')
+	{
+		if(c == '\\')
+		{
+			 if(!GetEscSeq(scanner, &c))
+			 {
+				 PushBuf(scanner, c);
+			 }
+			 continue;
+		}
+
+		PushBuf(scanner, c);
+		c = ReadRaw(scanner);
+	}
+
+	token->descrId = TOKEN_DESCR_STRING;
+	token->strValue = scanner->buf;
+
+	return 0;
+}
+
+static int GetEscSeq(Scanner* scanner, int* subst)
+{
+	switch(ReadRaw(scanner))
+	{
+		case 'a':	*subst = '\a'; break;
+		case 'b':	*subst = '\b'; break;
+		case 'f':	*subst = '\f'; break;
+		case 'n':	*subst = '\n'; break;
+		case 'r':	*subst = '\r'; break;
+		case 't':	*subst = '\t'; break;
+		case 'v':	*subst = '\v'; break;
+		case '\'':	*subst = '\''; break;
+		case '"':	*subst = '\"'; break;
+		case '\\':	*subst = '\\'; break;
+		case '0':	*subst = '\0'; break;
+		case 'x':
+			//xNN where NN is a hexadecimal number of 2 digits
+			{
+				int a, b;
+				if(!GetHexDigit(ReadRaw(scanner), &a) && !GetHexDigit(ReadRaw(scanner), &b))
+				{
+					*subst = a * 16 + b;
+					break;
+				}
+			}
+			ScannerError(scanner, "Illegal `\\x' escape sequence");
+			break; //prevent warning
+		case '\r':
+			//escape CR or CRLF
+			if(ReadRaw(scanner) == '\n')
+			{
+				ReadRaw(scanner);
+			}
+			return -1;
+		case '\n':
+			//escape LF
+			ReadRaw(scanner);
+			return -1;
+		default:
+			ScannerError(scanner, "Unknown escape sequence");
+			break;
+	}
+
+	ReadRaw(scanner);
+	return 0;
+}
+
 static int GetNumber(Scanner* scanner, Token* token)
 {
 	int c = Peek(scanner);
@@ -199,29 +283,38 @@ static int GetNumber(Scanner* scanner, Token* token)
 static void GetHex(Scanner* scanner, Token* token)
 {
 	int c = Peek(scanner);
+	int d;
 	int num = 0;
-	for(;;)
+
+	while(!GetHexDigit(c, &d))
 	{
-		if(isdigit(c))
-		{
-			num = num * 16 + c - '0';
-		}
-		else if(c >= 'a' && c <= 'f')
-		{
-			num = num * 16 + c - 'a' + 10;
-		}
-		else if(c >= 'A' && c <= 'F')
-		{
-			num = num * 16 + c - 'A' + 10;
-		}
-		else
-		{
-			break;
-		}
+		num = num * 16 + d;
 		c = Read(scanner);
 	}
 	
 	token->intValue = num;
+}
+
+static int GetHexDigit(int c, int* d)
+{
+	if(isdigit(c))
+	{
+		*d = c - '0';
+	}
+	else if(c >= 'a' && c <= 'f')
+	{
+		*d = c - 'a' + 10;
+	}
+	else if(c >= 'A' && c <= 'F')
+	{
+		*d = c - 'A' + 10;
+	}
+	else
+	{
+		return -1;
+	}
+
+	return 0;
 }
 
 static void GetOct(Scanner* scanner, Token* token)
@@ -421,9 +514,15 @@ static int GetRegisterNumeric(Scanner* scanner, Token* token)
 		return -1;
 	}
 
-	int num = 0;
+	int c = scanner->buf[1];
+	if(!isdigit(c))
+	{
+		return -1;
+	}
+
+	int num = c - '0';
 	size_t i;
-	for(i = 1; i < sz; ++i)
+	for(i = 2; i < sz; ++i)
 	{
 		int c = scanner->buf[i];
 		if(!isdigit(c))
@@ -462,32 +561,6 @@ static int GetOpcode(Scanner* scanner, Token* token)
 
 	token->descrId = descrId;
 	return 0;
-}
-
-static int GetComment(Scanner* scanner)
-{
-	if(Peek(scanner) == ';')
-	{
-		for(;;)
-		{
-			switch(Read(scanner))
-			{
-				case '\r':
-					if(Read(scanner) == '\n')
-					{
-						Read(scanner);
-					}
-					return 0;
-				case '\n':
-					Read(scanner);
-					return 0;
-				default:
-					break;
-			}
-		}
-	}
-
-	return -1;
 }
 
 static int GetReservedChar(Scanner* scanner, Token* token)
