@@ -24,7 +24,7 @@ $(PROGRAM): $(OBJECTS)
 	esc-ln $@ $^
 
 %.pp.s: %.s
-	gpp -n -o $@ $^
+	gpp -n +c ";" "\n" -o $@ $^
 
 %.o: %.pp.s
 	esc-as $@ $^
