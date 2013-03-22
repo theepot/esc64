@@ -50,6 +50,7 @@ module computer();
 	end
 
 	always begin
+		$tick;
 		#(`CLOCK_PERIOD / 2) clock = ~clock;
 		tick_counter = tick_counter + 1;
 		if(cpu.irOpcode === 7'b1111111) begin
