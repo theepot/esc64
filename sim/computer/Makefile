@@ -1,27 +1,26 @@
+GLOBALS			:= ../globals.v
+COMPONENTS		:= $(wildcard ../*/*.v)
+VVP				:= computer.vpp
+DBUS_VPI_DIR	:= dbus-server
+DBUS_VPI		:= ${DBUS_VPI_DIR}/sim-dbus-server.vpi
+SOURCES			:= computer.v ${COMPONENTS} ${GLOBALS}
+
 .PHONY: all
-all: computer.vcd
+all: ${VVP} ${DBUS_VPI}
 
 .PHONY: clean
 clean:
-	rm -f computer
-	rm -f computer.vcd
-	rm -f computer.vvp
-	rm -f interactive.o
-	rm -f interactive.vpi
-	rm -f ram_out.lst
+	rm -f ${VVP}
+	${MAKE} -C ${DBUS_VPI_DIR} clean
 
-computer.vvp: computer.v ../*/*.v ../globals.v
+computer.vpp: ${SOURCES}
 	iverilog -DALL_STRUCT -o$@ $^
 
-#computer: computer.v ../*/*.v ../globals.v
-#	iverilog -DALL_STRUCT -Wall computer.v -o computer
+#TODO put this in a bash script
+#computer.vcd: computer.vvp urom.lst ram.lst interactive.vpi
+#	vvp -M<vpi search path> -m<vpi's to load -.vpi> <vpp>
 
-computer.vcd: computer.vvp urom.lst ram.lst interactive.vpi
-	vvp -M. -minteractive computer.vvp
-	
-#computer.vcd: computer urom.lst ram.lst
-#	./computer
-	
-interactive.vpi: interactive.c
-	iverilog-vpi $^
+.PHONY: ${DBUS_VPI}
+${DBUS_VPI}:
+	${MAKE} -C ${DBUS_VPI_DIR}
 
