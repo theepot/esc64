@@ -10,7 +10,7 @@ done
 HERE="$( cd -P "$( dirname "$HERE" )" && pwd )"
 
 ### start simulation back-end ###
-vvp -M$HERE/dbus-server -msim-dbus-server $HERE/computer.vpp
+vvp -M$HERE/thrift-server -mthriftserver $HERE/computer.vpp
 
 ### start simulation front-end ###
 #TODO
