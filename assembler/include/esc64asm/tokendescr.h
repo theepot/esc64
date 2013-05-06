@@ -51,6 +51,8 @@
 #define OPCODE_LDR			0x51
 #define OPCODE_STR			0x54
 #define OPCODE_CALL			0x57
+#define OPCODE_PUSH			0x5b
+#define OPCODE_POP			0x5c
 
 //FIXME quickfix, these are temporary opcode definitions. eventualy they will be aliases for mov pseudo-opcodes
 #define OPCODE_JZ			0x49
@@ -91,6 +93,8 @@ typedef enum TokenDescrId_
 	TOKEN_DESCR_OPCODE_LDR,
 	TOKEN_DESCR_OPCODE_STR,
 	TOKEN_DESCR_OPCODE_CALL,
+	TOKEN_DESCR_OPCODE_PUSH,
+	TOKEN_DESCR_OPCODE_POP,
 	//FIXME quickfix, these are temporary opcode definitions. eventualy they will be aliases for mov pseudo-opcodes
 	TOKEN_DESCR_OPCODE_JZ,
 	TOKEN_DESCR_OPCODE_JNZ,

@@ -11,19 +11,19 @@
 
 `include "../alu/alu_common.v"
 
-module alu(a, b, y, f, csel, ucin, fcin, cout, zout, notALUOE, notShiftOE);
+module alu(a, b, y, f, csel, ucin, srcin, cout, zout, notALUOE, notShiftOE);
 	input   [15:0] a;
 	input   [15:0] b;
 	output  [15:0] y;
 	input   [4:0]  f;
-	input   fsel, csel, ucin, fcin, notALUOE, notShiftOE;
+	input   fsel, csel, ucin, srcin, notALUOE, notShiftOE;
 	output	cout, zout;
 	
 	//carry in selection
 	/*wire [3:0] cinMuxOut;
 	wire aluCin;
 	assign aluCin = cinMuxOut[3];
-	Quad2To1Mux_74157 cinMux(0, csel, {ucin,3'bxxx}, {fcin,3'bxxx}, cinMuxOut);*/
+	Quad2To1Mux_74157 cinMux(0, csel, {ucin,3'bxxx}, {srcin,3'bxxx}, cinMuxOut);*/
 	
 	
 	//carry out selection
@@ -36,14 +36,14 @@ module alu(a, b, y, f, csel, ucin, fcin, cout, zout, notALUOE, notShiftOE);
 	//inverting some signals
 	wire alu3cout;
 	wire not_ucin_and_not_csel;
-	wire not_fcin_and_csel;
+	wire not_srcin_and_csel;
 	wire not_csel;
 	wire [5:0] miscInverterOut;
 	assign not_csel = miscInverterOut[2];
-	assign not_fcin_and_csel = miscInverterOut[3];
+	assign not_srcin_and_csel = miscInverterOut[3];
 	assign alu3cout = miscInverterOut[4];
 	assign not_ucin_and_not_csel = miscInverterOut[5];
-	HexInverter_7404 miscInverter({ucin_and_not_csel, alu3NotCout, fcin_and_csel, csel, 2'bxx}, miscInverterOut);
+	HexInverter_7404 miscInverter({ucin_and_not_csel, alu3NotCout, srcin_and_csel, csel, 2'bxx}, miscInverterOut);
 	
 	
 	
@@ -79,15 +79,15 @@ module alu(a, b, y, f, csel, ucin, fcin, cout, zout, notALUOE, notShiftOE);
 	wire [3:0] and0_out;
 	assign zout = and0_out[3];
 	
-	wire fcin_and_csel;
-	assign fcin_and_csel = and0_out[2];
+	wire srcin_and_csel;
+	assign srcin_and_csel = and0_out[2];
 	
 	wire ucin_and_not_csel;
 	assign ucin_and_not_csel = and0_out[1];
 	
 	wire aluNotCin;
 	assign aluNotCin = and0_out[0];
-	Quad2InputAnd_7408 and0({notZero0Out,fcin,ucin,not_ucin_and_not_csel}, {notZero1Out,csel,not_csel,not_fcin_and_csel}, and0_out);
+	Quad2InputAnd_7408 and0({notZero0Out,srcin,ucin,not_ucin_and_not_csel}, {notZero1Out,csel,not_csel,not_srcin_and_csel}, and0_out);
 	
 	
 	endmodule

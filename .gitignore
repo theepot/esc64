@@ -11,3 +11,4 @@ a.out
 *.map
 *.elf
 *.lst
+*.exe

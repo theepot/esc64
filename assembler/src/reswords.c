@@ -37,6 +37,8 @@ static const ReservedWord reservedWords[] =
 	RES_WORD("ldr", TOKEN_DESCR_OPCODE_LDR),
 	RES_WORD("str", TOKEN_DESCR_OPCODE_STR),
 	RES_WORD("call", TOKEN_DESCR_OPCODE_CALL),
+	RES_WORD("push", TOKEN_DESCR_OPCODE_PUSH),
+	RES_WORD("pop", TOKEN_DESCR_OPCODE_POP),
 	//FIXME quickfix, these are temporary opcode definitions. eventualy they will be aliases for mov pseudo-opcodes
 	RES_WORD("jz", TOKEN_DESCR_OPCODE_JZ),
 	RES_WORD("jnz", TOKEN_DESCR_OPCODE_JNZ),

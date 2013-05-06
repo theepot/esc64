@@ -10,7 +10,7 @@ typedef struct {
 	int active_high;
 
 	//private
-	int index;
+	int index; //TODO: remove?
 } bin_table_collumn_description;
 
 typedef struct {

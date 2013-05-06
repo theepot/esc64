@@ -170,6 +170,20 @@ const static InstructionDescr INSTR_DESCR_CALL =
 	.argList = 	ARGLIST1(
 		ARG(ARG_TYPE_REG, OP1))
 };
+const static InstructionDescr INSTR_DESCR_PUSH =
+{
+	.opcode = OPCODE_PUSH,
+	.isWide = 0,
+	.argList = 	ARGLIST1(
+		ARG(ARG_TYPE_REG, OP1))
+};
+const static InstructionDescr INSTR_DESCR_POP =
+{
+	.opcode = OPCODE_POP,
+	.isWide = 0,
+	.argList = 	ARGLIST1(
+		ARG(ARG_TYPE_REG, OP0))
+};
 
 //FIXME quickfix, these are temporary opcode definitions. eventualy they will be aliases for mov pseudo-opcodes
 const static InstructionDescr INSTR_DESCR_JZ =
@@ -234,6 +248,8 @@ static const TokenDescr tokenDescrTable[TOKEN_DESCR_TABLE_SIZE] =
 		[TOKEN_DESCR_OPCODE_LDR]			= { "LDR", TOKEN_CLASS_OPCODE, TOKEN_VALUE_TYPE_NONE, &INSTR_DESCR_LDR },
 		[TOKEN_DESCR_OPCODE_STR]			= { "STR", TOKEN_CLASS_OPCODE, TOKEN_VALUE_TYPE_NONE, &INSTR_DESCR_STR },
 		[TOKEN_DESCR_OPCODE_CALL]			= { "CALL", TOKEN_CLASS_OPCODE, TOKEN_VALUE_TYPE_NONE, &INSTR_DESCR_CALL },
+		[TOKEN_DESCR_OPCODE_PUSH]			= { "PUSH", TOKEN_CLASS_OPCODE, TOKEN_VALUE_TYPE_NONE, &INSTR_DESCR_PUSH },
+		[TOKEN_DESCR_OPCODE_POP]			= { "POP", TOKEN_CLASS_OPCODE, TOKEN_VALUE_TYPE_NONE, &INSTR_DESCR_POP },
 		//FIXME quickfix, these are temporary opcode definitions. eventualy they will be aliases for mov pseudo-opcodes
 		[TOKEN_DESCR_OPCODE_JZ]				= { "JZ", TOKEN_CLASS_OPCODE, TOKEN_VALUE_TYPE_NONE, &INSTR_DESCR_JZ },
 		[TOKEN_DESCR_OPCODE_JNZ]			= { "JNZ", TOKEN_CLASS_OPCODE, TOKEN_VALUE_TYPE_NONE, &INSTR_DESCR_JNZ },

@@ -4,7 +4,7 @@
 #include "bin_table.h"
 
 bin_table_collumn_description field_descrps[] = {
-	{.name = "padding", .width = -1, .active_high = H},
+	{.name = "padding", .width = -1, .active_high = H}, //most significant bits
 	{.name = "error", .width = 2, .active_high = H},
 	{.name = "statusNotLoad", .width = 1, .active_high = L},
 	{.name = "regselOE", .width = 1, .active_high = H},
@@ -19,15 +19,14 @@ bin_table_collumn_description field_descrps[] = {
 	{.name = "aluF", .width = 5, .active_high = H},
 	{.name = "aluNotShiftOE", .width = 1, .active_high = L},
 	{.name = "aluCSel", .width = 1, .active_high = H},
-	{.name = "aluUCIn", .width = 1, .active_high = H},
+	{.name = "aluSRCIn", .width = 1, .active_high = H},
 	{.name = "memRead", .width = 1, .active_high = H},
 	{.name = "memWrite", .width = 1, .active_high = H},
 	{.name = "irNotLoad", .width = 1, .active_high = L},
 	{.name = "next", .width = UROM_ADDR_WIDTH, .active_high = H},
-	{.name = "nextsel", .width = 1, .active_high = H}
+	{.name = "nextsel", .width = 1, .active_high = H} //least significant bits
 };
 
-int field_descrps_n = sizeof(field_descrps) / sizeof(field_descrps[0]);
 uassembler* u;
 
 typedef enum {
@@ -63,7 +62,7 @@ typedef enum {
 } carry_sel;
 
 typedef enum {
-	mem_action_read,
+	mem_action_read = 0,
 	mem_action_write
 } mem_action;
 
@@ -149,12 +148,12 @@ void carry_set(carry_sel sel)
 {
 	if(sel == carry_sel_status_reg)
 	{
-		set_field(u, "aluCSel", ALU_CSEL_FCIN);
+		set_field(u, "aluCSel", ALU_CSEL_SRCIN);
 	}
 	else
 	{
 		set_field(u, "aluCSel", ALU_CSEL_UCIN);
-		set_field(u, "aluUCIn", sel);
+		set_field(u, "aluSRCIn", sel);
 	}
 }
 
@@ -262,7 +261,7 @@ int main(int argc, char** argv)
 {
 	uassembler uasm;
 	u = & uasm;
-	uassembler_init(u, field_descrps, field_descrps_n, UROM_ADDR_WIDTH, "next", "nextsel", 7, 8*6);
+	uassembler_init(u, field_descrps,  sizeof(field_descrps) / sizeof(field_descrps[0]), UROM_ADDR_WIDTH, "next", "nextsel", 7, 8*6);
 
 	//illegal state
 	fill_whole_memory_with_illegal_state();
@@ -272,6 +271,7 @@ int main(int argc, char** argv)
 
 	//reset
 	//goto_reset(u);
+	//TODO: PC reset?
 	goto_op_entry(u, op_reset, ALWAYS);
 	set_next(u, next_sel_next_free);
 	goto_next_free(u);

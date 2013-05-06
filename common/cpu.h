@@ -38,7 +38,7 @@
 #define ALU_F_SHIFT_RIGHT	0x02//carry in: x
 
 #define ALU_CSEL_UCIN			0
-#define ALU_CSEL_FCIN			1
+#define ALU_CSEL_SRCIN			1
 
 #define	ERROR_WIRE_ILLEGAL_OPCODE		1
 #define ERROR_WIRE_ILLEGAL_STATE		2
