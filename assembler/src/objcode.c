@@ -125,26 +125,25 @@ void ObjWriteData(ObjectWriter* writer, const void* data, size_t dataSize)
 	writer->dataSize += dataSize;
 }
 
-void ObjWriteInstr(ObjectWriter* writer, const Instruction* instr)
+size_t ObjWriteInstr(ObjectWriter* writer, const Instruction* instr)
 {
-	uword_t instrWord =	(instr->descr->opcode << OPCODE_OFFSET)
+	uword_t instrWord =	(instr->opcode << OPCODE_OFFSET)
 			| ((instr->operands[0] & OPERAND0_MASK) << OPERAND0_OFFSET)
 			| ((instr->operands[1] & OPERAND1_MASK) << OPERAND1_OFFSET)
 			| ((instr->operands[2] & OPERAND2_MASK) << OPERAND2_OFFSET);
 
-	if(instr->descr->isWide)
+	if(instr->wide)
 	{
 		uword_t buf[2];
 		buf[0] = HTON_WORD(instrWord);
 		buf[1] = HTON_WORD(instr->operands[3]);
-
 		ObjWriteData(writer, buf, 2);
+		return 2;
 	}
-	else
-	{
-		uword_t x = HTON_WORD(instrWord);
-		ObjWriteData(writer, &x, 1);
-	}
+
+	uword_t x = HTON_WORD(instrWord);
+	ObjWriteData(writer, &x, 1);
+	return 1;
 }
 
 void ObjWriteLocalSym(ObjectWriter* writer, const Symbol* sym)

@@ -17,7 +17,6 @@ set(
 	${SOURCE_DIR}/hashset.c
 	${SOURCE_DIR}/ioutils.c
 	${SOURCE_DIR}/link.c
-	${SOURCE_DIR}/map.c
 	${SOURCE_DIR}/objcode.c
 	${SOURCE_DIR}/objrecord.c
 	${SOURCE_DIR}/parser.c
@@ -25,7 +24,8 @@ set(
 	${SOURCE_DIR}/scanner.c
 	${SOURCE_DIR}/symtable.c
 	${SOURCE_DIR}/tokendescr.c
-	${SOURCE_DIR}/freelist.c)
+	${SOURCE_DIR}/freelist.c
+	${SOURCE_DIR}/escerror.c)
 
 set(
 	AS_SOURCES

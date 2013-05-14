@@ -1,14 +1,10 @@
 #ifndef TOKENDESCR_INCLUDED
 #define TOKENDESCR_INCLUDED
 
-// TODO All value type descriptors are lvalue's. That can't be right
-
 #include <stdlib.h>
 
 #include <esc64asm/esctypes.h>
-
-//TODO wtf is this doing here?
-//#define SCANNER_BUF_SIZE 64
+#include <esc64asm/cmddescr.h>
 
 #define REG_MAX	7
 #define REG(n)	(n)
@@ -52,13 +48,6 @@
 #define OPCODE_STR			0x54
 #define OPCODE_CALL			0x57
 
-//FIXME quickfix, these are temporary opcode definitions. eventualy they will be aliases for mov pseudo-opcodes
-#define OPCODE_JZ			0x49
-#define OPCODE_JNZ			0x44
-#define OPCODE_JC			0x4B
-#define OPCODE_JNC			0x42
-//end quickfix
-
 #define OPCODE_MAX			0x7F
 
 typedef enum TokenDescrId_
@@ -80,23 +69,25 @@ typedef enum TokenDescrId_
 	TOKEN_DESCR_OPCODE_AND,
 	TOKEN_DESCR_OPCODE_SHL,
 	TOKEN_DESCR_OPCODE_SHR,
-	TOKEN_DESCR_PSEUDO_OPCODE_MOV,
 	TOKEN_DESCR_OPCODE_MOV,
-	TOKEN_DESCR_OPCODE_MOV_WIDE,
-	TOKEN_DESCR_OPCODE_MOV_EQ,
-	TOKEN_DESCR_OPCODE_MOV_NEQ,
-	TOKEN_DESCR_OPCODE_MOV_LESS,
-	TOKEN_DESCR_OPCODE_MOV_LESS_EQ,
+	TOKEN_DESCR_OPCODE_MOVZ,
+	TOKEN_DESCR_OPCODE_MOVNZ,
+	TOKEN_DESCR_OPCODE_MOVC,
+	TOKEN_DESCR_OPCODE_MOVNC,
+
+	TOKEN_DESCR_OPCODE_MOVNZC,
+	TOKEN_DESCR_OPCODE_MOVZOC,
+	TOKEN_DESCR_OPCODE_MOVNZNC,
+
 	TOKEN_DESCR_OPCODE_CMP,
 	TOKEN_DESCR_OPCODE_LDR,
 	TOKEN_DESCR_OPCODE_STR,
 	TOKEN_DESCR_OPCODE_CALL,
-	//FIXME quickfix, these are temporary opcode definitions. eventualy they will be aliases for mov pseudo-opcodes
+	TOKEN_DESCR_OPCODE_JMP,
 	TOKEN_DESCR_OPCODE_JZ,
 	TOKEN_DESCR_OPCODE_JNZ,
 	TOKEN_DESCR_OPCODE_JC,
 	TOKEN_DESCR_OPCODE_JNC,
-	//end quickfix
 
 	TOKEN_DESCR_DIR_WORD,
 	TOKEN_DESCR_DIR_ASCII,
@@ -105,6 +96,9 @@ typedef enum TokenDescrId_
 
 	TOKEN_DESCR_EOL,
 	TOKEN_DESCR_EOF,
+
+	TOKEN_DESCR_DATA,
+	TOKEN_DESCR_BSS,
 
 	TOKEN_DESCR_TABLE_SIZE,
 
@@ -115,17 +109,16 @@ typedef unsigned Operand_t;
 
 typedef enum TokenClass_
 {
+	TOKEN_CLASS_NONE = 0,
+	TOKEN_CLASS_MNEMONIC,
+	TOKEN_CLASS_RESERVED_SYM,
 	TOKEN_CLASS_DIRECTIVE,
-	TOKEN_CLASS_OPCODE,
-	TOKEN_CLASS_PSEUDO_OPCODE,
-	TOKEN_CLASS_LABEL_DECL,
 	TOKEN_CLASS_VALUE,
-	TOKEN_CLASS_PUNCTUATION
 } TokenClass;
 
 typedef enum TokenValueType_
 {
-	TOKEN_VALUE_TYPE_NONE,
+	TOKEN_VALUE_TYPE_NONE = 0,
 	TOKEN_VALUE_TYPE_NUMBER,
 	TOKEN_VALUE_TYPE_STRING
 } TokenValueType;
@@ -170,7 +163,7 @@ typedef struct TokenDescr_
 	const char* name;
 	TokenClass tokenClass;
 	TokenValueType valueType;
-	const InstructionDescr* instructionDescr;
+	const void* cmdDescr;
 } TokenDescr;
 
 const TokenDescr* GetTokenDescr(TokenDescrId id);
