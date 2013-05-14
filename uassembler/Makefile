@@ -1,5 +1,5 @@
 .PHONY: all
-all: urom_stable.lst
+all: urom.lst
 
 CFLAGS				= -Wall -g -I../common
 LFLAGS				= -Wall -g

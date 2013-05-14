@@ -14,6 +14,8 @@
 #include <math.h>
 #include "crc.h"
 #include <argp.h>
+#include <esc64asm/link.h>
+#include <esc64asm/objcode.h>
 
 static serial_device global_serial_device;
 
@@ -319,6 +321,100 @@ void process_verilog_file(SRAM_t* const mem, FILE* f)
 			}
 		}
 	}
+}
+
+void process_exe_file(SRAM_t* mem, const char* filepath)
+{
+	ExeReader reader;
+	ExeReaderInit(&reader, filepath);
+
+	while(!ExeReadNext(&reader))
+	{
+
+		if(reader.type == SECTION_TYPE_DATA)
+		{
+			uint8_t section_data[reader.size * 2];
+			ExeReadData(&reader, section_data);
+
+			if((reader.size * 2) % SRAM_WORD_SIZE != 0)
+			{
+				printf("error: section size is not %d byte alligned\n", SRAM_WORD_SIZE);
+				exit(1);
+			}
+			if((reader.address * 2) % SRAM_WORD_SIZE != 0)
+			{
+				printf("error: section address is not %d byte alligned\n", SRAM_WORD_SIZE);
+				exit(1);
+			}
+
+			if((reader.address * 2) + (reader.size * 2) >= SRAM_DEPTH*SRAM_WORD_SIZE)
+			{
+				printf("error: section does not fit within the %d bytes of sram\n", SRAM_DEPTH*SRAM_WORD_SIZE);
+				exit(1);
+			}
+
+			uword_t n;
+
+			for(n = 0; n < (reader.size * 2); ++n)
+			{
+				int bit = 0;
+				for(bit = 0; bit < 8; ++bit)
+				{
+					SRAM_t b;
+					if((section_data[n] >> bit) & 1)
+					{
+						b = SRAM_high;
+					}
+					else
+					{
+						b = SRAM_low;
+					}
+					int mem_index = ((reader.address * 2) + (n / SRAM_WORD_SIZE)*SRAM_WORD_SIZE + (SRAM_WORD_SIZE - 1) - (n % SRAM_WORD_SIZE))*8 + bit;
+					assert(mem_index < SRAM_DEPTH*SRAM_WIDTH);
+					mem[mem_index] = b;
+
+				}
+			}
+		}
+		//TODO: fill BSS sections with 0's
+	}
+
+	ExeReaderClose(&reader);
+}
+
+SRAM_FORMAT_t detect_file_format(const char* path)
+{
+	const char* c = path;
+	const char* dot = NULL;
+	for(;;)
+	{
+		if(*c == '.')
+		{
+			dot = c;
+		}
+		if(*c == '\0')
+		{
+			break;
+		}
+		c++;
+	}
+
+	if(dot == NULL)
+	{
+		return SRAM_FORMAT_UNKNOWN;
+	}
+
+	if(strcmp(dot, ".exe") == 0)
+	{
+		return SRAM_FORMAT_EXE;
+	}
+
+	if(strcmp(dot, ".lst") == 0)
+	{
+		return SRAM_FORMAT_VERILOG;
+	}
+
+	return SRAM_FORMAT_UNKNOWN;
 }
 
 void send_byte(uint8_t c)
@@ -637,20 +733,42 @@ void print_reponse_str(FILE* f, int response)
 }
 
 
-
+//TODO: make this function less ugly
 void action_upload_sram(const char* file_path)
 {
 	FILE* f = fopen(file_path, "r");
 	if(f == NULL)
 	{
 		fprintf(stderr, "failed to open file %s for reading: %s\n", file_path, strerror(errno));
-		exit(1);
+		return;
+	}
+
+	SRAM_FORMAT_t file_format = detect_file_format(file_path);
+	if(file_format == SRAM_FORMAT_UNKNOWN)
+	{
+		fprintf(stderr, "could not detect file format of file %s\n", file_path);
+		fclose(f);
+		return;
 	}
 
 	SRAM_t mem[SRAM_WIDTH*SRAM_DEPTH];
 	init_SRAM_mem(mem);
 
-	process_verilog_file(mem, f);
+	if(file_format == SRAM_FORMAT_VERILOG)
+	{
+		process_verilog_file(mem, f);
+	}
+	else if (file_format == SRAM_FORMAT_EXE)
+	{
+		fclose(f); //quickfix: process_exe_file() uses the esc64asm library that accepts a file path, not a opened file.
+		f = NULL;
+		process_exe_file(mem, file_path);
+	}
+	else
+	{
+		assert(0);
+	}
+
 
 	int start = 0;
 	int end;
@@ -675,12 +793,15 @@ void action_upload_sram(const char* file_path)
 		print_reponse_str(stdout, command_response);
 		if(command_response != REPLY_OK)
 		{
+			if(f != NULL)
+				fclose(f);
 			return;
 		}
 		start = end;
 	}
 
-	fclose(f);
+	if(f != NULL)
+		fclose(f);
 }
 
 void action_download_sram(const char* file_path)
@@ -689,7 +810,8 @@ void action_download_sram(const char* file_path)
 	if(f == NULL)
 	{
 		fprintf(stderr, "failed to open file %s for writing: %s\n", file_path, strerror(errno));
-		exit(1);
+		fclose(f);
+		return;
 	}
 
 	SRAM_t mem[SRAM_WIDTH*SRAM_DEPTH];
@@ -791,6 +913,7 @@ static void print_interactive_help(void)
 			"\tr:		reset\n"
 			"\tc [n]:		set clock speed at n Hz. (K and M suffixes are supported)\n"
 			"\tu [path]	upload image to SRAM\n"
+			"\tuu		re-upload last uploaded image to SRAM\n"
 			"\td [path]	download SRAM to image\n"
 			"\th:		print this message\n"
 			"\tq or EOF:	quit\n"
@@ -804,6 +927,7 @@ void action_interactive(void)
 	char line[128];
 	int quit = 0;
 	char previous_command[128] = "";
+	char previous_uploaded_file[128] = "";
 	while(!quit)
 	{
 		printf("[%s]>", previous_command);
@@ -866,9 +990,21 @@ void action_interactive(void)
 			{
 				puts("command needs arugment");
 			}
+			else if(l[1] == 'u')
+			{
+				if(strcmp(previous_uploaded_file, "") == 0)
+				{
+					puts("No file has been uploaded yet");
+				}
+				else
+				{
+					action_upload_sram(previous_uploaded_file);
+				}
+			}
 			else
 			{
 				action_upload_sram(l + 2);
+				strcpy(previous_uploaded_file, l + 2);
 			}
 			break;
 		case 'd':

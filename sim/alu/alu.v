@@ -3,12 +3,12 @@
 
 `include "../alu/alu_common.v"
 
-module alu(a, b, yout, f, csel, ucin, fcin, cout, zout, notALUOE, notShiftOE);
+module alu(a, b, yout, f, csel, ucin, srcin, cout, zout, notALUOE, notShiftOE);
 	input   [15:0] a;
 	input   [15:0] b;
 	output  [15:0] yout;
 	input   [4:0]  f;
-	input   csel, ucin, fcin, notALUOE, notShiftOE;
+	input   csel, ucin, srcin, notALUOE, notShiftOE;
 	output	cout, zout;
 	
 	wire	[15:0] a;
@@ -17,12 +17,12 @@ module alu(a, b, yout, f, csel, ucin, fcin, cout, zout, notALUOE, notShiftOE);
 	reg		[15:0] y181;
 	reg		[15:0] yshift;
 	wire	[4:0]  f;
-	wire	csel, ucin, fcin, notALUOE, notShiftOE;
+	wire	csel, ucin, srcin, notALUOE, notShiftOE;
 	reg		cout;
 	wire	zout;
 	wire	cin;
 	
-	assign cin = csel ? fcin : ucin;
+	assign cin = csel ? srcin : ucin; //TODO: select the one specified in alu_common.v
 	assign yout = ~notALUOE ? y181 : 16'bzzzzzzzzzzzzzzzz;
 	assign yout = ~notShiftOE ? yshift : 16'bzzzzzzzzzzzzzzzz;
 	assign zout = yout === 16'H0000 ? 1'b1 : 1'b0;

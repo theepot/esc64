@@ -4,6 +4,12 @@
 #include <stdint.h>
 #include <common.h>
 
+typedef enum SRAM_FORMAT_t {
+	SRAM_FORMAT_VERILOG,
+	SRAM_FORMAT_EXE,
+	SRAM_FORMAT_UNKNOWN
+}SRAM_FORMAT_t;
+
 typedef enum ACTION_t {
 	ACTION_not_defined,
 	ACTION_upload,
@@ -27,6 +33,8 @@ void init_SRAM_mem(SRAM_t* mem);
 void print_SRAM(FILE* f, const SRAM_t* mem);
 int detect_data_width(FILE* f);
 void process_verilog_file(SRAM_t* mem, FILE* f);
+void process_exe_file(SRAM_t* mem, const char* filepath);
+SRAM_FORMAT_t detect_file_format(const char* path);
 void send_byte(uint8_t c);
 void send_bytes(const uint8_t* c, int length);
 int recv_byte(int timeout);
