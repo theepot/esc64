@@ -1,4 +1,5 @@
 .SUFFIXES:
+.SECONDARY:
 
 PROGRAM		:= program
 LST			:= $(PROGRAM).lst

@@ -1,40 +1,185 @@
+//TODO	argument iterator is a bit shit now..
+//		also, when full expressions are going to be parsed it's not going to work anymore
+//		need to think of a different approach
+
 #include <esc64asm/parser.h>
 
 #include <string.h>
 #include <assert.h>
 
+#include <esc64asm/scanner.h>
 #include <esc64asm/tokendescr.h>
+#include <esc64asm/cmddescr.h>
+#include <esc64asm/opcodes.h>
+#include <esc64asm/escerror.h>
 
 static const Token* Peek(Parser* parser);
 static const Token* Next(Parser* parser);
-static void Expect(Parser* parser, TokenDescrId expected);
-//static void EmitWord(Parser* parser, UWord_t word);
-//static void EmitInstruction(Parser* parser, const Instruction* instr, int isWide);
-//static void EmitUnlinkedWide(Parser* parser, const char* sym, size_t symSize);
+static void EmitInstr(Parser* parser, Instruction* instr);
+static void EmitWord(Parser* parser, uword_t word);
 static void ParseLocalLabelDecls(Parser* parser);
 
 static int ParseLine(Parser* parser);
 static int ParseLabelDecl(Parser* parser, Symbol* sym);
 static void ParseCommand(Parser* parser);
-static void ParseDirective(Parser* parser);
-static void ParseDirWord(Parser* parser);
-static void ParseDirGlobal(Parser* parser);
-static void ParseDirSection(Parser* parser);
-static void ParseBssSection(Parser* parser);
-static void ParseDataSection(Parser* parser);
-static void EmitInstr(Parser* parser, Instruction* instr);
-static void EmitWord(Parser* parser, uword_t word);
-static void ParseInstruction(Parser* parser);
-static void ParseArgList(Parser* parser, Instruction* instr);
-static void ParseArg(Parser* parser, Instruction* instr, const ArgDescr* argDescr);
-static void ParseImmArg(Parser* parser, Instruction* instr, const ArgDescr* argDescr);
-static void ParseRegArg(Parser* parser, Instruction* instr, const ArgDescr* argDescr);
-static void ParsePseudoInstr(Parser* parser);
-static void ParsePseudoMov(Parser* parser);
 
 static void PrintString(const char* str, size_t strLen);
 __attribute__((noreturn)) static void UnexpectedToken(Parser* parser);
-__attribute__((noreturn)) static void ParserError(Parser* parser, const char* errMsg);
+//__attribute__((noreturn)) static void ParserError(Parser* parser, const char* errMsg);
+
+typedef struct InstrDescr_
+{
+	const void* implData;
+	void (*parseProc)(const void* implData, Parser*, ParserArgIt*, Instruction*);
+} InstrDescr;
+
+typedef struct DirectiveDescr_
+{
+	const void* implData;
+	void (*parseProc)(const void* implData, Parser*, ParserArgIt*);
+} DirectiveDescr;
+
+typedef struct Instr3Op_
+{
+	uword_t opcode;
+} Instr3Op;
+
+static void Parse3Op(const void* implData, Parser* parser, ParserArgIt* argIt, Instruction* instr);
+
+//TODO should try to (re)use MovOp code/structures
+typedef struct JumpOp_
+{
+	uword_t opcodeReg;
+	uword_t opcodeImm;
+} JumpOp;
+
+static void ParseJumpOp(const void* implData, Parser* parser, ParserArgIt* argIt, Instruction* instr);
+
+typedef struct MovOp_
+{
+	uword_t opcodeReg;
+	uword_t opcodeImm;
+} MovOp;
+
+static void ParseMovOp(const void* implData, Parser* parser, ParserArgIt* argIt, Instruction* instr);
+
+typedef struct Instr2Op_
+{
+	uword_t opcode;
+	size_t operandIndices[2];
+} Instr2Op;
+
+static void Parse2Op(const void* implData, Parser* parser, ParserArgIt* argIt, Instruction* instr);
+
+typedef struct ShiftOp_
+{
+	const uword_t ops[15];
+} ShiftOp;
+
+static void ParseShiftOp(const void* implData, Parser* parser, ParserArgIt* argIt, Instruction* instr);
+
+typedef struct CmpOp_
+{
+	uword_t opcodeRegReg;
+	uword_t opcodeRegImm;
+	uword_t opcodeImmReg;
+} CmpOp;
+
+static void ParseCmpOp(const void* implData, Parser* parser, ParserArgIt* argIt, Instruction* instr);
+
+//TODO could maybe use code below to replace Instr3Op and Instr2Op. could also implement push/pop with it
+//typedef struct StaticOpArg_
+//{
+//	TokenDescrId id;
+//	size_t operandIndex;
+//} StaticOpArg;
+//
+//typedef struct StaticOp_
+//{
+//	opcode_t opcode;
+//	size_t argCount;
+//	const StaticOpArg* args;
+//} StaticOp;
+
+static void ParseSection(const void* implData, Parser* parser, ParserArgIt* argIt);
+static void ParseDataSection(Parser* parser, ParserArgIt* argIt);
+static void ParseBSSSection(Parser* parser, ParserArgIt* argIt);
+static void ParseWord(const void* implData, Parser* parser, ParserArgIt* argIt);
+static void ParseGlobal(const void* implData, Parser* parser, ParserArgIt* argIt);
+
+///// instructions /////
+const InstrDescr INSTR_DESCR_ADD	= { &(Instr3Op){ OPCODE_ADD }, Parse3Op };
+const InstrDescr INSTR_DESCR_ADC	= { &(Instr3Op){ OPCODE_ADC }, Parse3Op };
+const InstrDescr INSTR_DESCR_SUB	= { &(Instr3Op){ OPCODE_SUB }, Parse3Op };
+const InstrDescr INSTR_DESCR_OR		= { &(Instr3Op){ OPCODE_OR }, Parse3Op };
+const InstrDescr INSTR_DESCR_XOR	= { &(Instr3Op){ OPCODE_XOR }, Parse3Op };
+const InstrDescr INSTR_DESCR_AND	= { &(Instr3Op){ OPCODE_AND }, Parse3Op };
+
+const InstrDescr INSTR_DESCR_JMP	= { (&(JumpOp){ OPCODE_MOV, OPCODE_MOV_WIDE }), ParseJumpOp };
+const InstrDescr INSTR_DESCR_JZ		= { &(JumpOp){ OPCODE_MOVZ, OPCODE_MOVZ_WIDE }, ParseJumpOp };
+const InstrDescr INSTR_DESCR_JNZ	= { &(JumpOp){ OPCODE_MOVNZ, OPCODE_MOVNZ_WIDE }, ParseJumpOp };
+const InstrDescr INSTR_DESCR_JC		= { &(JumpOp){ OPCODE_MOVC, OPCODE_MOVC_WIDE }, ParseJumpOp };
+const InstrDescr INSTR_DESCR_JNC	= { &(JumpOp){ OPCODE_MOVNC, OPCODE_MOVNC_WIDE }, ParseJumpOp };
+const InstrDescr INSTR_DESCR_CALL	= { &(JumpOp){ OPCODE_CALL, OPCODE_CALL_WIDE }, ParseJumpOp };
+
+const InstrDescr INSTR_DESCR_MOV	= { &(MovOp){ OPCODE_MOV, OPCODE_MOVC_WIDE }, ParseMovOp };
+const InstrDescr INSTR_DESCR_MOVZ	= { &(MovOp){ OPCODE_MOVZ, OPCODE_MOVZ_WIDE }, ParseMovOp };
+const InstrDescr INSTR_DESCR_MOVNZ	= { &(MovOp){ OPCODE_MOVNZ, OPCODE_MOVNZ_WIDE }, ParseMovOp };
+const InstrDescr INSTR_DESCR_MOVC	= { &(MovOp){ OPCODE_MOVC, OPCODE_MOVC_WIDE }, ParseMovOp };
+const InstrDescr INSTR_DESCR_MOVNC	= { &(MovOp){ OPCODE_MOVNC, OPCODE_MOVNC_WIDE }, ParseMovOp };
+
+const InstrDescr INSTR_DESCR_MOVNZC		= { &(MovOp){ OPCODE_MOVNZC, OPCODE_MOVNZC_WIDE }, ParseMovOp };
+const InstrDescr INSTR_DESCR_MOVZOC		= { &(MovOp){ OPCODE_MOVZOC, OPCODE_MOVZOC_WIDE }, ParseMovOp };
+const InstrDescr INSTR_DESCR_MOVNZNC	= { &(MovOp){ OPCODE_MOVNZNC, OPCODE_MOVZOC_WIDE }, ParseMovOp };
+
+const InstrDescr INSTR_DESCR_INC	= { &(Instr2Op){ OPCODE_INC, { 0, 1 } }, Parse2Op };
+const InstrDescr INSTR_DESCR_DEC	= { &(Instr2Op){ OPCODE_DEC, { 0, 1 } }, Parse2Op };
+const InstrDescr INSTR_DESCR_LDR	= { &(Instr2Op){ OPCODE_LDR, { 0, 1 } }, Parse2Op };
+const InstrDescr INSTR_DESCR_STR	= { &(Instr2Op){ OPCODE_STR, { 1, 2 } }, Parse2Op };
+
+const InstrDescr INSTR_DESCR_SHL	= { &(ShiftOp){
+	{
+		OPCODE_SHL1,
+		OPCODE_SHL2,
+		OPCODE_SHL3,
+		OPCODE_SHL4,
+		OPCODE_SHL5,
+		OPCODE_SHL6,
+		OPCODE_SHL7,
+		OPCODE_SHL8,
+		OPCODE_SHL9,
+		OPCODE_SHL10,
+		OPCODE_SHL11,
+		OPCODE_SHL12,
+		OPCODE_SHL13,
+		OPCODE_SHL14,
+		OPCODE_SHL15
+	} }, ParseShiftOp };
+const InstrDescr INSTR_DESCR_SHR	= { &(ShiftOp){
+	{
+		OPCODE_SHR1,
+		OPCODE_SHR2,
+		OPCODE_SHR3,
+		OPCODE_SHR4,
+		OPCODE_SHR5,
+		OPCODE_SHR6,
+		OPCODE_SHR7,
+		OPCODE_SHR8,
+		OPCODE_SHR9,
+		OPCODE_SHR10,
+		OPCODE_SHR11,
+		OPCODE_SHR12,
+		OPCODE_SHR13,
+		OPCODE_SHR14,
+		OPCODE_SHR15
+	} }, ParseShiftOp };
+
+const InstrDescr INSTR_DESCR_CMP	= { (void*)&(CmpOp){ OPCODE_CMP, OPCODE_CMP_WIDE, OPCODE_CMP_REV_WIDE }, ParseCmpOp };
+
+///// directives /////
+const DirectiveDescr DIR_DESCR_SECTION	= { NULL, ParseSection };
+const DirectiveDescr DIR_DESCR_WORD		= { NULL, ParseWord };
+const DirectiveDescr DIR_DESCR_GLOBAL	= { NULL, ParseGlobal };
 
 void ParserInit(Parser* parser, Scanner* scanner, ObjectWriter* objWriter)
 {
@@ -50,6 +195,74 @@ void Parse(Parser* parser)
 	while(!ParseLine(parser)) continue;
 }
 
+void ParserExpect(Parser* parser, TokenDescrId expected)
+{
+	if(Peek(parser)->descrId != expected)
+	{
+		UnexpectedToken(parser);
+	}
+}
+
+void ParserExpectClass(Parser* parser, TokenClass tClass)
+{
+	if(GetTokenDescr(Peek(parser)->descrId)->tokenClass != tClass)
+	{
+		UnexpectedToken(parser);
+	}
+}
+
+void ParserArgItInit(ParserArgIt* it)
+{
+	it->state = ARG_IT_STATE_START;
+}
+
+void ParserArgItClose(ParserArgIt* it, Parser* parser)
+{
+	if(it->state != ARG_IT_STATE_END)
+	{
+		Next(parser);
+		it->state = ARG_IT_STATE_END;
+	}
+}
+
+const Token* ParserArgItNext(ParserArgIt* it, Parser* parser)
+{
+	switch(it->state)
+	{
+	case ARG_IT_STATE_START:
+		it->state = ARG_IT_STATE_INTERIM;
+		return Next(parser);
+	case ARG_IT_STATE_INTERIM:
+		if(Next(parser)->descrId != TOKEN_DESCR_COMMA)
+		{
+			it->state = ARG_IT_STATE_END;
+			return NULL;
+		}
+		return Next(parser);
+	default:
+		EscFatal("Argument iterator has illegal state (%u)", it->state);
+		return NULL; //prevent warning
+	}
+}
+
+const Token* ParserArgItNextExpect(ParserArgIt* it, Parser* parser, TokenDescrId expected)
+{
+	const Token* token = ParserArgItNext(it, parser);
+	if(!token)
+	{
+		UnexpectedToken(parser);
+	}
+	ParserExpect(parser, expected);
+	return token;
+}
+
+const Token* ParserArgItNextExpectClass(ParserArgIt* it, Parser* parser, TokenClass tClass)
+{
+	const Token* token = ParserArgItNext(it, parser);
+	ParserExpectClass(parser, tClass);
+	return token;
+}
+
 static const Token* Peek(Parser* parser)
 {
 	return &parser->curToken;
@@ -59,14 +272,6 @@ static const Token* Next(Parser* parser)
 {
 	ScannerNext(parser->scanner, &parser->curToken);
 	return &parser->curToken;
-}
-
-static void Expect(Parser* parser, TokenDescrId expected)
-{
-	if(Peek(parser)->descrId != expected)
-	{
-		UnexpectedToken(parser);
-	}
 }
 
 static int ParseLine(Parser* parser)
@@ -83,7 +288,7 @@ static int ParseLine(Parser* parser)
 		return -1;
 	}
 
-	Expect(parser, TOKEN_DESCR_EOL);
+	ParserExpect(parser, TOKEN_DESCR_EOL);
 	Next(parser);
 	++parser->line;
 
@@ -124,214 +329,44 @@ static void ParseCommand(Parser* parser)
 {
 	const TokenDescr* tDescr = GetTokenDescr(Peek(parser)->descrId);
 
-	switch(tDescr->tokenClass)
+	switch (tDescr->tokenClass)
 	{
 	case TOKEN_CLASS_DIRECTIVE:
-		ParseDirective(parser);
-		break;
-	case TOKEN_CLASS_OPCODE:
-		ParseInstruction(parser);
-		break;
-	case TOKEN_CLASS_PSEUDO_OPCODE:
-		ParsePseudoInstr(parser);
-		break;
+	{
+		const DirectiveDescr* dDescr = (DirectiveDescr*)tDescr->cmdDescr;
+		ParserArgIt argIt;
+		ParserArgItInit(&argIt);
+		assert(dDescr->parseProc);
+		dDescr->parseProc(dDescr->implData, parser, &argIt);
+		ParserArgItClose(&argIt, parser);
+	} break;
+
+	case TOKEN_CLASS_MNEMONIC:
+	{
+		const InstrDescr* iDescr = (InstrDescr*)tDescr->cmdDescr;
+		Instruction instr = { 0, 0, { 0, 0, 0, 0 } };
+		ParserArgIt argIt;
+		ParserArgItInit(&argIt);
+		assert(iDescr->parseProc);
+		iDescr->parseProc(iDescr->implData, parser, &argIt, &instr);
+		ParserArgItClose(&argIt, parser);
+		EmitInstr(parser, &instr);
+	} break;
+
 	default:
 		break;
+
 	}
-}
-
-static void ParseDirective(Parser* parser)
-{
-	const Token* t = Peek(parser);
-	switch(t->descrId)
-	{
-	case TOKEN_DESCR_DIR_WORD:
-		ParseDirWord(parser);
-		break;
-	case TOKEN_DESCR_DIR_ASCII:
-		assert(0 && "ascii directive not implemented");
-		break;
-	case TOKEN_DESCR_DIR_GLOBAL:
-		ParseDirGlobal(parser);
-		break;
-	case TOKEN_DESCR_DIR_SECTION:
-		ParseDirSection(parser);
-		break;
-	default:
-		ParserError(parser, "ParseDirective: Unexpected token");
-		break;
-	}
-}
-
-//.word imm/lref
-static void ParseDirWord(Parser* parser)
-{
-	const Token* t = Next(parser);
-	switch(t->descrId)
-	{
-	case TOKEN_DESCR_LABEL_REF:
-		assert(0 && ".word lref not implemented yet");
-		break;
-
-	case TOKEN_DESCR_NUMBER:
-		EmitWord(parser, t->intValue);
-		break;
-
-	default:
-		UnexpectedToken(parser);
-		break;
-	}
-
-	Next(parser);
-}
-
-//.global ldecl[,ldecl]*
-static void ParseDirGlobal(Parser* parser)
-{
-	Symbol sym;
-
-	Next(parser);
-	if(ParseLabelDecl(parser, &sym))
-	{
-		ParserError(parser, "Expected one or more label declarations after .global");
-	}
-
-#ifdef ESC_DEBUG
-	printf("\tglobal symbol defined: name=`");
-	PrintString(sym.name, sym.nameLen);
-	printf("'\n");
-#endif
-	ObjWriteGlobalSym(parser->objWriter, &sym);
-
-	while(Next(parser)->descrId == TOKEN_DESCR_COMMA)
-	{
-		Next(parser);
-		if(ParseLabelDecl(parser, &sym))
-		{
-			UnexpectedToken(parser);
-		}
-
-#ifdef ESC_DEBUG
-		printf("\tglobal symbol defined: name=`");
-		PrintString(sym.name, sym.nameLen);
-		printf("'\n");
-#endif
-		ObjWriteGlobalSym(parser->objWriter, &sym);
-	}
-}
-
-//TODO write directive grammars?
-//	.section data[,#]
-//	.section bss, size[,#]
-static void ParseDirSection(Parser* parser)
-{
-	const Token* t = Next(parser);
-	Expect(parser, TOKEN_DESCR_LABEL_REF);
-
-	//FIXME temporary solution to differentiate between data and bss sections
-	size_t symLen = ScannerStrLen(parser->scanner);
-	if(!strncasecmp("bss", t->strValue, symLen))
-	{
-		ParseBssSection(parser);
-	}
-	else if(!strncasecmp("data", t->strValue, symLen))
-	{
-		ParseDataSection(parser);
-	}
-	else
-	{
-		ParserError(parser, "Unknown section type");
-	}
-
-	parser->pc = 0;
-}
-
-static void ParseBssSection(Parser* parser)
-{
-	const Token* t;
-	uword_t size;
-	uword_t address = ~0;
-	byte_t placement = OBJ_RELOC;
-
-	Next(parser);
-	Expect(parser, TOKEN_DESCR_COMMA);
-
-	t = Next(parser);
-	Expect(parser, TOKEN_DESCR_NUMBER);
-	assert(t->intValue >= 0 && t->intValue <= 0xFFFF); //TODO temp
-	size = t->intValue;
-
-	t = Next(parser);
-	if(t->descrId == TOKEN_DESCR_COMMA)
-	{
-		t = Next(parser);
-		Expect(parser, TOKEN_DESCR_NUMBER);
-		assert(t->intValue >= 0 && t->intValue <= 0xFFFF); //TODO temp
-		address = t->intValue;
-		placement = OBJ_ABS;
-		Next(parser);
-	}
-
-#ifdef ESC_DEBUG
-	printf("\tentering BSS section. placement=%u; size=%u; address=%u\n", placement, size, address);
-#endif
-	ObjWriteBssSection(parser->objWriter, placement, address, size);
-}
-
-static void ParseDataSection(Parser* parser)
-{
-	const Token* t;
-	uword_t address = ~0;
-	byte_t placement = OBJ_RELOC;
-
-	t = Next(parser);
-	if(t->descrId == TOKEN_DESCR_COMMA)
-	{
-		t = Next(parser);
-		Expect(parser, TOKEN_DESCR_NUMBER);
-		assert(t->intValue >= 0 && t->intValue <= 0xFFFF); //TODO temp
-		address = t->intValue;
-		placement = OBJ_ABS;
-		Next(parser);
-	}
-
-#ifdef ESC_DEBUG
-	printf("\tentering data section. placement=%u; address=%u\n", placement, address);
-#endif
-	ObjWriteDataSection(parser->objWriter, placement, address);
-}
-
-static void ParseInstruction(Parser* parser)
-{
-	const Token* t = Peek(parser);
-	const InstructionDescr* iDescr = GetTokenDescr(t->descrId)->instructionDescr;
-
-	Instruction instr;
-	instr.descr = iDescr;
-	memset(instr.operands, 0, sizeof instr.operands);
-
-	Next(parser);
-	ParseArgList(parser, &instr);
-
-	EmitInstr(parser, &instr);
 }
 
 static void EmitInstr(Parser* parser, Instruction* instr)
 {
 #ifdef ESC_DEBUG
-	printf("\tinstruction: opcode=0x%X; operands=[0x%X; 0x%X; 0x%X; 0x%X]\n",
-			instr->descr->opcode, instr->operands[0], instr->operands[1], instr->operands[2], instr->operands[3]);
+	printf("\tinstruction: opcode=0x%X; wide=%d; operands=[0x%X; 0x%X; 0x%X; 0x%X]\n",
+			instr->opcode, instr->wide, instr->operands[0], instr->operands[1], instr->operands[2], instr->operands[3]);
 #endif
 
-	ObjWriteInstr(parser->objWriter, instr);
-	if(instr->descr->isWide)
-	{
-		parser->pc += 2;
-	}
-	else
-	{
-		parser->pc += 1;
-	}
+	parser->pc += ObjWriteInstr(parser->objWriter, instr);
 }
 
 static void EmitWord(Parser* parser, uword_t word)
@@ -344,93 +379,6 @@ static void EmitWord(Parser* parser, uword_t word)
 	++parser->pc;
 }
 
-static void ParsePseudoInstr(Parser* parser)
-{
-	const Token* t = Peek(parser);
-
-	switch(t->descrId)
-	{
-	case TOKEN_DESCR_PSEUDO_OPCODE_MOV:
-		ParsePseudoMov(parser);
-		break;
-
-	default:
-		ParserError(parser, "Unknown pseudo instruction");
-		break;
-	}
-}
-
-//	move reg->reg:	mov	reg, reg
-//	move imm->reg:	mov	reg, imm / mov reg, lref
-static void ParsePseudoMov(Parser* parser)
-{
-	const Token* t;
-	Instruction instr;
-	memset(instr.operands, 0, sizeof instr.operands);
-
-	t = Next(parser);
-	Expect(parser, TOKEN_DESCR_REGISTER_REF);
-	instr.operands[0] = t->intValue;
-
-	Next(parser);
-	Expect(parser, TOKEN_DESCR_COMMA);
-
-	t = Next(parser);
-	switch(t->descrId)
-	{
-	case TOKEN_DESCR_REGISTER_REF:
-#ifdef ESC_DEBUG
-		printf("\tpseudo instruction `mov' evaluated to `mov reg->reg'\n");
-#endif
-		instr.descr = GetTokenDescr(TOKEN_DESCR_OPCODE_MOV)->instructionDescr;
-		instr.operands[1] = t->intValue;
-		break;
-
-	case TOKEN_DESCR_NUMBER:
-#ifdef ESC_DEBUG
-		printf("\tpseudo instruction `mov' evaluated to `mov imm->reg'\n");
-#endif
-		instr.descr = GetTokenDescr(TOKEN_DESCR_OPCODE_MOV_WIDE)->instructionDescr;
-		instr.operands[3] = t->intValue;
-		break;
-
-	case TOKEN_DESCR_LABEL_REF:
-#ifdef ESC_DEBUG
-		printf("\tpseudo instruction `mov' evaluated to `mov lref->reg'\n");
-#endif
-		instr.descr = GetTokenDescr(TOKEN_DESCR_OPCODE_MOV_WIDE)->instructionDescr;
-		Expression expr;
-		expr.name = t->strValue;
-		expr.nameLen = ScannerStrLen(parser->scanner);
-		expr.address = parser->pc + 1;
-		ObjWriteExpr(parser->objWriter, &expr);
-		break;
-
-	default:
-		ParserError(parser, "Illegal `mov' instruction");
-		break;
-	}
-
-	EmitInstr(parser, &instr);
-	Next(parser);
-}
-
-static void ParseArgList(Parser* parser, Instruction* instr)
-{
-	const ArgDescr* args = instr->descr->argList.args;
-
-	ParseArg(parser, instr, &args[0]);
-	Next(parser);
-	size_t i;
-	for(i = 1; i < instr->descr->argList.argCount; ++i)
-	{
-		Expect(parser, TOKEN_DESCR_COMMA);
-		Next(parser);
-		ParseArg(parser, instr, &args[i]);
-		Next(parser);
-	}
-}
-
 static void PrintString(const char* str, size_t strLen)
 {
 	size_t i;
@@ -438,60 +386,6 @@ static void PrintString(const char* str, size_t strLen)
 	{
 		putchar(str[i]);
 	}
-}
-
-static void ParseArg(Parser* parser, Instruction* instr, const ArgDescr* argDescr)
-{
-	switch(argDescr->type)
-	{
-	case ARG_TYPE_IMM:
-		ParseImmArg(parser, instr, argDescr);
-		break;
-	case ARG_TYPE_REG:
-		ParseRegArg(parser, instr, argDescr);
-		break;
-	}
-}
-
-static void ParseImmArg(Parser* parser, Instruction* instr, const ArgDescr* argDescr)
-{
-	const Token* t = Peek(parser);
-
-	switch(t->descrId)
-	{
-	case TOKEN_DESCR_LABEL_REF:
-		{
-			Expression expr;
-			expr.address = parser->pc + 1;
-			expr.name = t->strValue;
-			expr.nameLen = ScannerStrLen(parser->scanner);
-			ObjWriteExpr(parser->objWriter, &expr);
-		} break;
-	case TOKEN_DESCR_NUMBER:
-		instr->operands[argDescr->operand] = t->intValue;
-		break;
-	default:
-		UnexpectedToken(parser);
-		break;
-	}
-}
-
-static void ParseRegArg(Parser* parser, Instruction* instr, const ArgDescr* argDescr)
-{
-	const Token* t = Peek(parser);
-
-	if(t->descrId != TOKEN_DESCR_REGISTER_REF)
-	{
-		UnexpectedToken(parser);
-	}
-
-	int val = t->intValue;
-	if(val < 0 || val > REG_MAX)
-	{
-		ParserError(parser, "Instruction operand out of range");
-	}
-
-	instr->operands[argDescr->operand] = t->intValue;
 }
 
 __attribute__((noreturn)) static void UnexpectedToken(Parser* parser)
@@ -521,7 +415,7 @@ __attribute__((noreturn)) static void UnexpectedToken(Parser* parser)
 #endif
 }
 
-__attribute__((noreturn)) static void ParserError(Parser* parser, const char* errMsg)
+__attribute__((noreturn)) void ParserError(Parser* parser, const char* errMsg)
 {
 	fprintf(stderr,
 			"=== error in parser occurred ===\n"
@@ -535,4 +429,289 @@ __attribute__((noreturn)) static void ParserError(Parser* parser, const char* er
 	exit(-1);
 #endif
 }
+
+static void Parse3Op(const void* implData, Parser* parser, ParserArgIt* argIt, Instruction* instr)
+{
+	//reg, reg, reg
+	const Token* token;
+	size_t i;
+
+	instr->opcode = ((const Instr3Op*)implData)->opcode;
+	instr->wide = 0;
+
+	for(i = 0; i < 3; ++i)
+	{
+		token = ParserArgItNextExpect(argIt, parser, TOKEN_DESCR_REGISTER_REF);
+		instr->operands[i] = token->intValue;
+	}
+}
+
+static void ParseJumpOp(const void* implData, Parser* parser, ParserArgIt* argIt, Instruction* instr)
+{
+	//reg/imm
+	const JumpOp* jumpOp = (const JumpOp*)implData;
+	const Token* token = ParserArgItNextExpectClass(argIt, parser, TOKEN_CLASS_VALUE);
+
+	instr->operands[0] = REG_PC;
+
+	if(token->descrId == TOKEN_DESCR_REGISTER_REF)
+	{
+		instr->opcode = jumpOp->opcodeReg;
+		instr->wide = 0;
+		instr->operands[1] = token->intValue;
+	}
+	else
+	{
+		instr->opcode = jumpOp->opcodeImm;
+		instr->wide = 1;
+		instr->operands[3] = token->intValue;
+	}
+}
+
+static void ParseMovOp(const void* implData, Parser* parser, ParserArgIt* argIt, Instruction* instr)
+{
+	//reg, reg/imm
+	const MovOp* movOp = (const MovOp*)implData;
+	const Token* token = ParserArgItNextExpect(argIt, parser, TOKEN_DESCR_REGISTER_REF);
+
+	instr->operands[0] = token->intValue;
+	token = ParserArgItNextExpectClass(argIt, parser, TOKEN_CLASS_VALUE);
+
+	if(token->descrId == TOKEN_DESCR_REGISTER_REF)
+	{
+		instr->opcode = movOp->opcodeReg;
+		instr->wide = 0;
+		instr->operands[1] = token->intValue;
+	}
+	else
+	{
+		instr->opcode = movOp->opcodeImm;
+		instr->wide = 1;
+		instr->operands[3] = token->intValue;
+	}
+}
+
+static void Parse2Op(const void* implData, Parser* parser, ParserArgIt* argIt, Instruction* instr)
+{
+	const Instr2Op* op = (const Instr2Op*)implData;
+	size_t i;
+	const Token* token;
+
+	for(i = 0; i < 2; ++i)
+	{
+		token = ParserArgItNextExpect(argIt, parser, TOKEN_DESCR_REGISTER_REF);
+		instr->operands[op->operandIndices[i]] = token->intValue;
+	}
+
+	instr->opcode = op->opcode;
+	instr->wide = 0;
+}
+
+static void ParseShiftOp(const void* implData, Parser* parser, ParserArgIt* argIt, Instruction* instr)
+{
+	//reg, reg, reg
+	const ShiftOp* op = (const ShiftOp*)implData;
+	const Token* token;
+	size_t i;
+
+	for(i = 0; i < 2; ++i)
+	{
+		token = ParserArgItNextExpect(argIt, parser, TOKEN_DESCR_REGISTER_REF);
+		instr->operands[i] = token->intValue;
+	}
+
+	token = ParserArgItNextExpect(argIt, parser, TOKEN_DESCR_NUMBER);
+	int n = token->intValue;
+	if(n < 1 || n > 15)
+	{
+		ParserError(parser, "Third operand of shift instruction should be a number between 1 and 15 (inclusive)");
+	}
+
+	instr->opcode = op->ops[n];
+	instr->wide = 0;
+}
+
+static void ParseCmpOp(const void* implData, Parser* parser, ParserArgIt* argIt, Instruction* instr)
+{
+	const CmpOp* op = (const CmpOp*)implData;
+	const Token* token = ParserArgItNext(argIt, parser);
+
+	if(token->descrId == TOKEN_DESCR_REGISTER_REF)	//reg, ?
+	{
+		instr->operands[1] = token->intValue;
+		token = ParserArgItNext(argIt, parser);
+
+		if(token->descrId == TOKEN_DESCR_REGISTER_REF)	//reg, reg
+		{
+			instr->operands[2] = token->intValue;
+			instr->wide = 0;
+			instr->opcode = op->opcodeRegReg;
+		}
+		else if(GetTokenDescr(token->descrId)->tokenClass == TOKEN_CLASS_VALUE)	//reg, imm
+		{
+			instr->operands[3] = token->intValue;
+			instr->wide = 1;
+			instr->opcode = op->opcodeRegImm;
+		}
+		else
+		{
+			UnexpectedToken(parser);
+		}
+	}
+	else if(GetTokenDescr(token->descrId)->tokenClass == TOKEN_CLASS_VALUE)	//imm, ?
+	{
+		instr->operands[3] = token->intValue;
+		token = ParserArgItNextExpect(argIt, parser, TOKEN_DESCR_REGISTER_REF);
+		instr->operands[1] = token->intValue;
+		instr->wide = 1;
+		instr->opcode = op->opcodeImmReg;
+	}
+	else
+	{
+		UnexpectedToken(parser);
+	}
+}
+
+static void ParseSection(const void* implData, Parser* parser, ParserArgIt* argIt)
+{
+	//.section data[,address]
+	//.section bss, size[,address]
+	(void)implData;
+
+	const Token* token = ParserArgItNext(argIt, parser);
+
+	switch(token->descrId)
+	{
+	case TOKEN_DESCR_DATA:
+		ParseDataSection(parser, argIt);
+		break;
+
+	case TOKEN_DESCR_BSS:
+		ParseBSSSection(parser, argIt);
+		break;
+
+	default:
+		UnexpectedToken(parser);
+		break;
+	}
+}
+
+static void ParseDataSection(Parser* parser, ParserArgIt* argIt)
+{
+	//.section data[,address]
+	const Token* token;
+	uword_t address;
+	byte_t placement;
+
+	token = ParserArgItNext(argIt, parser);
+	if(!token)
+	{
+		address = ~0;
+		placement = OBJ_RELOC;
+	}
+	else if(token->descrId == TOKEN_DESCR_NUMBER)
+	{
+		placement = OBJ_ABS;
+		address = token->intValue;
+		ParserArgItNext(argIt, parser);
+	}
+	else
+	{
+		UnexpectedToken(parser);
+	}
+
+#ifdef ESC_DEBUG
+	printf("\tentering data section. placement=%u; address=%u\n", placement, address);
+#endif
+	ObjWriteDataSection(parser->objWriter, placement, address);
+}
+
+static void ParseBSSSection(Parser* parser, ParserArgIt* argIt)
+{
+	//.section bss, size[,address]
+	const Token* token;
+	uword_t size;
+	uword_t address;
+	byte_t placement;
+
+	token = ParserArgItNextExpect(argIt, parser, TOKEN_DESCR_NUMBER);
+	size = token->intValue;
+
+	token = ParserArgItNext(argIt, parser);
+	if(!token)
+	{
+		placement = OBJ_RELOC;
+		address = ~0;
+	}
+	else if(token->descrId == TOKEN_DESCR_NUMBER)
+	{
+		placement = OBJ_ABS;
+		address = token->intValue;
+		ParserArgItNext(argIt, parser);
+	}
+	else
+	{
+		UnexpectedToken(parser);
+	}
+
+#ifdef ESC_DEBUG
+	printf("\tentering BSS section. placement=%u; size=%u; address=%u\n", placement, size, address);
+#endif
+	ObjWriteBssSection(parser->objWriter, placement, address, size);
+}
+
+static void ParseWord(const void* implData, Parser* parser, ParserArgIt* argIt)
+{
+	//.word imm
+	(void)implData;
+	const Token* token = ParserArgItNextExpect(argIt, parser, TOKEN_DESCR_NUMBER);
+	EmitWord(parser, token->intValue);
+}
+
+static void ParseGlobal(const void* implData, Parser* parser, ParserArgIt* argIt)
+{
+	//.global ldecl+
+	Symbol sym;
+	Next(parser);
+
+	do
+	{
+		if(ParseLabelDecl(parser, &sym))
+		{
+			UnexpectedToken(parser);
+		}
+#ifdef ESC_DEBUG
+		printf("\tglobal symbol defined: name=`");
+		PrintString(sym.name, sym.nameLen);
+		printf("'\n");
+#endif
+		ObjWriteGlobalSym(parser->objWriter, &sym);
+	} while(Next(parser)->descrId == TOKEN_DESCR_LABEL_DECL);
+
+	//FIXME dirty workaround. will otherwise skip a token during ParserArgItClose()
+	argIt->state = ARG_IT_STATE_END;
+	//end dirty workaround
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

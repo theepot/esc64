@@ -2,6 +2,8 @@
 #include <string.h>
 #include <esc64asm/tokendescr.h>
 
+//TODO update, for use with new command description interface
+
 static TokenDescrId descrTable[OPCODE_MAX];
 
 void OpcodeTransInit(void)
@@ -23,19 +25,19 @@ void OpcodeTransInit(void)
 	descrTable[OPCODE_SHL] = TOKEN_DESCR_OPCODE_SHL;
 	descrTable[OPCODE_SHR] = TOKEN_DESCR_OPCODE_SHR;
 	descrTable[OPCODE_MOV] = TOKEN_DESCR_OPCODE_MOV;
-	descrTable[OPCODE_MOV_EQ] = TOKEN_DESCR_OPCODE_MOV_EQ;
-	descrTable[OPCODE_MOV_NEQ] = TOKEN_DESCR_OPCODE_MOV_NEQ;
-	descrTable[OPCODE_MOV_LESS] = TOKEN_DESCR_OPCODE_MOV_LESS;
-	descrTable[OPCODE_MOV_WIDE] = TOKEN_DESCR_OPCODE_MOV_WIDE;
-	descrTable[OPCODE_MOV_LESS_EQ] = TOKEN_DESCR_OPCODE_MOV_LESS_EQ;
+//	descrTable[OPCODE_MOV_EQ] = TOKEN_DESCR_OPCODE_MOV_EQ;
+//	descrTable[OPCODE_MOV_NEQ] = TOKEN_DESCR_OPCODE_MOV_NEQ;
+//	descrTable[OPCODE_MOV_LESS] = TOKEN_DESCR_OPCODE_MOV_LESS;
+//	descrTable[OPCODE_MOV_WIDE] = TOKEN_DESCR_OPCODE_MOV_WIDE;
+//	descrTable[OPCODE_MOV_LESS_EQ] = TOKEN_DESCR_OPCODE_MOV_LESS_EQ;
 	descrTable[OPCODE_CMP] = TOKEN_DESCR_OPCODE_CMP;
 	descrTable[OPCODE_LDR] = TOKEN_DESCR_OPCODE_LDR;
 	descrTable[OPCODE_STR] = TOKEN_DESCR_OPCODE_STR;
 	descrTable[OPCODE_CALL] = TOKEN_DESCR_OPCODE_CALL;
-	descrTable[OPCODE_JZ] = TOKEN_DESCR_OPCODE_JZ;
-	descrTable[OPCODE_JNZ] = TOKEN_DESCR_OPCODE_JNZ;
-	descrTable[OPCODE_JC] = TOKEN_DESCR_OPCODE_JC;
-	descrTable[OPCODE_JNC] = TOKEN_DESCR_OPCODE_JNC;
+//	descrTable[OPCODE_JZ] = TOKEN_DESCR_OPCODE_JZ;
+//	descrTable[OPCODE_JNZ] = TOKEN_DESCR_OPCODE_JNZ;
+//	descrTable[OPCODE_JC] = TOKEN_DESCR_OPCODE_JC;
+//	descrTable[OPCODE_JNC] = TOKEN_DESCR_OPCODE_JNC;
 }
 
 TokenDescrId OpcodeToId(uword_t opcode)

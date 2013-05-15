@@ -124,9 +124,6 @@ static void InitRead(void)
 	}
 }
 
-//FIXME temp
-size_t currentTesterIndex = 0xDEAD;
-
 static void WriteAll(void)
 {
 	size_t i;
@@ -138,10 +135,6 @@ static void WriteAll(void)
 		for(i = 0; i < testerCount; ++i)
 		{
 			RecordTester* t = &testers[i];
-
-			//FIXME temp
-			currentTesterIndex = i;
-
 			if(!Write(t, GetRandomWriteCycle()))
 			{
 				dataLeft = 1;

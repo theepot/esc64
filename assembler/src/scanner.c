@@ -8,8 +8,6 @@
 #include <esc64asm/hashset.h>
 #include <esc64asm/reswords.h>
 
-//FIXME doesn't process comments correctly
-
 static int Peek(Scanner* scanner);
 static int ReadRaw(Scanner* scanner);
 static int Read(Scanner* scanner);
@@ -36,6 +34,7 @@ static void GetDirective(Scanner* scanner, Token* token);
 static int GetRegisterRef(Scanner* scanner, Token* token);
 static int GetRegisterNumeric(Scanner* scanner, Token* token);
 static int GetOpcode(Scanner* scanner, Token* token);
+static int GetReservedSym(Scanner* scanner, Token* token);
 
 static int GetReservedChar(Scanner* scanner, Token* token);
 static int GetEOL(Scanner* scanner, Token* token);
@@ -233,11 +232,10 @@ static int GetEscSeq(Scanner* scanner, int* subst)
 			{
 				ReadRaw(scanner);
 			}
-			return -1;
+			return 0;
 		case '\n':
 			//escape LF
-			ReadRaw(scanner);
-			return -1;
+			break;
 		default:
 			ScannerError(scanner, "Unknown escape sequence");
 			break;
@@ -367,43 +365,12 @@ static int GetSymbol(Scanner* scanner, Token* token)
 		GetLabelDecl(scanner, token);
 		return 0;
 	}
-	else if(GetRegisterRef(scanner, token) && GetOpcode(scanner, token))
+	else if(GetRegisterRef(scanner, token) && GetOpcode(scanner, token) && GetReservedSym(scanner, token))
 	{
 		GetLabelRef(scanner, token);
 	}
 
 	return 0;
-
-//TODO remove, obsolete
-//	if(Peek(scanner) == '.')
-//	{
-//		Read(scanner);
-//	}
-//
-//	if(BufferSymbol(scanner))
-//	{
-//		return -1;
-//	}
-//
-//	if(scanner->buf[0] == '.')
-//	{
-//		if(GetDirective(scanner, token))
-//		{
-//			ScannerError(scanner, "Unknown directive");
-//		}
-//	}
-//	else if(Peek(scanner) == ':')
-//	{
-//		Read(scanner);
-//		GetLabelDecl(scanner, token);
-//	}
-//	else if(GetRegisterRef(scanner, token) && GetOpcode(scanner, token))
-//	{
-//		GetLabelRef(scanner, token);
-//	}
-//
-//	ClearBuf(scanner);
-//	return 0;
 }
 
 static int BufferSymbol(Scanner* scanner)
@@ -554,12 +521,30 @@ static int GetOpcode(Scanner* scanner, Token* token)
 	
 	const TokenDescr* tDescr = GetTokenDescr(descrId);
 
-	if(tDescr->tokenClass != TOKEN_CLASS_OPCODE && tDescr->tokenClass != TOKEN_CLASS_PSEUDO_OPCODE)
+	if(tDescr->tokenClass != TOKEN_CLASS_MNEMONIC)
 	{
 		return -1;
 	}
 
 	token->descrId = descrId;
+	return 0;
+}
+
+static int GetReservedSym(Scanner* scanner, Token* token)
+{
+	TokenDescrId id = FindReservedWord(scanner->buf, ScannerStrLen(scanner));
+	if(id == TOKEN_DESCR_INVALID)
+	{
+		return -1;
+	}
+
+	const TokenDescr* tDescr = GetTokenDescr(id);
+	if(tDescr->tokenClass != TOKEN_CLASS_RESERVED_SYM)
+	{
+		return -1;
+	}
+
+	token->descrId = id;
 	return 0;
 }
 

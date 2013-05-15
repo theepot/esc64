@@ -15,6 +15,6 @@
 `define ALU_F_SHIFT_LEFT	5'b00101
 `define ALU_F_SHIFT_RIGHT	5'b00010
 `define ALU_CSEL_UCIN		0
-`define ALU_CSEL_FCIN		1
+`define ALU_CSEL_SRCIN		1
 
 `endif

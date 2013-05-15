@@ -22,7 +22,7 @@ loop:
 test:
 	mov		r3, loop	; prepare for conditional jump
 	cmp		r1, r2		; if src < limit
-	movls	pc, r3		; then goto loop
+	movlt	pc, r3		; then goto loop
 
 	mov		pc, lr		; return
 

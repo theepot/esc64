@@ -1,8 +1,7 @@
 #ifndef SCANNER_INCLUDED
 #define SCANNER_INCLUDED
 
-//TODO scanning for symbols / directives / label declarations is now a bit of a mess. Fix!
-//TODO strings should be handled differently. maybe have char arrays where element 0 is the length of the string
+//TODO strings should be handled differently. maybe have char arrays where element 0 is the length of the string (i.e.: pascal-strings)
 //and the actual string starts at element 1. would it get a null terminator?
 
 #include <stdio.h>
@@ -50,7 +49,7 @@ typedef struct Scanner_
 	size_t bufIndex;
 } Scanner;
 
-//TODO token should have length of it's string value
+//TODO token should have length of its string value
 typedef struct Token_
 {
 	//const TokenDescr* descr;

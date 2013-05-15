@@ -7,7 +7,7 @@
 
 #include <esc64asm/esctypes.h>
 #include <esc64asm/objrecord.h>
-#include <esc64asm/tokendescr.h>
+//#include <esc64asm/tokendescr.h>
 
 enum SectionType_
 {
@@ -84,12 +84,13 @@ typedef struct ObjectHeader_
 #define OPERAND2_OFFSET	0
 #define OPERAND2_MASK	0x7
 
-#define INSTRUCTION_MAX_OPERANDS 4
+#define ESC_INSTR_MAX_OPERANDS	4
 
 typedef struct Instruction_
 {
-	const InstructionDescr* descr;
-	uword_t operands[INSTRUCTION_MAX_OPERANDS];
+	uword_t opcode;
+	byte_t wide;
+	uword_t operands[ESC_INSTR_MAX_OPERANDS];
 } Instruction;
 
 //	symbol structure
@@ -167,7 +168,7 @@ void ObjWriteBssSection(ObjectWriter* writer, byte_t placement, uword_t address,
  * @param dataSize	Size in words
  */
 void ObjWriteData(ObjectWriter* writer, const void* data, size_t dataSize);
-void ObjWriteInstr(ObjectWriter* writer, const Instruction* instr);
+size_t ObjWriteInstr(ObjectWriter* writer, const Instruction* instr);
 void ObjWriteLocalSym(ObjectWriter* writer, const Symbol* sym);
 void ObjWriteGlobalSym(ObjectWriter* writer, const Symbol* sym);
 void ObjWriteExpr(ObjectWriter* writer, const Expression* expr);

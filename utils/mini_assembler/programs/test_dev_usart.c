@@ -29,14 +29,12 @@ void asm_prgm(void)
 	add(GP1, GP1, GP1);
 	mov_literal_on_zero_labeled(PC, "check_again");
 
-	halt();
-
 	//get byte from buffer
 	mov_literal(GP0, 0x8000);
-	load(GP1, GP0);
+	in(GP1, GP0);
 
 	//echo byte
-	store(GP0, GP1);
+	out(GP0, GP1);
 
 	mov_literal_labeled(PC, "main_loop");
 

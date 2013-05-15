@@ -2157,8 +2157,8 @@ T 33500 44800 5 10 1 1 0 0 1
 netname=reset
 }
 B 31600 43800 9000 4300 3 0 0 0 -1 -1 0 -1 -1 -1 -1 -1
-T 38100 48200 9 10 1 0 0 0 1
-create symbol for this circuitry
+T 37600 48200 9 10 1 0 0 0 1
+TODO:create symbol for this circuitry
 N 34200 47500 33900 47500 4
 {
 T 33800 47500 5 10 1 1 0 6 1

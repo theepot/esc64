@@ -126,7 +126,7 @@ static void FlushRecordData(RecordWriter* writer, FILE* stream, const void* extr
 	objsize_t head = IOGetFilePos(stream);
 	IOSetFilePos(stream, writer->prevNextOffset);
 	IOWriteObjSize(stream, recordStart);
-	IOSetFilePos(stream, head); //TODO remove, not needed
+	IOSetFilePos(stream, head); //TODO remove, not needed (it's not..?)
 
 	//reset writer
 	writer->bufIndex = 0;
