@@ -174,6 +174,14 @@ void ObjWriteExpr(ObjectWriter* writer, const Expression* expr)
 	assert(writer->type == SECTION_TYPE_DATA);
 #endif
 
+	//FIXME debug
+	printf("ObjWriteExpr(): nameLen=%u; ", expr->nameLen);
+	printf("name=");
+	size_t i; for(i = 0; i < expr->nameLen; ++i)
+		{ putchar(expr->name[i]); }
+	printf("; address=%u\n", expr->address);
+	//end debug
+
 	const size_t bufSize = sizeof expr->nameLen + expr->nameLen + sizeof expr->address;
 	byte_t buf[bufSize];
 	void* p = buf;

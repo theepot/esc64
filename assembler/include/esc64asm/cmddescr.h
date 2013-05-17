@@ -37,6 +37,7 @@ extern const struct InstrDescr_ INSTR_DESCR_MOVC;
 extern const struct InstrDescr_ INSTR_DESCR_MOVNC;
 extern const struct InstrDescr_ INSTR_DESCR_MOVNZC;
 extern const struct InstrDescr_ INSTR_DESCR_MOVZOC;
+extern const struct InstrDescr_ INSTR_DESCR_MOVZONC;
 extern const struct InstrDescr_ INSTR_DESCR_MOVNZNC;
 
 extern const struct InstrDescr_ INSTR_DESCR_INC;
@@ -48,6 +49,9 @@ extern const struct InstrDescr_ INSTR_DESCR_SHL;
 extern const struct InstrDescr_ INSTR_DESCR_SHR;
 
 extern const struct InstrDescr_ INSTR_DESCR_CMP;
+
+extern const struct InstrDescr_ INSTR_DESCR_PUSH;
+extern const struct InstrDescr_ INSTR_DESCR_POP;
 
 extern const struct DirectiveDescr_ DIR_DESCR_SECTION;
 extern const struct DirectiveDescr_ DIR_DESCR_WORD;

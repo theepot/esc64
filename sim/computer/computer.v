@@ -10,13 +10,13 @@
 	`define SRAM_STRUCT 1
 `endif
 
-`include "../cpu/cpu.v"
-
 `ifdef SRAM_STRUCT
 `include "../sram/sram_s.v"
 `else
 `include "../sram/sram.v"
 `endif
+
+`include "../cpu/cpu.v"
 
 `define CLOCK_PERIOD 1600
 
@@ -35,6 +35,8 @@ module computer();
 	initial begin
 		$dumpfile("computer.vcd");
 		$dumpvars(0);
+		
+		$print_add(10, 20);
 		
 		//cpu.status.r.out = 0;
 		tick_counter = 0;
@@ -63,6 +65,10 @@ module computer();
 			$display("error %d @ tick %d", cpu.error, tick_counter / 2);
 			$finish;
 		end
+	end
+	
+	always @ (posedge clock) begin
+		ram.test_state();
 	end
 	
 	//ISA monitor wires

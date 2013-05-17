@@ -51,7 +51,7 @@
 #define OPCODE_MOVNZONC			0x37
 #define OPCODE_MOVZC			0x38
 #define OPCODE_MOVZ				0x3A
-#define OPCODE_MOVZZONC			0x3B
+#define OPCODE_MOVZONC			0x3B
 #define OPCODE_MOVC				0x3C
 #define OPCODE_MOVNZOC			0x3D
 #define OPCODE_MOVZOC			0x3E
@@ -81,6 +81,5 @@
 #define OPCODE_PUSH				0x5B
 #define OPCODE_POP				0x5C
 #define OPCODE_HALT				0x7F
-
 
 #endif
