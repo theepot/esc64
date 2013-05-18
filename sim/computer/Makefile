@@ -3,7 +3,7 @@ COMPONENTS		:= $(wildcard ../*/*.v)
 VVP				:= computer.vpp
 THRIFT_VPI_DIR	:= thrift-server
 THRIFT_VPI		:= ${THRIFT_VPI_DIR}/thriftserver.vpi
-SOURCES			:= computer.v ${COMPONENTS} ${GLOBALS}
+SOURCES			:= computer.v #${COMPONENTS} ${GLOBALS}
 
 .PHONY: all
 all: ${VVP} ${THRIFT_VPI}

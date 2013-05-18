@@ -87,6 +87,14 @@ typedef struct CmpOp_
 
 static void ParseCmpOp(const void* implData, Parser* parser, ParserArgIt* argIt, Instruction* instr);
 
+typedef struct Instr1Op_
+{
+	uword_t opcode;
+	size_t operandIndex;
+} Instr1Op;
+
+static void Parse1Op(const void* implData, Parser* parser, ParserArgIt* argIt, Instruction* instr);
+
 //TODO could maybe use code below to replace Instr3Op and Instr2Op. could also implement push/pop with it
 //typedef struct StaticOpArg_
 //{
@@ -115,20 +123,22 @@ const InstrDescr INSTR_DESCR_OR		= { &(Instr3Op){ OPCODE_OR }, Parse3Op };
 const InstrDescr INSTR_DESCR_XOR	= { &(Instr3Op){ OPCODE_XOR }, Parse3Op };
 const InstrDescr INSTR_DESCR_AND	= { &(Instr3Op){ OPCODE_AND }, Parse3Op };
 
-const InstrDescr INSTR_DESCR_JMP	= { (&(JumpOp){ OPCODE_MOV, OPCODE_MOV_WIDE }), ParseJumpOp };
+const InstrDescr INSTR_DESCR_JMP	= { &(JumpOp){ OPCODE_MOV, OPCODE_MOV_WIDE }, ParseJumpOp };
 const InstrDescr INSTR_DESCR_JZ		= { &(JumpOp){ OPCODE_MOVZ, OPCODE_MOVZ_WIDE }, ParseJumpOp };
 const InstrDescr INSTR_DESCR_JNZ	= { &(JumpOp){ OPCODE_MOVNZ, OPCODE_MOVNZ_WIDE }, ParseJumpOp };
 const InstrDescr INSTR_DESCR_JC		= { &(JumpOp){ OPCODE_MOVC, OPCODE_MOVC_WIDE }, ParseJumpOp };
 const InstrDescr INSTR_DESCR_JNC	= { &(JumpOp){ OPCODE_MOVNC, OPCODE_MOVNC_WIDE }, ParseJumpOp };
+
 const InstrDescr INSTR_DESCR_CALL	= { &(JumpOp){ OPCODE_CALL, OPCODE_CALL_WIDE }, ParseJumpOp };
 
-const InstrDescr INSTR_DESCR_MOV	= { &(MovOp){ OPCODE_MOV, OPCODE_MOVC_WIDE }, ParseMovOp };
+const InstrDescr INSTR_DESCR_MOV	= { &(MovOp){ OPCODE_MOV, OPCODE_MOV_WIDE }, ParseMovOp };
 const InstrDescr INSTR_DESCR_MOVZ	= { &(MovOp){ OPCODE_MOVZ, OPCODE_MOVZ_WIDE }, ParseMovOp };
 const InstrDescr INSTR_DESCR_MOVNZ	= { &(MovOp){ OPCODE_MOVNZ, OPCODE_MOVNZ_WIDE }, ParseMovOp };
 const InstrDescr INSTR_DESCR_MOVC	= { &(MovOp){ OPCODE_MOVC, OPCODE_MOVC_WIDE }, ParseMovOp };
 const InstrDescr INSTR_DESCR_MOVNC	= { &(MovOp){ OPCODE_MOVNC, OPCODE_MOVNC_WIDE }, ParseMovOp };
 
 const InstrDescr INSTR_DESCR_MOVNZC		= { &(MovOp){ OPCODE_MOVNZC, OPCODE_MOVNZC_WIDE }, ParseMovOp };
+const InstrDescr INSTR_DESCR_MOVZONC	= { &(MovOp){ OPCODE_MOVZONC, OPCODE_MOVZONC_WIDE }, ParseMovOp };
 const InstrDescr INSTR_DESCR_MOVZOC		= { &(MovOp){ OPCODE_MOVZOC, OPCODE_MOVZOC_WIDE }, ParseMovOp };
 const InstrDescr INSTR_DESCR_MOVNZNC	= { &(MovOp){ OPCODE_MOVNZNC, OPCODE_MOVZOC_WIDE }, ParseMovOp };
 
@@ -175,6 +185,9 @@ const InstrDescr INSTR_DESCR_SHR	= { &(ShiftOp){
 	} }, ParseShiftOp };
 
 const InstrDescr INSTR_DESCR_CMP	= { (void*)&(CmpOp){ OPCODE_CMP, OPCODE_CMP_WIDE, OPCODE_CMP_REV_WIDE }, ParseCmpOp };
+
+const InstrDescr INSTR_DESCR_PUSH	= { (void*)&(Instr1Op){ OPCODE_PUSH, 1 }, Parse1Op };
+const InstrDescr INSTR_DESCR_POP	= { (void*)&(Instr1Op){ OPCODE_POP, 0 }, Parse1Op };
 
 ///// directives /////
 const DirectiveDescr DIR_DESCR_SECTION	= { NULL, ParseSection };
@@ -227,22 +240,37 @@ void ParserArgItClose(ParserArgIt* it, Parser* parser)
 
 const Token* ParserArgItNext(ParserArgIt* it, Parser* parser)
 {
+	const Token* token;
+
 	switch(it->state)
 	{
 	case ARG_IT_STATE_START:
 		it->state = ARG_IT_STATE_INTERIM;
-		return Next(parser);
+		token = Next(parser);
+		break;
 	case ARG_IT_STATE_INTERIM:
 		if(Next(parser)->descrId != TOKEN_DESCR_COMMA)
 		{
 			it->state = ARG_IT_STATE_END;
 			return NULL;
 		}
-		return Next(parser);
+		token = Next(parser);
+		break;
 	default:
 		EscFatal("Argument iterator has illegal state (%u)", it->state);
 		return NULL; //prevent warning
 	}
+
+	if(token->descrId == TOKEN_DESCR_LABEL_REF)
+	{
+		Expression expr;
+		expr.name = token->strValue;
+		expr.nameLen = ScannerStrLen(parser->scanner);
+		expr.address = parser->pc + 1;
+		ObjWriteExpr(parser->objWriter, &expr);
+	}
+
+	return token;
 }
 
 const Token* ParserArgItNextExpect(ParserArgIt* it, Parser* parser, TokenDescrId expected)
@@ -527,7 +555,7 @@ static void ParseShiftOp(const void* implData, Parser* parser, ParserArgIt* argI
 		ParserError(parser, "Third operand of shift instruction should be a number between 1 and 15 (inclusive)");
 	}
 
-	instr->opcode = op->ops[n];
+	instr->opcode = op->ops[n - 1];
 	instr->wide = 0;
 }
 
@@ -549,27 +577,38 @@ static void ParseCmpOp(const void* implData, Parser* parser, ParserArgIt* argIt,
 		}
 		else if(GetTokenDescr(token->descrId)->tokenClass == TOKEN_CLASS_VALUE)	//reg, imm
 		{
-			instr->operands[3] = token->intValue;
-			instr->wide = 1;
-			instr->opcode = op->opcodeRegImm;
+			EscFatal("cmp reg, imm not supported by CPU yet");
+//			instr->operands[3] = token->intValue;
+//			instr->wide = 1;
+//			instr->opcode = op->opcodeRegImm;
 		}
 		else
 		{
 			UnexpectedToken(parser);
 		}
 	}
-	else if(GetTokenDescr(token->descrId)->tokenClass == TOKEN_CLASS_VALUE)	//imm, ?
+	else if(GetTokenDescr(token->descrId)->tokenClass == TOKEN_CLASS_VALUE)	//imm, reg
 	{
-		instr->operands[3] = token->intValue;
-		token = ParserArgItNextExpect(argIt, parser, TOKEN_DESCR_REGISTER_REF);
-		instr->operands[1] = token->intValue;
-		instr->wide = 1;
-		instr->opcode = op->opcodeImmReg;
+		EscFatal("cmp imm, reg not supported by CPU yet");
+//		instr->operands[3] = token->intValue;
+//		token = ParserArgItNextExpect(argIt, parser, TOKEN_DESCR_REGISTER_REF);
+//		instr->operands[1] = token->intValue;
+//		instr->wide = 1;
+//		instr->opcode = op->opcodeImmReg;
 	}
 	else
 	{
 		UnexpectedToken(parser);
 	}
+}
+
+static void Parse1Op(const void* implData, Parser* parser, ParserArgIt* argIt, Instruction* instr)
+{
+	const Instr1Op* op = (const Instr1Op*)implData;
+	const Token* token = ParserArgItNextExpect(argIt, parser, TOKEN_DESCR_REGISTER_REF);
+	instr->operands[op->operandIndex] = token->intValue;
+	instr->opcode = op->opcode;
+	instr->wide = 0;
 }
 
 static void ParseSection(const void* implData, Parser* parser, ParserArgIt* argIt)
@@ -594,6 +633,8 @@ static void ParseSection(const void* implData, Parser* parser, ParserArgIt* argI
 		UnexpectedToken(parser);
 		break;
 	}
+
+	parser->pc = 0;
 }
 
 static void ParseDataSection(Parser* parser, ParserArgIt* argIt)

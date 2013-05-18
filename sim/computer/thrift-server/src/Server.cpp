@@ -1,4 +1,4 @@
-#include "hello-gen/HelloService.h"
+#include "service/Service.h"
 #include <thrift/protocol/TBinaryProtocol.h>
 #include <thrift/server/TSimpleServer.h>
 //#include <thrift/server/TNonblockingServer.h>
@@ -19,56 +19,116 @@ using namespace ::apache::thrift::server;
 
 using boost::shared_ptr;
 
-using namespace ::Hello;
+using namespace ::esc64sim;
 
+///// thrift server /////
 static const int PORT = 9090;
+static boost::thread* serviceThread = NULL;
 
-class HelloServiceHandler : virtual public HelloServiceIf
+class ServiceImpl : virtual public ServiceIf
 {
 public:
-	HelloServiceHandler() { }
-	void sayHello(const std::string& name);
-	void getHello(std::string& result, const std::string& name);
+	ServiceImpl() { }
+	State::type getState();
+	void start();
+	void stop();
+	void pause();
+	void step();
+	void getRegister(std::vector<int16_t> & _return, const int32_t offset, const int32_t size);
+	void getMemory(std::vector<int16_t> & _return, const int32_t offset, const int32_t size);
 };
 
 static void ServerThreadProc();
-static int TickCompile(char*user_data);
-static int TickCall(char*user_data);
-static void TickRegister();
 
-void (*vlog_startup_routines[])() =
+///// simulation handles /////
+//TODO registers
+//TODO memory
+
+///// verilog tasks /////
+static int CompileTfDummy(char* user_data);
+static int TickTask(char* unused);
+static int PrintNumTask(char* unused);
+static int StartServerTask(char* unused);
+static int SetHandlesTask(char* unused);
+static void RegisterTasks();
+
+static const struct VerilogTask_
 {
-	TickRegister
+	const char* name;
+	PLI_INT32 (*calltf)(PLI_BYTE8*);
+} VERILOG_TASKS[] =
+{
+	{ "$tick", TickTask },
+	{ "$print_add", PrintNumTask },
+	{ "$start_thrift_server", StartServerTask },
+	{ "$set_handles", SetHandlesTask }
 };
 
-int main(int argc, char** argv)
+static const size_t VERILOG_TASKS_SIZE = sizeof VERILOG_TASKS / sizeof (VerilogTask_);
+void (*vlog_startup_routines[])() = { RegisterTasks, 0 };
+
+
+///// verilog utilities /////
+struct VpiIterator
 {
-	std::cout << "Starting server thread..." << std::endl;
-	boost::thread serverThread(ServerThreadProc);
+	vpiHandle iterator;
 
-	std::cout << "Joining server thread..." << std::endl;
-	serverThread.join();
+	VpiIterator(PLI_INT32 type, vpiHandle ref);
+	~VpiIterator();
+	vpiHandle Next();
+};
 
-	std::cout << "Exit" << std::endl;
-	return 0;
+struct ArgumentIterator
+{
+	struct t_vpi_value argValue;
+	vpiHandle argHandle;
+	VpiIterator* it;
+
+	ArgumentIterator(VpiIterator* it);
+	bool Next(PLI_INT32 format);
+};
+
+///// implementation /////
+State::type ServiceImpl::getState()
+{
+	return State::STOPPED;
 }
 
-void HelloServiceHandler::sayHello(const std::string& name)
+void ServiceImpl::start()
 {
-	std::cout << "Hello " << name << "!" << std::endl;
+	//TODO
 }
 
-void HelloServiceHandler::getHello(std::string& result, const std::string& name)
+void ServiceImpl::stop()
 {
-	std::stringstream ss;
-	ss << "Hello " << name << "!";
-	result = ss.str();
+	//TODO
+}
+
+void ServiceImpl::pause()
+{
+	//TODO
+}
+
+void ServiceImpl::step()
+{
+	//TODO
+}
+
+void ServiceImpl::getRegister(std::vector<int16_t> & _return, const int32_t offset, const int32_t size)
+{
+	//TODO
+}
+
+void ServiceImpl::getMemory(std::vector<int16_t> & _return, const int32_t offset, const int32_t size)
+{
+	//TODO
 }
 
 static void ServerThreadProc()
 {
-	shared_ptr<HelloServiceHandler> handler(new HelloServiceHandler());
-	shared_ptr<TProcessor> processor(new HelloServiceProcessor(handler));
+	//TODO use TNonBlockingServer
+	shared_ptr<ServiceImpl> handler(new ServiceImpl());
+	shared_ptr<TProcessor> processor(new ServiceProcessor(handler));
 	shared_ptr<TServerTransport> serverTransport(new TServerSocket(PORT));
 	shared_ptr<TTransportFactory> transportFactory(new TBufferedTransportFactory());
 	shared_ptr<TProtocolFactory> protocolFactory(new TBinaryProtocolFactory());
@@ -77,29 +137,100 @@ static void ServerThreadProc()
 	server.serve();
 }
 
-void TickRegister()
+static void RegisterTasks()
 {
-      s_vpi_systf_data tfTick;
+	for(size_t i = 0; i < VERILOG_TASKS_SIZE; ++i)
+	{
+		const struct VerilogTask_* task = &VERILOG_TASKS[i];
+		s_vpi_systf_data tfTick;
 
-      tfTick.type      = vpiSysTask;
-      tfTick.tfname    = "$tick";
-      tfTick.calltf    = TickCall;
-      tfTick.compiletf = TickCompile;
-      tfTick.sizetf    = 0;
-      tfTick.user_data = 0;
-      vpi_register_systf(&tfTick);
-      
-      boost::thread serverThread(ServerThreadProc);
+		tfTick.type      = vpiSysTask;
+		tfTick.tfname    = task->name;
+		tfTick.calltf    = task->calltf;
+		tfTick.compiletf = CompileTfDummy;
+		tfTick.sizetf    = 0;
+		tfTick.user_data = 0;
+
+		vpi_register_systf(&tfTick);
+	}
 }
 
-
-static int TickCompile(char* unused)
+VpiIterator::VpiIterator(PLI_INT32 type, vpiHandle ref) :
+		iterator(NULL)
 {
+	iterator = vpi_iterate(type, ref);
+	assert(iterator);
+}
+
+VpiIterator::~VpiIterator()
+{
+	if(iterator != NULL)
+	{
+		vpi_free_object(iterator);
+	}
+}
+
+vpiHandle VpiIterator::Next()
+{
+	return vpi_scan(iterator);
+}
+
+ArgumentIterator::ArgumentIterator(VpiIterator* it) :
+		argValue(),
+		argHandle(NULL),
+		it(it)
+{
+}
+
+bool ArgumentIterator::Next(PLI_INT32 format)
+{
+	argValue.format = format;
+	argHandle = it->Next();
+	if(argHandle != NULL)
+	{
+		vpi_get_value(argHandle, &argValue);
+		return true;
+	}
+
+	return false;
+}
+
+static int CompileTfDummy(char* user_data)
+{
+	return 0; //does nothing
+}
+
+static int TickTask(char* unused)
+{
+	//TODO
 	return 0;
 }
 
-static int TickCall(char* unused)
+static int PrintNumTask(char* unused)
 {
+	vpiHandle systf = vpi_handle(vpiSysTfCall, NULL);
+	VpiIterator it(vpiArgument, systf);
+	ArgumentIterator argIt(&it);
+
+	assert(argIt.Next(vpiIntVal));
+	PLI_INT32 a = argIt.argValue.value.integer;
+	assert(argIt.Next(vpiIntVal));
+	PLI_INT32 b = argIt.argValue.value.integer;
+
+	vpi_printf("a(%d) + b(%d) = %d\n", a, b, a + b);
+
 	return 0;
 }
 
+static int StartServerTask(char* unused)
+{
+	assert(serviceThread == NULL);
+	serviceThread = new boost::thread(ServerThreadProc);
+	return 0;
+}
+
+static int SetHandlesTask(char* unused)
+{
+	//TODO
+	return 0;
+}
