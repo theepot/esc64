@@ -1,6 +1,8 @@
 #ifndef OPCODES_INCLUDED
 #define OPCODES_INCLUDED
 
+#include <esc64asm/esctypes.h>
+
 #define OPCODE_RESET			0x00
 #define OPCODE_ADD				0x01
 #define OPCODE_ADC				0x02
@@ -82,5 +84,11 @@
 #define OPCODE_POP				0x5C
 #define OPCODE_HALT				0x7F
 
+#define MAX_NO_OPCODES			0x80
+
+typedef uword_t opcode_t;
+
+void OpcodeTableInit(void);
+const char* GetOpcodeName(opcode_t opcode);
 
 #endif

@@ -25,7 +25,8 @@ set(
 	${SOURCE_DIR}/symtable.c
 	${SOURCE_DIR}/tokendescr.c
 	${SOURCE_DIR}/freelist.c
-	${SOURCE_DIR}/escerror.c)
+	${SOURCE_DIR}/escerror.c
+	${SOURCE_DIR}/opcodes.c)
 
 set(
 	AS_SOURCES
@@ -37,8 +38,7 @@ set(
 
 set(
 	OBJDUMP_SOURCES
-	${SOURCE_DIR}/objdump.c
-	${SOURCE_DIR}/opcodetrans.c)
+	${SOURCE_DIR}/objdump.c)
 
 set(
 	UNIT_TEST_SOURCES
@@ -54,8 +54,7 @@ set(
 
 set(
 	EXEDUMP_SOURCES
-	${SOURCE_DIR}/exedump.c
-	${SOURCE_DIR}/opcodetrans.c)
+	${SOURCE_DIR}/exedump.c)
 
 set(
 	EXETOLST_SOURCES

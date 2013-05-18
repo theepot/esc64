@@ -74,7 +74,6 @@ const Token* ParserArgItNext(ParserArgIt* it, Parser* parser);
 const Token* ParserArgItNextExpect(ParserArgIt* it, Parser* parser, TokenDescrId expected);
 const Token* ParserArgItNextExpectClass(ParserArgIt* it, Parser* parser, TokenClass tClass);
 
-typedef byte_t opcode_t;
 typedef uword_t operand_t;
 
 typedef enum InstrArgType_
