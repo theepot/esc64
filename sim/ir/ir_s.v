@@ -22,7 +22,7 @@ module instructionRegister(clock, notLoad, in, outOpcode, outOp0, outOp1, outOp2
 	output [2:0] outOp0, outOp1, outOp2;
 	wire [2:0] outOp0, outOp1, outOp2;
 	
-	wire [16:0] regOut;
+	wire [15:0] regOut;
 	
 	octRegister_74377 regH(clock, notLoad, in[15:8], regOut[15:8]);
 	octRegister_74377 regL(clock, notLoad, in[7:0], regOut[7:0]);

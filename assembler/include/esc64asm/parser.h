@@ -41,20 +41,11 @@
 //		Number:
 //			token<number>
 
-typedef struct Parser_
-{
-	Scanner* scanner;
-	ObjectWriter* objWriter;
-	Token curToken;
-	uword_t pc;
-	unsigned line;
-} Parser;
-
-void ParserInit(Parser* parser, Scanner* scanner, ObjectWriter* objWriter);
-void Parse(Parser* parser);
-void ParserExpect(Parser* parser, TokenDescrId expected);
-void ParserExpectClass(Parser* parser, TokenClass tClass);
-__attribute__((noreturn)) void ParserError(Parser* parser, const char* errMsg);
+void ParserInit(ObjectWriter* objWriter);
+void Parse(void);
+void ParserExpect(TokenDescrId expected);
+void ParserExpectClass(TokenClass tClass);
+__attribute__((noreturn)) void ParserError(const char* errMsg);
 
 typedef enum ArgItState_
 {
@@ -69,12 +60,11 @@ typedef struct ParserArgIt_
 } ParserArgIt;
 
 void ParserArgItInit(ParserArgIt* it);
-void ParserArgItClose(ParserArgIt* it, Parser* parser);
-const Token* ParserArgItNext(ParserArgIt* it, Parser* parser);
-const Token* ParserArgItNextExpect(ParserArgIt* it, Parser* parser, TokenDescrId expected);
-const Token* ParserArgItNextExpectClass(ParserArgIt* it, Parser* parser, TokenClass tClass);
+void ParserArgItClose(ParserArgIt* it);
+const Token* ParserArgItNext(ParserArgIt* it);
+const Token* ParserArgItNextExpect(ParserArgIt* it, TokenDescrId expected);
+const Token* ParserArgItNextExpectClass(ParserArgIt* it, TokenClass tClass);
 
-typedef byte_t opcode_t;
 typedef uword_t operand_t;
 
 typedef enum InstrArgType_

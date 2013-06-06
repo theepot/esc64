@@ -1,6 +1,8 @@
 #ifndef OPCODES_INCLUDED
 #define OPCODES_INCLUDED
 
+#include <esc64asm/esctypes.h>
+
 #define OPCODE_RESET			0x00
 #define OPCODE_ADD				0x01
 #define OPCODE_ADC				0x02
@@ -51,7 +53,7 @@
 #define OPCODE_MOVNZONC			0x37
 #define OPCODE_MOVZC			0x38
 #define OPCODE_MOVZ				0x3A
-#define OPCODE_MOVZZONC			0x3B
+#define OPCODE_MOVZONC			0x3B
 #define OPCODE_MOVC				0x3C
 #define OPCODE_MOVNZOC			0x3D
 #define OPCODE_MOVZOC			0x3E
@@ -82,5 +84,11 @@
 #define OPCODE_POP				0x5C
 #define OPCODE_HALT				0x7F
 
+#define MAX_NO_OPCODES			0x80
+
+typedef uword_t opcode_t;
+
+void OpcodeTableInit(void);
+const char* GetOpcodeName(opcode_t opcode);
 
 #endif

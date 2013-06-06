@@ -405,14 +405,14 @@ static void EmitSection(Linker* linker, ObjectReader* objReader, SectionLinkHand
 		LinkSection(linker, objReader, section, localSymTable, data);
 
 #ifdef ESC_DEBUG
-		puts("EmitSection() DATA DUMP BEGIN");
-		printf("addr=0x%04X; sz=0x%04X\n", section->address, section->size);
-		size_t i;
-		for(i = 0; i < section->size; ++i)
-		{
-			printf("0x%04X\n", NTOH_WORD(data[i]));
-		}
-		puts("EmitSection() DATA DUMP END");
+//		puts("EmitSection() DATA DUMP BEGIN");
+//		printf("addr=0x%04X; sz=0x%04X\n", section->address, section->size);
+//		size_t i;
+//		for(i = 0; i < section->size; ++i)
+//		{
+//			printf("0x%04X\n", NTOH_WORD(data[i]));
+//		}
+//		puts("EmitSection() DATA DUMP END");
 #endif
 
 		ExeWriteData(linker->exeWriter, section->address, section->size, data);

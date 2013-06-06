@@ -2,9 +2,9 @@
 
 .SECONDARY:
 
-PROGRAM		:= rpnread
+PROGRAM		:= 
 LST			:= $(PROGRAM).lst
-OBJECTS		:= read.o
+OBJECTS		:= 
 PP			:= $(foreach F,$(OBJECTS),$(subst .o,.pp.s,$(F)))
 
 .PHONY: all

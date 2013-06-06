@@ -12,19 +12,16 @@ int main(int argc, char** argv)
 
 	ReservedWordsInit();
 
-	Scanner scanner;
-	ScannerInit(&scanner, asmPath);
+	ScannerInit(asmPath);
 
 	ObjectWriter objWriter;
 	ObjectWriterInit(&objWriter, objPath);
 
-	Parser parser;
-	ParserInit(&parser, &scanner, &objWriter);
-
-	Parse(&parser);
+	ParserInit(&objWriter);
+	Parse();
 
 	ObjectWriterClose(&objWriter);
-	ScannerClose(&scanner);
+	ScannerClose();
 
 	return 0;
 }

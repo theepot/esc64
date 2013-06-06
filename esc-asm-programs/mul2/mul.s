@@ -13,14 +13,14 @@
 	mov		TOT, 0
 	mov		pc, cond
 loop:
-	shr		MULTIPLIER, MULTIPLIER
-	jnc		pc, skip_add
+	shr		MULTIPLIER, MULTIPLIER, 1
+	jnc		skip_add
 	add		TOT, TOT, MULTIPLICAND
 skip_add:
-	shl		MULTIPLICAND, MULTIPLICAND
+	shl		MULTIPLICAND, MULTIPLICAND, 1
 cond:
 	and		MULTIPLIER, MULTIPLIER, MULTIPLIER
-	jnz		pc, loop
+	jnz		loop
 	
 	mov		r0, TOT
 	mov		pc, lr

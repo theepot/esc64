@@ -19,6 +19,30 @@ module sram(addr, data, notOE, notWE, notCS);
 	
 	reg [ADDR_WIDTH-1:0] addr_latch;
 
+	function maybe_high;
+	input x;
+	begin
+		maybe_high = (^x === 1'bx || x === 1'b1);
+	end
+	endfunction
+	
+	function maybe_low;
+	input x;
+	begin
+		maybe_low = (^x === 1'bx || x === 1'b0);
+	end
+	endfunction
+	
+	task test_state;
+	begin
+		if((^notCS === 1'bx && (maybe_low(notWE) || maybe_low(notOE)))
+		|| (notCS === 1'b0 && ((^notWE === 1'bx || ^notOE === 1'bx) || (notWE === 1'b0 && notOE === 1'b0))))
+		begin
+			$display("warning: in sram: notCS=%X; notWE=%X; notOE=%X", notCS, notWE, notOE);
+		end
+	end
+	endtask
+
 	assign #(55) data = (!notCS && !notOE) ? mem[addr] : 16'bzzzzzzzzzzzzzzzz;
 	
 	initial begin
@@ -35,7 +59,6 @@ module sram(addr, data, notOE, notWE, notCS);
 	
 	always @ (negedge doWrite) begin
 		mem[addr] = data;
-
 	end
 
 endmodule

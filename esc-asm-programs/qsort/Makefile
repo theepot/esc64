@@ -2,9 +2,9 @@
 
 .SECONDARY:
 
-PROGRAM		:= rpnread
+PROGRAM		:= qsort-test
 LST			:= $(PROGRAM).lst
-OBJECTS		:= read.o
+OBJECTS		:= qsort.o test.o
 PP			:= $(foreach F,$(OBJECTS),$(subst .o,.pp.s,$(F)))
 
 .PHONY: all
