@@ -33,7 +33,7 @@ typedef struct
 	int addr_previous;
 
 	int current_at_op_entry;
-	int op_entry_zero_carry_mask;
+	int op_entry_zero_carry_flags;
 } uassembler;
 
 typedef enum next_sel
@@ -63,7 +63,7 @@ void goto_address(uassembler* uasm, int address);
 void goto_reset(uassembler* uasm);
 void goto_fetch(uassembler* uasm);
 void goto_next_free(uassembler* uasm);
-void goto_op_entry(uassembler* uasm, int opcode, int carry_zero_mask);
+void goto_op_entry(uassembler* uasm, int opcode, int carry_zero_flags);
 void copy_fields_from_previous(uassembler* uasm); //TODO: remove. this is deprecated
 void check_current_addr(uassembler* uasm);
 void print_state(uassembler* uasm, FILE* f);
