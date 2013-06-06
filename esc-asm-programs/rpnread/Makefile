@@ -2,9 +2,9 @@
 
 .SECONDARY:
 
-PROGRAM		:= program
+PROGRAM		:= rpnread
 LST			:= $(PROGRAM).lst
-OBJECTS		:= main.o div.o
+OBJECTS		:= read.o
 PP			:= $(foreach F,$(OBJECTS),$(subst .o,.pp.s,$(F)))
 
 .PHONY: all
@@ -24,7 +24,7 @@ $(PROGRAM): $(OBJECTS)
 	esc-ln $@ $^
 
 %.pp.s: %.s
-	gpp -n -o $@ $^
+	gpp -n +c ";" "\n" -o $@ $^
 
 %.o: %.pp.s
 	esc-as $@ $^

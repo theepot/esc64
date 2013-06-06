@@ -1,4 +1,4 @@
-#include "service/Service.h"
+#include "service/SimService.h"
 #include <thrift/protocol/TBinaryProtocol.h>
 #include <thrift/server/TSimpleServer.h>
 //#include <thrift/server/TNonblockingServer.h>
@@ -19,17 +19,17 @@ using namespace ::apache::thrift::server;
 
 using boost::shared_ptr;
 
-using namespace ::esc64sim;
+using namespace ::esc64simsrv;
 
 ///// thrift server /////
 static const int PORT = 9090;
 static boost::thread* serviceThread = NULL;
 
-class ServiceImpl : virtual public ServiceIf
+class ServiceImpl : virtual public SimServiceIf
 {
 public:
 	ServiceImpl() { }
-	State::type getState();
+	SimState::type getState();
 	void start();
 	void stop();
 	void pause();
@@ -89,9 +89,9 @@ struct ArgumentIterator
 };
 
 ///// implementation /////
-State::type ServiceImpl::getState()
+SimState::type ServiceImpl::getState()
 {
-	return State::STOPPED;
+	return SimState::STOPPED;
 }
 
 void ServiceImpl::start()
@@ -128,7 +128,7 @@ static void ServerThreadProc()
 {
 	//TODO use TNonBlockingServer
 	shared_ptr<ServiceImpl> handler(new ServiceImpl());
-	shared_ptr<TProcessor> processor(new ServiceProcessor(handler));
+	shared_ptr<TProcessor> processor(new SimServiceProcessor(handler));
 	shared_ptr<TServerTransport> serverTransport(new TServerSocket(PORT));
 	shared_ptr<TTransportFactory> transportFactory(new TBufferedTransportFactory());
 	shared_ptr<TProtocolFactory> protocolFactory(new TBinaryProtocolFactory());

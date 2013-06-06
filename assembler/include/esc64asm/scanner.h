@@ -1,11 +1,16 @@
 #ifndef SCANNER_INCLUDED
 #define SCANNER_INCLUDED
 
-//TODO strings should be handled differently. maybe have char arrays where element 0 is the length of the string (i.e.: pascal-strings)
-//and the actual string starts at element 1. would it get a null terminator?
+//TODO strings should be handled differently. maybe prefix-strings?
+
+//TODO	maybe use a string pool to remember all past symbols
+//		the parser would have to clear it explicitly
+//		would benefit expression parsing
+//		might be problematic when buffering symbols that aren't label references
 
 #include <stdio.h>
 #include <esc64asm/tokendescr.h>
+#include <esc64asm/pstring.h>
 
 #define SCANNER_BUF_SIZE 64
 
@@ -41,14 +46,6 @@ DecDigit:
 
 */
 
-typedef struct Scanner_
-{
-	FILE* stream;
-	int curChar;
-	char buf[SCANNER_BUF_SIZE];
-	size_t bufIndex;
-} Scanner;
-
 //TODO token should have length of its string value
 typedef struct Token_
 {
@@ -56,22 +53,23 @@ typedef struct Token_
 	TokenDescrId descrId;
 	union
 	{
-		const char* strValue;
+//		const char* strValue;
+		PString* strValue;
 		int intValue;
 	};
 } Token;
 
 void ScannerStaticInit(void);
-void ScannerInit(Scanner* scanner, const char* filePath);
-void ScannerClose(Scanner* scanner);
-void ScannerNext(Scanner* scanner, Token*  token);
+void ScannerInit(const char* filePath);
+void ScannerClose(void);
+void ScannerNext(Token* token);
 /**
  * @brief			Get length of last read token. Can be used to get the length of a read symbol for example
  * @param scanner	Scanner
  * @return			Length of last read token
  */
-size_t ScannerStrLen(Scanner* scanner);
+//size_t ScannerStrLen(void);
 void ScannerDumpToken(FILE* stream, const Token* token);
-void ScannerDumpPretty(FILE* stream, Scanner* scanner);
+void ScannerDumpPretty(FILE* stream);
 
 #endif

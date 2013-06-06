@@ -1,7 +1,7 @@
-namespace cpp esc64sim
-namespace java esc64.sim
+namespace cpp esc64simsrv
+namespace java esc64.sim.srv
 
-enum State
+enum SimState
 {
 	STOPPED,
 	PAUSED,
@@ -9,9 +9,9 @@ enum State
 	STEPPING,
 }
 
-service Service
+service SimService
 {
-	State getState(),
+	SimState getState(),
 	void start(),
 	void stop(),
 	void pause(),

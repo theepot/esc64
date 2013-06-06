@@ -2,11 +2,11 @@
 
 #include <string.h>
 
-static const char* opcodeNameTable[MAX_NO_OPCODES];
+static const char* opcodeNameTable[MAX_NO_OPCODES] = { 0 };
 
 void OpcodeTableInit(void)
 {
-	memset(opcodeNameTable, 0, sizeof opcodeNameTable);
+	//memset(opcodeNameTable, 0, sizeof opcodeNameTable);
 	opcodeNameTable[OPCODE_RESET]	= "reset";
 	opcodeNameTable[OPCODE_ADD]		= "add";
 	opcodeNameTable[OPCODE_ADC]		= "adc";
@@ -47,7 +47,7 @@ void OpcodeTableInit(void)
 	opcodeNameTable[OPCODE_SHR12]	= "shr12";
 	opcodeNameTable[OPCODE_SHR13]	= "shr13";
 	opcodeNameTable[OPCODE_SHR14]	= "shr14";
-	opcodeNameTable[OPCODE_SHR15]		= "shr15";
+	opcodeNameTable[OPCODE_SHR15]	= "shr15";
 	opcodeNameTable[OPCODE_MOV]			= "mov";
 	opcodeNameTable[OPCODE_MOVNZNC]		= "movnznc";
 	opcodeNameTable[OPCODE_MOVZNC]		= "movznc";

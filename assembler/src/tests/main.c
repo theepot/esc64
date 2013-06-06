@@ -4,6 +4,7 @@
 #include <unistd.h>
 
 #include <esc64asm/reswords.h>
+#include <esc64asm/objcode.h>
 
 extern void TestScanner(const char* asmFile);
 extern int TestSymTable(void);
@@ -18,20 +19,28 @@ extern void TestFreelist(void);
 #error no base path for test files defined
 #endif
 
+extern void TestParseExpression(void);
+
 int main(int argc, char** argv)
 {
 	clock_t start = clock();
 
 	ReservedWordsInit();
 
-	TestScanner(ESC_TEST_FILE_BASE_PATH"/scanner_test.asm");
-	TestSymTable();
-	TestReservedWords();
-	TestParser(ESC_TEST_FILE_BASE_PATH"/scanner_test.asm", ESC_TEST_FILE_BASE_PATH"/parser_test.o");
-	TestRecords(ESC_TEST_FILE_BASE_PATH"/records.bin");
-	TestObjCode(ESC_TEST_FILE_BASE_PATH"/test.o");
-	TestExecWriteRead(ESC_TEST_FILE_BASE_PATH"/assembler_exec_test");
-	TestFreelist();
+//	TestScanner(ESC_TEST_FILE_BASE_PATH"/scanner_test.asm");
+//	TestSymTable();
+//	TestReservedWords();
+//	TestParser(ESC_TEST_FILE_BASE_PATH"/scanner_test.asm", ESC_TEST_FILE_BASE_PATH"/parser_test.o");
+//	TestRecords(ESC_TEST_FILE_BASE_PATH"/records.bin");
+//	TestObjCode(ESC_TEST_FILE_BASE_PATH"/test.o");
+//	TestExecWriteRead(ESC_TEST_FILE_BASE_PATH"/assembler_exec_test");
+//	TestFreelist();
+
+	ObjectWriter writer;
+	ObjectWriterInit(&writer, "/home/lukas/exp.o");
+	ScannerInit("/home/lukas/exp.txt");
+	ParserInit(&writer);
+	TestParseExpression();
 
 	clock_t stop = clock();
 	clock_t ms = (stop - start) / 1000;

@@ -26,7 +26,8 @@ set(
 	${SOURCE_DIR}/tokendescr.c
 	${SOURCE_DIR}/freelist.c
 	${SOURCE_DIR}/escerror.c
-	${SOURCE_DIR}/opcodes.c)
+	${SOURCE_DIR}/opcodes.c
+	${SOURCE_DIR}/mempool.c)
 
 set(
 	AS_SOURCES

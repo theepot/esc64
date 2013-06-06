@@ -9,8 +9,8 @@ SRC					=src
 SERVICE_GEN_DIR		=${SRC}/service
 SERVICE				=service.thrift
 SERVICE_TIMESTAMP	=service_timestamp
-SERVICE_GEN_SRC		=${SERVICE_GEN_DIR}/Service.cpp ${SERVICE_GEN_DIR}/Service_server.skeleton.cpp ${SERVICE_GEN_DIR}/service_constants.cpp ${SERVICE_GEN_DIR}/service_types.cpp
-OBJS				=Service.o service_constants.o service_types.o Server.o
+SERVICE_GEN_SRC		=${SERVICE_GEN_DIR}/service_constants.cpp ${SERVICE_GEN_DIR}/service_constants.h ${SERVICE_GEN_DIR}/service_types.cpp ${SERVICE_GEN_DIR}/service_types.h ${SERVICE_GEN_DIR}/SimService.cpp ${SERVICE_GEN_DIR}/SimService.h ${SERVICE_GEN_DIR}/SimService_server.skeleton.cpp
+OBJS				=SimService.o service_constants.o service_types.o Server.o
 TARGET				=thriftserver.vpi
 
 # rules

@@ -18,7 +18,8 @@
 
 `include "../cpu/cpu.v"
 
-`define CLOCK_PERIOD 1600
+`define CLOCK_PERIOD		1600
+`define MAX_CLOCK_CYCLES	100000
 
 module computer();
 	reg [63:0] tick_counter;
@@ -36,7 +37,8 @@ module computer();
 		$dumpfile("computer.vcd");
 		$dumpvars(0);
 		
-		$print_add(10, 20);
+		//$print_add(10, 20);
+		$start_thrift_server();
 		
 		//cpu.status.r.out = 0;
 		tick_counter = 0;
@@ -44,17 +46,16 @@ module computer();
 		clock = 0;
 		#900 notReset = 1;
 
-		
-		#((`CLOCK_PERIOD / 2)*2*10000)
-		$display("ERROR: computer did not halt in 10000 cycles");
-		$finish;
+		//#((`CLOCK_PERIOD / 2)*2*`MAX_CLOCK_CYCLES)
+		//$display("ERROR: computer did not halt in %d cycles", `MAX_CLOCK_CYCLES);
+		//$finish;
 
 	end
 
 	always begin
 		$tick;
 		#(`CLOCK_PERIOD / 2) clock = ~clock;
-		tick_counter = tick_counter + 1;
+		/*tick_counter = tick_counter + 1;
 		if(cpu.irOpcode === 7'b1111111) begin
 			$display("halt @ tick %d", tick_counter / 2);
 			$display("dumping ram");
@@ -64,7 +65,7 @@ module computer();
 		if(cpu.error !== 2'b00) begin
 			$display("error %d @ tick %d", cpu.error, tick_counter / 2);
 			$finish;
-		end
+		end*/
 	end
 	
 	always @ (posedge clock) begin

@@ -7,72 +7,259 @@
 
 #include <esc64asm/hashset.h>
 #include <esc64asm/reswords.h>
+#include <esc64asm/escerror.h>
+#include <esc64asm/registers.h>
 
-static int Peek(Scanner* scanner);
-static int ReadRaw(Scanner* scanner);
-static int Read(Scanner* scanner);
+typedef uint16_t char_traits_t;
 
-static void ClearBuf(Scanner* scanner);
-static void PushBuf(Scanner* scanner, int c);
+#define CT_DESCR		(0xFF)
+#define CT_LETTER		(1 << 8)
+#define CT_DIGIT		(1 << 9)
+#define CT_OCT			(1 << 10)
+#define CT_HEX_LO		(1 << 11)
+#define CT_HEX_UP		(1 << 12)
+#define CT_SPACE		(1 << 13)
+#define CT_UNDERSCORE	(1 << 14)
+#define CT_RESCHAR		(1 << 15)
+#define CT_HEX_CHAR		(CT_DIGIT | CT_HEX_LO | CT_HEX_UP)
+#define CT_SYM_FIRST	(CT_LETTER | CT_UNDERSCORE)
+#define CT_SYM_REST		(CT_SYM_FIRST | CT_DIGIT)
 
-static void IgnoreWhitespaces(Scanner* scanner);
-static int IsWhiteSpace(int c);
+//#define DEF_CT_DESCR(d)	((d) & 0xFF)
 
-static int GetString(Scanner* scanner, Token *token);
-static int GetEscSeq(Scanner* scanner, int* subst);
-static int GetNumber(Scanner* scanner, Token* token);
-static void GetHex(Scanner* scanner, Token* token);
+#define CT_RES_AND			(CT_RESCHAR | 0)
+#define CT_RES_PAREN_OPEN	(CT_RESCHAR | 1)
+#define CT_RES_PAREN_CLOSE	(CT_RESCHAR | 2)
+#define CT_RES_PLUS			(CT_RESCHAR | 3)
+#define CT_RES_OR			(CT_RESCHAR | 4)
+#define CT_RES_NOT			(CT_RESCHAR | 5)
+#define CT_RES_COMMA		(CT_RESCHAR | 6)
+#define CT_RES_MINUS		(CT_RESCHAR | 7)
+#define CT_RES_DIVIDE		(CT_RESCHAR | 8)
+
+static TokenDescrId CT_RES_IDS[] =
+{
+	TOKEN_DESCR_AND,
+	TOKEN_DESCR_PAREN_OPEN,
+	TOKEN_DESCR_PAREN_CLOSE,
+	TOKEN_DESCR_PLUS,
+	TOKEN_DESCR_OR,
+	TOKEN_DESCR_NOT,
+	TOKEN_DESCR_COMMA,
+	TOKEN_DESCR_MINUS,
+	TOKEN_DESCR_DIVIDE
+};
+
+static TokenDescrId GetIdFromCt(char_traits_t ct);
+
+static char_traits_t CHAR_TRAITS[] =
+{
+	0, // NUL
+	0, // SOH
+	0, // STX
+	0, // ETX
+	0, // EOT
+	0, // ENQ
+	0, // ACK
+	0, // BEL
+	0, // BS
+	CT_SPACE, // HT
+	0, // LF
+	CT_SPACE, // VT
+	CT_SPACE, // FF
+	0, // CR
+	0, // SO
+	0, // SI
+	0, // DLE
+	0, // DC1
+	0, // DC2
+	0, // DC3
+	0, // DC4
+	0, // NAK
+	0, // SYN
+	0, // ETB
+	0, // CAN
+	0, // EM
+	0, // SUB
+	0, // ESC
+	0, // FS
+	0, // GS
+	0, // RS
+	0, // US
+	CT_SPACE, // SPACE
+	0, // !
+	0, // "
+	0, // #
+	0, // $
+	0, // %
+	CT_RES_AND, // &
+	0, // '
+	CT_RES_PAREN_OPEN, // (
+	CT_RES_PAREN_CLOSE, // )
+	0, // *
+	CT_RES_PLUS, // +
+	CT_RES_COMMA, // ,
+	CT_RES_MINUS, // -
+	0, // .
+	CT_RES_DIVIDE, // /
+	CT_DIGIT | CT_OCT, // 0
+	CT_DIGIT | CT_OCT, // 1
+	CT_DIGIT | CT_OCT, // 2
+	CT_DIGIT | CT_OCT, // 3
+	CT_DIGIT | CT_OCT, // 4
+	CT_DIGIT | CT_OCT, // 5
+	CT_DIGIT | CT_OCT, // 6
+	CT_DIGIT | CT_OCT, // 7
+	CT_DIGIT, // 8
+	CT_DIGIT, // 9
+	0, // :
+	0, // ;
+	0, // <
+	0, // =
+	0, // >
+	0, // ?
+	0, // @
+	CT_LETTER | CT_HEX_UP, // A
+	CT_LETTER | CT_HEX_UP, // B
+	CT_LETTER | CT_HEX_UP, // C
+	CT_LETTER | CT_HEX_UP, // D
+	CT_LETTER | CT_HEX_UP, // E
+	CT_LETTER | CT_HEX_UP, // F
+	CT_LETTER, // G
+	CT_LETTER, // H
+	CT_LETTER, // I
+	CT_LETTER, // J
+	CT_LETTER, // K
+	CT_LETTER, // L
+	CT_LETTER, // M
+	CT_LETTER, // N
+	CT_LETTER, // O
+	CT_LETTER, // P
+	CT_LETTER, // Q
+	CT_LETTER, // R
+	CT_LETTER, // S
+	CT_LETTER, // T
+	CT_LETTER, // U
+	CT_LETTER, // V
+	CT_LETTER, // W
+	CT_LETTER, // X
+	CT_LETTER, // Y
+	CT_LETTER, // Z
+	0, // [
+	0, // BACKSLASH
+	0, // ]
+	0, // ^
+	CT_UNDERSCORE, // _
+	0, // `
+	CT_LETTER | CT_HEX_LO, // a
+	CT_LETTER | CT_HEX_LO, // b
+	CT_LETTER | CT_HEX_LO, // c
+	CT_LETTER | CT_HEX_LO, // d
+	CT_LETTER | CT_HEX_LO, // e
+	CT_LETTER | CT_HEX_LO, // f
+	CT_LETTER, // g
+	CT_LETTER, // h
+	CT_LETTER, // i
+	CT_LETTER, // j
+	CT_LETTER, // k
+	CT_LETTER, // l
+	CT_LETTER, // m
+	CT_LETTER, // n
+	CT_LETTER, // o
+	CT_LETTER, // p
+	CT_LETTER, // q
+	CT_LETTER, // r
+	CT_LETTER, // s
+	CT_LETTER, // t
+	CT_LETTER, // u
+	CT_LETTER, // v
+	CT_LETTER, // w
+	CT_LETTER, // x
+	CT_LETTER, // y
+	CT_LETTER, // z
+	0, // {
+	CT_RES_OR, // |
+	0, // }
+	CT_RES_NOT, // ~
+	0, // DELETE
+};
+
+static char_traits_t GetCharTraits(int c);
+
+static FILE* stream_;
+static int curChar_;
+//static char buf_[SCANNER_BUF_SIZE];
+//static size_t bufIndex_;
+static Token* token_;
+
+static char bufMem_[PSTR_MEM_SIZE(SCANNER_BUF_SIZE)];
+static PString* buf_ = (PString*)bufMem_;
+
+static int Peek(void);
+static int ReadRaw(void);
+static int Read(void);
+
+static void ClearBuf(void);
+static void PushBuf(int c);
+
+static void IgnoreWhitespaces(void);
+
+static int GetString(void);
+static int GetEscSeq(int* subst);
+static int GetNumber(void);
+static void GetHex(void);
 static int GetHexDigit(int c, int* d);
-static void GetOct(Scanner* scanner, Token* token);
-static void GetDec(Scanner* scanner, Token* token);
+static void GetOct(void);
+static void GetDec(void);
 
-static int GetSymbol(Scanner* scanner, Token* token);
-static int BufferSymbol(Scanner* scanner);
-static void GetLabelDecl(Scanner* scanner, Token* token);
-static void GetLabelRef(Scanner* scanner, Token* token);
-static void GetDirective(Scanner* scanner, Token* token);
-static int GetRegisterRef(Scanner* scanner, Token* token);
-static int GetRegisterNumeric(Scanner* scanner, Token* token);
-static int GetOpcode(Scanner* scanner, Token* token);
-static int GetReservedSym(Scanner* scanner, Token* token);
+static int GetSymbol(void);
+static int BufferSymbol(void);
+static void GetLabelDecl(void);
+static void GetLabelRef(void);
+static void GetDirective(void);
+static int GetRegisterRef(void);
+static int GetRegisterNumeric(void);
+static int GetOpcode(void);
+static int GetReservedSym(void);
 
-static int GetReservedChar(Scanner* scanner, Token* token);
-static int GetEOL(Scanner* scanner, Token* token);
+static int GetReservedChar(void);
+static int GetEOL(void);
 
-__attribute__((noreturn)) static void ScannerError(Scanner* scanner, const char* errMsg);
+NORETURN static void ScannerError(const char* errMsg);
 
-void ScannerInit(Scanner* scanner, const char* filePath)
+void ScannerInit(const char* filePath)
 {
-	scanner->stream = fopen(filePath, "r");
-	assert(scanner->stream);
-	ClearBuf(scanner);
-	Read(scanner);
+	stream_ = fopen(filePath, "r");
+	assert(stream_);
+	ClearBuf();
+	Read();
 }
 
-void ScannerClose(Scanner* scanner)
+void ScannerClose(void)
 {
-	fclose(scanner->stream);
+	fclose(stream_);
 }
 
-void ScannerNext(Scanner* scanner, Token*  token)
+void ScannerNext(Token* token)
 {
-	ClearBuf(scanner);
-	IgnoreWhitespaces(scanner);
+	token_ = token;
+	ClearBuf();
+	IgnoreWhitespaces();
 
-	if(Peek(scanner) == EOF)
+	if(Peek() == EOF)
 	{
 		token->descrId = TOKEN_DESCR_EOF;
 	}
-	else if(GetString(scanner, token) && GetNumber(scanner, token) && GetSymbol(scanner, token) && GetReservedChar(scanner, token) && GetEOL(scanner, token))
+	else if(GetString() && GetNumber() && GetSymbol() && GetReservedChar() && GetEOL())
 	{
-		ScannerError(scanner, "Invalid sequence of characters");
+		ScannerError("Invalid sequence of characters");
 	}
 }
 
-size_t ScannerStrLen(Scanner* scanner)
-{
-	return scanner->bufIndex;
-}
+//size_t ScannerStrLen(void)
+//{
+//	return bufIndex_;
+//}
 
 void ScannerDumpToken(FILE* stream, const Token* token)
 {
@@ -80,7 +267,7 @@ void ScannerDumpToken(FILE* stream, const Token* token)
 	switch(tDescr->valueType)
 	{
 		case TOKEN_VALUE_TYPE_STRING:
-			fprintf(stream, "[%s:%s]", tDescr->name, token->strValue);
+			fprintf(stream, "[%s:%s]", tDescr->name, token->strValue->str); //TODO strValue->str is not 0-terminated
 			break;
 		case TOKEN_VALUE_TYPE_NUMBER:
 			fprintf(stream, "[%s:%d]", tDescr->name, token->intValue);
@@ -91,12 +278,12 @@ void ScannerDumpToken(FILE* stream, const Token* token)
 	}
 }
 
-void ScannerDumpPretty(FILE* stream, Scanner* scanner)
+void ScannerDumpPretty(FILE* stream)
 {
 	int line = 1;
 	Token token;
 	fprintf(stream, "line %04d:", line);
-	ScannerNext(scanner, &token);
+	ScannerNext(&token);
 	while(token.descrId != TOKEN_DESCR_EOF)
 	{
 		putc(' ', stream);
@@ -105,103 +292,120 @@ void ScannerDumpPretty(FILE* stream, Scanner* scanner)
 		{
 			fprintf(stream, "\nline %04d:", ++line);
 		}
-		ScannerNext(scanner, &token);
+		ScannerNext(&token);
 	}
 	putc(' ', stream);
 	ScannerDumpToken(stream, &token);
 }
 
-static int Peek(Scanner* scanner)
+static TokenDescrId GetIdFromCt(char_traits_t ct)
 {
-	return scanner->curChar;
+	size_t n = ct & CT_DESCR;
+#ifdef ESC_DEBUG
+	assert(ct & CT_RESCHAR);
+	assert(n < sizeof CT_RES_IDS / sizeof (TokenDescrId));
+#endif
+	return CT_RES_IDS[n];
 }
 
-static int ReadRaw(Scanner* scanner)
+static char_traits_t GetCharTraits(int c)
 {
-	return scanner->curChar = getc(scanner->stream);
+#ifdef ESC_DEBUG
+	assert(c == EOF || (c >= 0 && c < sizeof CHAR_TRAITS / sizeof (char_traits_t)));
+#endif
+	return c == EOF ? 0 : CHAR_TRAITS[c];
 }
 
-static int Read(Scanner* scanner)
+static int Peek(void)
+{
+	return curChar_;
+}
+
+static int ReadRaw(void)
+{
+	return curChar_ = getc(stream_);
+}
+
+static int Read(void)
 {	
-	int c = ReadRaw(scanner);
+	int c = ReadRaw();
 	if(c == ';')
 	{
-		while((c = ReadRaw(scanner)) != '\r' && c != '\n') continue;
+		while((c = ReadRaw()) != '\r' && c != '\n') continue;
 	}
 
 	return c;
 }
 
-static void ClearBuf(Scanner* scanner)
+static void ClearBuf(void)
 {
-	scanner->bufIndex = 0;
+//	bufIndex_ = 0;
+	buf_->size = 0;
 }
 
-static void PushBuf(Scanner* scanner, int c)
+static void PushBuf(int c)
 {
-	if(scanner->bufIndex >= SCANNER_BUF_SIZE)
+	if(buf_->size + 1 >= SCANNER_BUF_SIZE) //(bufIndex_ >= SCANNER_BUF_SIZE)
 	{
-		ScannerError(scanner, "Symbol buffer overflow");
+		ScannerError("Symbol buffer overflow");
 	}
 	
-	scanner->buf[scanner->bufIndex++] = c;
+//	buf_[bufIndex_++] = c;
+	buf_->str[buf_->size++] = c;
 }
 
-static void IgnoreWhitespaces(Scanner* scanner)
+static void IgnoreWhitespaces(void)
 {
-	int c = Peek(scanner);
-	while(IsWhiteSpace(c))
-	{
-		c = Read(scanner);
-	}
+	int c;
+	for(c = Peek(); GetCharTraits(c) & CT_SPACE; c = Read()) { }
 }
 
-static int IsWhiteSpace(int c)
-{
-	switch(c)
-	{
-		case ' ':
-		case '\v':
-		case '\t':
-		case '\f':
-			return 1;
-		default:
-			return 0;
-	}
-}
+//static int IsWhiteSpace(int c)
+//{
+//	switch(c)
+//	{
+//		case ' ':
+//		case '\v':
+//		case '\t':
+//		case '\f':
+//			return 1;
+//		default:
+//			return 0;
+//	}
+//}
 
-static int GetString(Scanner* scanner, Token *token)
+static int GetString(void)
 {
-	if(Peek(scanner) != '"')
+	if(Peek() != '"')
 	{
 		return -1;
 	}
 
-	int c = ReadRaw(scanner);
+	int c = ReadRaw();
 	while(c != '"')
 	{
 		if(c == '\\')
 		{
-			 if(!GetEscSeq(scanner, &c))
+			 if(!GetEscSeq(&c))
 			 {
-				 PushBuf(scanner, c);
+				 PushBuf(c);
 			 }
 			 continue;
 		}
 
-		PushBuf(scanner, c);
-		c = ReadRaw(scanner);
+		PushBuf(c);
+		c = ReadRaw();
 	}
 
-	token->descrId = TOKEN_DESCR_STRING;
-	token->strValue = scanner->buf;
+	token_->descrId = TOKEN_DESCR_STRING;
+	token_->strValue = buf_;
 
 	return 0;
 }
 
-static int GetEscSeq(Scanner* scanner, int* subst)
+static int GetEscSeq(int* subst)
 {
-	switch(ReadRaw(scanner))
+	switch(ReadRaw())
 	{
 		case 'a':	*subst = '\a'; break;
 		case 'b':	*subst = '\b'; break;
@@ -218,92 +422,94 @@ static int GetEscSeq(Scanner* scanner, int* subst)
 			//xNN where NN is a hexadecimal number of 2 digits
 			{
 				int a, b;
-				if(!GetHexDigit(ReadRaw(scanner), &a) && !GetHexDigit(ReadRaw(scanner), &b))
+				if(!GetHexDigit(ReadRaw(), &a) && !GetHexDigit(ReadRaw(), &b))
 				{
 					*subst = a * 16 + b;
 					break;
 				}
 			}
-			ScannerError(scanner, "Illegal `\\x' escape sequence");
+			ScannerError("Illegal `\\x' escape sequence");
 			break; //prevent warning
 		case '\r':
 			//escape CR or CRLF
-			if(ReadRaw(scanner) == '\n')
+			if(ReadRaw() == '\n')
 			{
-				ReadRaw(scanner);
+				ReadRaw();
 			}
 			return 0;
 		case '\n':
 			//escape LF
 			break;
 		default:
-			ScannerError(scanner, "Unknown escape sequence");
+			ScannerError("Unknown escape sequence");
 			break;
 	}
 
-	ReadRaw(scanner);
+	ReadRaw();
 	return 0;
 }
 
-static int GetNumber(Scanner* scanner, Token* token)
+static int GetNumber(void)
 {
-	int c = Peek(scanner);
+	int c = Peek();
 	if(c == '0')
 	{
-		c = Read(scanner);
+		c = Read();
 		if(c == 'x' || c == 'X')
 		{
-			c = Read(scanner);
-			if(!isdigit(c) && !(c >= 'a' && c <= 'f') && !(c >= 'A' && c <= 'F'))
+			c = Read();
+			char_traits_t ct = GetCharTraits(c);
+			if(!(ct & CT_HEX_CHAR)) //if(!isdigit(c) && !(c >= 'a' && c <= 'f') && !(c >= 'A' && c <= 'F'))
 			{
 				return -1;
 			}
-			GetHex(scanner, token);
+			GetHex();
 		}
 		else
 		{
-			GetOct(scanner, token);
+			GetOct();
 		}
 	}
 	else if(isdigit(c))
 	{
-		GetDec(scanner, token);
+		GetDec();
 	}
 	else
 	{
 		return -1;
 	}
 	
-	token->descrId = TOKEN_DESCR_NUMBER;
+	token_->descrId = TOKEN_DESCR_NUMBER;
 	return 0;
 }
 
-static void GetHex(Scanner* scanner, Token* token)
+static void GetHex(void)
 {
-	int c = Peek(scanner);
+	int c = Peek();
 	int d;
 	int num = 0;
 
 	while(!GetHexDigit(c, &d))
 	{
 		num = num * 16 + d;
-		c = Read(scanner);
+		c = Read();
 	}
 	
-	token->intValue = num;
+	token_->intValue = num;
 }
 
 static int GetHexDigit(int c, int* d)
 {
-	if(isdigit(c))
+	char_traits_t ct = GetCharTraits(c);
+	if(ct & CT_DIGIT) //if(isdigit(c))
 	{
 		*d = c - '0';
 	}
-	else if(c >= 'a' && c <= 'f')
+	else if(ct & CT_HEX_LO) //else if(c >= 'a' && c <= 'f')
 	{
 		*d = c - 'a' + 10;
 	}
-	else if(c >= 'A' && c <= 'F')
+	else if(ct & CT_HEX_UP) //else if(c >= 'A' && c <= 'F')
 	{
 		*d = c - 'A' + 10;
 	}
@@ -315,120 +521,116 @@ static int GetHexDigit(int c, int* d)
 	return 0;
 }
 
-static void GetOct(Scanner* scanner, Token* token)
+static void GetOct(void)
 {
-	int c = Peek(scanner);
+	int c = Peek();
 	int num = 0;
-	while(c <= '7' && c >= '0')
+	while(GetCharTraits(c) & CT_OCT) //while(c <= '7' && c >= '0')
 	{
 		num = num * 8 + c - '0';
-		c = Read(scanner);
+		c = Read();
 	}
-	token->intValue = num;
+	token_->intValue = num;
 }
 
-static void GetDec(Scanner* scanner, Token* token)
+static void GetDec(void)
 {
-	int c = Peek(scanner);
+	int c = Peek();
 	int num = 0;
-	while(isdigit(c))
+	while(GetCharTraits(c) & CT_DIGIT)
 	{
 		num = num * 10 + c - '0';
-		c = Read(scanner);
+		c = Read();
 	}
-	token->intValue = num;
+	token_->intValue = num;
 }
 
-static int GetSymbol(Scanner* scanner, Token* token)
+static int GetSymbol(void)
 {
-	if(Peek(scanner) == '.')
+	if(Peek() == '.')
 	{
-		Read(scanner);
-		if(BufferSymbol(scanner))
+		Read();
+		if(BufferSymbol())
 		{
 			return -1;
 		}
 
-		GetDirective(scanner, token);
+		GetDirective();
 
 		return 0;
 	}
 
-	if(BufferSymbol(scanner))
+	if(BufferSymbol())
 	{
 		return -1;
 	}
 
-	if(Peek(scanner) == ':')
+	if(Peek() == ':')
 	{
-		Read(scanner);
-		GetLabelDecl(scanner, token);
+		Read();
+		GetLabelDecl();
 		return 0;
 	}
-	else if(GetRegisterRef(scanner, token) && GetOpcode(scanner, token) && GetReservedSym(scanner, token))
+	else if(GetRegisterRef() && GetOpcode() && GetReservedSym())
 	{
-		GetLabelRef(scanner, token);
+		GetLabelRef();
 	}
 
 	return 0;
 }
 
-static int BufferSymbol(Scanner* scanner)
+static int BufferSymbol(void)
 {
-	int c = Peek(scanner);
+	int c = Peek();
 
-	if(c != '_' && !isalpha(c))
+	if(!(GetCharTraits(c) & CT_SYM_FIRST)) //if(c != '_' && !isalpha(c))
 	{
 		return -1;
 	}
 
 	do
 	{
-		PushBuf(scanner, c);
-		c = Read(scanner);
-	} while(c == '_' || isalnum(c));
+		PushBuf(c);
+		c = Read();
+	} while(GetCharTraits(c) & CT_SYM_REST); //while(c == '_' || isalnum(c));
 
 	return 0;
 }
 
-static void GetLabelDecl(Scanner* scanner, Token* token)
+static void GetLabelDecl(void)
 {
-	const char* name = scanner->buf;
-	if(FindReservedWord(name, ScannerStrLen(scanner)) != TOKEN_DESCR_INVALID)
+	if(FindReservedWord(buf_->str, buf_->size) != TOKEN_DESCR_INVALID)
 	{
-		ScannerError(scanner, "Declared label is reserved word");
+		ScannerError("Declared label is reserved word");
 	}
 
-	token->descrId = TOKEN_DESCR_LABEL_DECL;
-	token->strValue = name;
+	token_->descrId = TOKEN_DESCR_LABEL_DECL;
+	token_->strValue = buf_;
 }
 
-static void GetLabelRef(Scanner* scanner, Token* token)
+static void GetLabelRef(void)
 {
-	const char* name = scanner->buf;
-	if(FindReservedWord(name, ScannerStrLen(scanner)) != TOKEN_DESCR_INVALID)
+	if(FindReservedWord(buf_->str, buf_->size) != TOKEN_DESCR_INVALID)
 	{
-		ScannerError(scanner, "Referenced label is reserved word");
+		ScannerError("Referenced label is reserved word");
 	}
 
-	token->descrId = TOKEN_DESCR_LABEL_REF;
-	token->strValue = name;
+	token_->descrId = TOKEN_DESCR_LABEL_REF;
+	token_->strValue = buf_;
 }
 
-static void GetDirective(Scanner* scanner, Token* token)
+static void GetDirective(void)
 {
-	const char* name = scanner->buf;
-
-	TokenDescrId descrId = FindReservedWord(name, ScannerStrLen(scanner));
+	TokenDescrId descrId = FindReservedWord(buf_->str, buf_->size);
 	if(descrId == TOKEN_DESCR_INVALID || GetTokenDescr(descrId)->tokenClass != TOKEN_CLASS_DIRECTIVE)
 	{
-		ScannerError(scanner, "Illegal directive");
+		ScannerError("Illegal directive");
 	}
 
-	token->descrId = descrId;
+	token_->descrId = descrId;
 }
 
-static int GetRegisterRef(Scanner* scanner, Token* token)
+static int GetRegisterRef(void)
 {
 	/*
 	r0..r4
@@ -440,48 +642,50 @@ static int GetRegisterRef(Scanner* scanner, Token* token)
 #ifdef EQ
 #error EQ was already defined
 #else
-#define EQ(s)\
-	(scanner->bufIndex == sizeof (s) - 1 && !strncasecmp(scanner->buf, (s), sizeof (s) - 1))
+//#define EQ(s)	(bufIndex_ == sizeof (s) - 1 && !strncasecmp(buf_, (s), sizeof (s) - 1))
+#define EQ(s)	(buf_->size == sizeof (s) - 1 && !strncasecmp(buf_->str, (s), sizeof (s) - 1))
 #endif
 
 	if(EQ("pc"))
 	{
-		token->descrId = TOKEN_DESCR_REGISTER_REF;
-		token->intValue = REG_PC;
+		token_->descrId = TOKEN_DESCR_REGISTER_REF;
+		token_->intValue = REG_PC;
 		return 0;
 	}
 	else if(EQ("lr"))
 	{
-		token->descrId = TOKEN_DESCR_REGISTER_REF;
-		token->intValue = REG_LR;
+		token_->descrId = TOKEN_DESCR_REGISTER_REF;
+		token_->intValue = REG_LR;
 		return 0;
 	}
 	else if(EQ("sp"))
 	{
-		token->descrId = TOKEN_DESCR_REGISTER_REF;
-		token->intValue = REG_SP;
+		token_->descrId = TOKEN_DESCR_REGISTER_REF;
+		token_->intValue = REG_SP;
 		return 0;
 	}
 
 #undef EQ
 
-	return GetRegisterNumeric(scanner, token);
+	return GetRegisterNumeric();
 }
 
-static int GetRegisterNumeric(Scanner* scanner, Token* token)
+static int GetRegisterNumeric(void)
 {
-	const size_t sz = scanner->bufIndex;
+	const size_t sz = buf_->size; //bufIndex_;
+	const char* str = buf_->str;
+
 	if(sz < 2)
 	{
 		return -1;
 	}
 
-	if(scanner->buf[0] != 'r' && scanner->buf[0] != 'R')
+	if(str[0] != 'r' && str[0] != 'R')
 	{
 		return -1;
 	}
 
-	int c = scanner->buf[1];
+	int c = str[1];
 	if(!isdigit(c))
 	{
 		return -1;
@@ -491,7 +695,7 @@ static int GetRegisterNumeric(Scanner* scanner, Token* token)
 	size_t i;
 	for(i = 2; i < sz; ++i)
 	{
-		int c = scanner->buf[i];
+		int c = str[i];
 		if(!isdigit(c))
 		{
 			return 0;
@@ -499,21 +703,20 @@ static int GetRegisterNumeric(Scanner* scanner, Token* token)
 		num = num * 10 + c - '0';
 	}
 
-	if(num > REG_MAX)
+	if(num > REG_COUNT)
 	{
 		return -1;
 	}
 
-	token->descrId = TOKEN_DESCR_REGISTER_REF;
-	token->intValue = num;
+	token_->descrId = TOKEN_DESCR_REGISTER_REF;
+	token_->intValue = num;
 
 	return 0;
 }
 
-static int GetOpcode(Scanner* scanner, Token* token)
+static int GetOpcode(void)
 {
-	const char* name = scanner->buf;
-	TokenDescrId descrId = FindReservedWord(name, ScannerStrLen(scanner));
+	TokenDescrId descrId = FindReservedWord(buf_->str, buf_->size);
 	if(descrId == TOKEN_DESCR_INVALID)
 	{
 		return -1;
@@ -526,13 +729,13 @@ static int GetOpcode(Scanner* scanner, Token* token)
 		return -1;
 	}
 
-	token->descrId = descrId;
+	token_->descrId = descrId;
 	return 0;
 }
 
-static int GetReservedSym(Scanner* scanner, Token* token)
+static int GetReservedSym(void)
 {
-	TokenDescrId id = FindReservedWord(scanner->buf, ScannerStrLen(scanner));
+	TokenDescrId id = FindReservedWord(buf_->str, buf_->size);
 	if(id == TOKEN_DESCR_INVALID)
 	{
 		return -1;
@@ -544,57 +747,67 @@ static int GetReservedSym(Scanner* scanner, Token* token)
 		return -1;
 	}
 
-	token->descrId = id;
+	token_->descrId = id;
 	return 0;
 }
 
-static int GetReservedChar(Scanner* scanner, Token* token)
+static int GetReservedChar(void)
 {
-	TokenDescrId descrId = TOKEN_DESCR_INVALID;
-	
-	switch(Peek(scanner))
+	char_traits_t ct = GetCharTraits(Peek());
+	if(!(ct & CT_RESCHAR))
 	{
-		case ',':
-			descrId = TOKEN_DESCR_COMMA;
-			break;
-		case ':':
-		default:
-			break;
+		return -1;
 	}
 	
-	if(descrId != TOKEN_DESCR_INVALID)
-	{
-		Read(scanner);
-		token->descrId = descrId;
-		return 0;
-	}
+	token_->descrId = GetIdFromCt(ct);
+	Read();
+	return 0;
 	
-	return -1;
+//	TokenDescrId descrId = TOKEN_DESCR_INVALID;
+//
+//	switch(Peek())
+//	{
+//		case ',':
+//			descrId = TOKEN_DESCR_COMMA;
+//			break;
+//		case ':':
+//		default:
+//			break;
+//	}
+//
+//	if(descrId != TOKEN_DESCR_INVALID)
+//	{
+//		Read();
+//		token_->descrId = descrId;
+//		return 0;
+//	}
+//
+//	return -1;
 }
 
-static int GetEOL(Scanner* scanner, Token* token)
+static int GetEOL(void)
 {
-	int c = Peek(scanner);
+	int c = Peek();
 	switch(c)
 	{
 		case '\r':
-			if(Read(scanner) == '\n')
+			if(Read() == '\n')
 			{
-				Read(scanner);
+				Read();
 			}
 			break;
 		case '\n':
-			Read(scanner);
+			Read();
 			break;
 		default:
 			return -1;
 	}
 	
-	token->descrId = TOKEN_DESCR_EOL;
+	token_->descrId = TOKEN_DESCR_EOL;
 	return 0;
 }
 
-__attribute__((noreturn)) static void ScannerError(Scanner* scanner, const char* errMsg)
+NORETURN static void ScannerError(const char* errMsg)
 {
 	fprintf(stderr,
 			"=== error in scanner occurred ===\n"
@@ -604,7 +817,7 @@ __attribute__((noreturn)) static void ScannerError(Scanner* scanner, const char*
 					"\t\tbuf:      \"%s\"\n"
 					"\t\tbufIndex: %d\n"
 			"=================================\n",
-			errMsg, scanner->curChar, scanner->curChar, scanner->buf, scanner->bufIndex);
+			errMsg, curChar_, curChar_, buf_->str, buf_->size);
 	fflush(stderr);
 #ifdef ESC_DEBUG
 	assert(0);

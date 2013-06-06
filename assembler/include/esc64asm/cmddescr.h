@@ -57,4 +57,14 @@ extern const struct DirectiveDescr_ DIR_DESCR_SECTION;
 extern const struct DirectiveDescr_ DIR_DESCR_WORD;
 extern const struct DirectiveDescr_ DIR_DESCR_GLOBAL;
 
+extern const struct OperatorDescr_ OPERATOR_DESCR_AND;
+extern const struct OperatorDescr_ OPERATOR_DESCR_PLUS;
+extern const struct OperatorDescr_ OPERATOR_DESCR_OR;
+extern const struct OperatorDescr_ OPERATOR_DESCR_NOT;
+extern const struct OperatorDescr_ OPERATOR_DESCR_SUB;
+extern const struct OperatorDescr_ OPERATOR_DESCR_NEG;
+extern const struct OperatorDescr_ OPERATOR_DESCR_DIVIDE;
+
+extern const struct AmbOperatorDescr_ OPERATOR_DESCR_MINUS;
+
 #endif
