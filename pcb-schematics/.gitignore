@@ -1,0 +1,6 @@
+#kicad files
+*.bak
+*-cache.lib
+*.bck
+*.net
+*.kicad_pcb-bak
