@@ -76,7 +76,7 @@ swap:
 	movle	pc, loop
 end_loop:
 		
-	ldr		N, sp ;) peek
+	ldr		N, sp ;peek
 	push	A
 	
 	sub		N, R, A

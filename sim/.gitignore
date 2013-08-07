@@ -2,3 +2,5 @@ a.out
 *.vcd
 *.sav
 *.test
+*.vpp
+*.vpi

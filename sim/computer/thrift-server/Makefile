@@ -3,7 +3,7 @@
 # compiler / linker flags
 CPPFLAGS			=-DHAVE_INTTYPES_H -DHAVE_NETINET_IN_H
 CXXFLAGS			=-fPIC -Wall -g3 -O0 -fstack-protector --param=ssp-buffer-size=4 -Wformat -Werror=format-security -I/usr/include/iverilog -I/usr/local/include/thrift
-LDFLAGS				=-shared -L/usr/local/lib -lthrift -lboost_thread
+LDFLAGS				=-shared -L/usr/local/lib -lthrift -lthriftnb -lboost_thread -levent
 
 SRC					=src
 SERVICE_GEN_DIR		=${SRC}/service

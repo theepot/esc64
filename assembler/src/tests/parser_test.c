@@ -6,14 +6,5 @@
 
 void TestParser(const char* asmFile, const char* objFile)
 {
-	ScannerInit(asmFile);
-
-	ObjectWriter objWriter;
-	ObjectWriterInit(&objWriter, objFile);
-
-	ParserInit(&objWriter);
-	Parse();
-
-	ObjectWriterClose(&objWriter);
-	ScannerClose();
+	Parse(asmFile, objFile);
 }

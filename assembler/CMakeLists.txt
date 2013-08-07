@@ -17,7 +17,8 @@ set(
 	${SOURCE_DIR}/hashset.c
 	${SOURCE_DIR}/ioutils.c
 	${SOURCE_DIR}/link.c
-	${SOURCE_DIR}/objcode.c
+	${SOURCE_DIR}/objread.c
+	${SOURCE_DIR}/objwrite.c
 	${SOURCE_DIR}/objrecord.c
 	${SOURCE_DIR}/parser.c
 	${SOURCE_DIR}/reswords.c
@@ -60,7 +61,7 @@ set(
 set(
 	EXETOLST_SOURCES
 	${SOURCE_DIR}/exetolst.c)
-
+	
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${LIB_DIR})
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 
@@ -87,4 +88,3 @@ target_link_libraries(esc-exedump esc-asm-common)
 
 add_executable(esc-exetolst ${EXETOLST_SOURCES})
 target_link_libraries(esc-exetolst esc-asm-common)
-

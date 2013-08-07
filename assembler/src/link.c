@@ -1,29 +1,36 @@
+//TODO create seperate, specialized, hashmaps or other associative containers for the symbol table in the linker and reserved words for scanner
+
 #include <esc64asm/link.h>
 
 #include <stdio.h>
 #include <assert.h>
 
 #include <esc64asm/ioutils.h>
-#include <esc64asm/objcode.h>
+#include <esc64asm/objread.h>
 #include <esc64asm/symtable.h>
 #include <esc64asm/freelist.h>
 
-static void LinkInit(ExeWriter* exeWriter, const char** objFiles, size_t objFileCount, ObjectLinkHandle* objects, Linker* linker);
-//static void PlaceAbsSections(const char** objFiles, size_t objFileCount, SectionLinkInfo* linkInfoList);
-static void LoadObjects(Linker* linker, SectionLinkHandle* sections);
-static void LoadSections(Linker* linker, ObjectReader* objReader, ObjectLinkHandle* object, SectionLinkHandleList* sectionList, objsize_t offset);
-static void PlaceSections(Linker* linker);
-//static int SectionLinkInfoCompare(const void* a_, const void* b_);
-static void LoadGlobalSymbols(Linker* linker);
-static void LoadSymbols(ObjectReader* objReader, ObjectLinkHandle* object, SymTable* symTable, objsize_t symRecordOffset);
-static int FindSymbol(Linker* linker, SymTable* localTable, const char* name, size_t nameLength, uword_t* address);
-static void LinkSection(Linker* linker, ObjectReader* objReader, SectionLinkHandle* section, SymTable* localSymTable, uword_t* data);
-//static void LinkSection(ExeWriter* exeWriter, SymTable* globalTable, SymTable* localTable, ObjectReader* objReader, objsize_t dataOffset);
-static void EmitAll(Linker* linker);
-static void EmitSection(Linker* linker, ObjectReader* objReader, SectionLinkHandle* section, SymTable* localSymTable);
-//static void Emit(ObjectReader* objReader, ExeWriter* exeWriter, SymTable* globalTable, SymTable* localTable);
-static void DumpObjects(Linker* linker);
+static void LinkInit(ExeWriter* exeWriter, const char** objFiles, size_t objFileCount, ObjectLinkHandle* objects);
+static void LoadObjects(SectionLinkHandle* sections);
+static void LoadSections(ObjectLinkHandle* object, SectionLinkHandleList* sectionList, objsize_t offset);
+static void PlaceSections(void);
+static void LoadGlobalSymbols(void);
+static void LoadSymbols(ObjectLinkHandle* object, SymTable* symTable, objsize_t symRecordOffset);
+//static int FindSymbol(SymTable* localTable, const char* name, size_t nameLength, uword_t* address);
+static void LinkSection(SectionLinkHandle* section, uword_t* data);
+static void EmitAll(void);
+static void EmitSection(SectionLinkHandle* section);
+static void DumpObjects(void);
 static void DumpSections(SectionLinkHandle* sections, size_t sectionCount);
+
+static size_t objectCount_;
+static size_t sectionCount_;
+static size_t globalSymCount_;
+static size_t globalSymNameSize_;
+static ExeWriter* exeWriter_;
+static ObjectLinkHandle* objects_;
+static SymTable globalSymTable_;
+static SymTable localSymTable_;
 
 void ExeWriterInit(ExeWriter* writer, const char* path)
 {
@@ -118,94 +125,99 @@ void ExeReadData(ExeReader* reader, void* data)
 
 void Link(ExeWriter* exeWriter, const char** objFiles, size_t objFileCount)
 {
-	Linker linker;
-
 	ObjectLinkHandle objects[objFileCount];
-	LinkInit(exeWriter, objFiles, objFileCount, objects, &linker);
-	SectionLinkHandle sections[linker.sectionCount];
+	LinkInit(exeWriter, objFiles, objFileCount, objects);
+	SectionLinkHandle sections[sectionCount_];
 
-	LoadObjects(&linker, sections);
+	LoadObjects(sections);
 
 #ifdef ESC_DEBUG
 	puts("--- object dump before placement: ---");
-	DumpObjects(&linker);
+	DumpObjects();
 #endif
 
-	PlaceSections(&linker);
+	PlaceSections();
 
 #ifdef ESC_DEBUG
 	puts("--- object dump after placement: ---");
-	DumpObjects(&linker);
+	DumpObjects();
 #endif
 
 	//init global symbol table
-	size_t globalSymMemSize = SYM_TABLE_GET_SIZE((linker.globalSymCount << 1) - (linker.globalSymCount >> 1));
+	size_t globalSymMemSize = SYM_TABLE_GET_SIZE((globalSymCount_ << 1) - (globalSymCount_ >> 1));
 	byte_t globalSymMem[globalSymMemSize];
-	char globalStrMem[linker.globalSymNameSize];
-	SymTableInit(&linker.globalSymTable, globalSymMem, globalSymMemSize, globalStrMem, linker.globalSymNameSize);
-	LoadGlobalSymbols(&linker);
+	char globalStrMem[globalSymNameSize_];
+	SymTableInit(&globalSymTable_, globalSymMem, globalSymMemSize, globalStrMem, globalSymNameSize_);
+	LoadGlobalSymbols();
 
 #ifdef ESC_DEBUG
 	printf("GLOBAL SYMBOL TABLE:\n");
-	SymTableDump(&linker.globalSymTable, stdout);
+	SymTableDump(&globalSymTable_, stdout);
 	printf("GLOBAL SYMBOL TABLE END\n");
 #endif
 
-	EmitAll(&linker);
+	EmitAll();
 }
 
-static void LinkInit(ExeWriter* exeWriter, const char** objFiles, size_t objFileCount, ObjectLinkHandle* objects, Linker* linker)
+int ResolveSymbol(const char* str, size_t len, uword_t* value)
 {
-	ObjectReader objReader;
+	if(!SymTableFind(&localSymTable_, str, len, value)
+	|| !SymTableFind(&globalSymTable_, str, len, value))
+	{
+		return 0;
+	}
+
+	return -1;
+}
+
+static void LinkInit(ExeWriter* exeWriter, const char** objFiles, size_t objFileCount, ObjectLinkHandle* objects)
+{
 	ObjectHeader header;
 	size_t i;
 
-	linker->exeWriter = exeWriter;
-	linker->objects = objects;
-	linker->objectCount = objFileCount;
-	linker->sectionCount = 0;
-	linker->globalSymCount = 0;
-	linker->globalSymNameSize = 0;
+	exeWriter_ = exeWriter;
+	objects_ = objects;
+	objectCount_ = objFileCount;
+	sectionCount_ = 0;
+	globalSymCount_ = 0;
+	globalSymNameSize_ = 0;
 
 	for(i = 0; i < objFileCount; ++i)
 	{
-		ObjectReaderInit(&objReader, objFiles[i]);
-		ObjReadHeader(&objReader, &header);
-		ObjectReaderClose(&objReader);
+		ObjectReaderInit(objFiles[i]);
+		ObjReadHeader(&header);
+		ObjectReaderClose();
 
-		linker->sectionCount += header.absSectionCount + header.relocSectionCount;
-		linker->globalSymCount += header.globalSymCount;
-		linker->globalSymNameSize += header.globalSymTotNameSize;
+		sectionCount_ += header.absSectionCount + header.relocSectionCount;
+		globalSymCount_ += header.globalSymCount;
+		globalSymNameSize_ += header.globalSymTotNameSize;
 
-		ObjectLinkHandle* object = &linker->objects[i];
+		ObjectLinkHandle* object = &objects_[i];
 		object->path = objFiles[i];
 		object->absSectionList.count = header.absSectionCount;
 		object->relocSectionList.count = header.relocSectionCount;
 	}
 }
 
-static void LoadObjects(Linker* linker, SectionLinkHandle* sections)
+static void LoadObjects(SectionLinkHandle* sections)
 {
 	size_t sectionI = 0;
 	size_t i;
-	for(i = 0; i < linker->objectCount; ++i)
+	for(i = 0; i < objectCount_; ++i)
 	{
-		ObjectLinkHandle* object = &linker->objects[i];
+		ObjectLinkHandle* object = &objects_[i];
 		object->sections = &sections[sectionI];
 
-		ObjectReader objReader;
-		ObjectReaderInit(&objReader, object->path);
+		ObjectReaderInit(object->path);
 
 		//FIXME quickfix
 		ObjectHeader header;
-		ObjReadHeader(&objReader, &header);
+		ObjReadHeader(&header);
 		//end quickfix
 
 		//load abs sections
 		object->absSectionList.sections = &sections[sectionI];
 		LoadSections(
-				linker,
-				&objReader,
 				object,
 				&object->absSectionList,
 				header.absSectionOffset);
@@ -214,46 +226,44 @@ static void LoadObjects(Linker* linker, SectionLinkHandle* sections)
 		//load reloc sections
 		object->relocSectionList.sections = &sections[sectionI];
 		LoadSections(
-				linker,
-				&objReader,
 				object,
 				&object->relocSectionList,
 				header.relocSectionOffset);
 		sectionI += object->relocSectionList.count;
 
-		ObjectReaderClose(&objReader);
+		ObjectReaderClose();
 	}
 }
 
-static void LoadSections(Linker* linker, ObjectReader* objReader, ObjectLinkHandle* object, SectionLinkHandleList* sectionList, objsize_t offset)
+static void LoadSections(ObjectLinkHandle* object, SectionLinkHandleList* sectionList, objsize_t offset)
 {
-	ObjectReaderStart(objReader, offset);
+	ObjectReaderStart(offset);
 
 	size_t i;
 	for(i = 0; i < sectionList->count; ++i)
 	{
-		assert(!ObjReaderNextSection(objReader));
+		assert(!ObjReaderNextSection());
 		SectionLinkHandle* section = &sectionList->sections[i];
 
-		section->offset = ObjGetSectionOffset(objReader);
-		section->address = ObjReadAddress(objReader);
-		section->size = ObjReadSize(objReader);
+		section->offset = ObjGetSectionOffset();
+		section->address = ObjReadAddress();
+		section->size = ObjReadSize();
 	}
 }
 
-static void PlaceSections(Linker* linker)
+static void PlaceSections(void)
 {
 	FreeList freeList;
-	size_t freeListNodeCount = linker->sectionCount; //TODO need to experiment with this number
+	size_t freeListNodeCount = sectionCount_; //TODO need to experiment with this number
 	FreeListNode freeListNodes[freeListNodeCount];
 	FreeListInit(&freeList, freeListNodes, freeListNodeCount, 0xFFFF + 1);
 
 	size_t i, j;
 
 	//place abs sections
-	for(i = 0; i < linker->objectCount; ++i)
+	for(i = 0; i < objectCount_; ++i)
 	{
-		ObjectLinkHandle* object = &linker->objects[i];
+		ObjectLinkHandle* object = &objects_[i];
 		for(j = 0; j < object->absSectionList.count; ++j)
 		{
 			SectionLinkHandle* section = &object->absSectionList.sections[j];
@@ -262,9 +272,9 @@ static void PlaceSections(Linker* linker)
 	}
 
 	//place reloc sections
-	for(i = 0; i < linker->objectCount; ++i)
+	for(i = 0; i < objectCount_; ++i)
 	{
-		ObjectLinkHandle* object = &linker->objects[i];
+		ObjectLinkHandle* object = &objects_[i];
 		for(j = 0; j < object->relocSectionList.count; ++j)
 		{
 			SectionLinkHandle* section = &object->relocSectionList.sections[j];
@@ -277,20 +287,19 @@ static void PlaceSections(Linker* linker)
 #endif
 }
 
-static void LoadGlobalSymbols(Linker* linker)
+static void LoadGlobalSymbols(void)
 {
-	ObjectReader objReader;
 	size_t i;
-	for(i = 0; i < linker->objectCount; ++i)
+	for(i = 0; i < objectCount_; ++i)
 	{
-		ObjectLinkHandle* object = &linker->objects[i];
-		ObjectReaderInit(&objReader, object->path);
-		LoadSymbols(&objReader, object, &linker->globalSymTable, OBJ_SECTION_GLOBAL_SYM_RECORD_OFFSET);
-		ObjectReaderClose(&objReader);
+		ObjectLinkHandle* object = &objects_[i];
+		ObjectReaderInit(object->path);
+		LoadSymbols(object, &globalSymTable_, OBJ_SECTION_GLOBAL_SYM_RECORD_OFFSET);
+		ObjectReaderClose();
 	}
 }
 
-static void LoadSymbols(ObjectReader* objReader, ObjectLinkHandle* object, SymTable* symTable, objsize_t symRecordOffset)
+static void LoadSymbols(ObjectLinkHandle* object, SymTable* symTable, objsize_t symRecordOffset)
 {
 	size_t i;
 	size_t sectionCount = object->relocSectionList.count + object->absSectionList.count;
@@ -299,8 +308,8 @@ static void LoadSymbols(ObjectReader* objReader, ObjectLinkHandle* object, SymTa
 	for(i = 0; i < sectionCount; ++i)
 	{
 		SectionLinkHandle* section = &object->sections[i];
-		ObjReadSection(objReader, section->offset);
-		if(ObjSymIteratorInit(&symIt, objReader, symRecordOffset))
+		ObjReadSection(section->offset);
+		if(ObjSymIteratorInit(&symIt, symRecordOffset))
 		{
 			continue;
 		}
@@ -317,32 +326,31 @@ static void LoadSymbols(ObjectReader* objReader, ObjectLinkHandle* object, SymTa
 	}
 }
 
-static void EmitAll(Linker* linker)
+static void EmitAll(void)
 {
-	ObjectReader objReader;
-	SymTable localSymTable;
+	//SymTable localSymTable;
 	size_t i, j;
 
-	for(i = 0; i < linker->objectCount; ++i)
+	for(i = 0; i < objectCount_; ++i)
 	{
-		ObjectLinkHandle* object = &linker->objects[i];
+		ObjectLinkHandle* object = &objects_[i];
 
-		ObjectReaderInit(&objReader, object->path);
+		ObjectReaderInit(object->path);
 
 		//init local symtable
 		//FIXME quickfix
 		ObjectHeader header;
-		ObjReadHeader(&objReader, &header);
+		ObjReadHeader(&header);
 		//end quickfix
 		size_t localSymMemSize = SYM_TABLE_GET_SIZE((header.localSymCount << 1) - (header.localSymCount >> 1));
 		byte_t localSymMem[localSymMemSize];
 		char localStrMem[header.localSymTotNameSize];
-		SymTableInit(&localSymTable, localSymMem, localSymMemSize, localStrMem, header.localSymTotNameSize);
-		LoadSymbols(&objReader, object, &localSymTable, OBJ_SECTION_LOCAL_SYM_RECORD_OFFSET);
+		SymTableInit(&localSymTable_, localSymMem, localSymMemSize, localStrMem, header.localSymTotNameSize);
+		LoadSymbols(object, &localSymTable_, OBJ_SECTION_LOCAL_SYM_RECORD_OFFSET);
 
 #ifdef ESC_DEBUG
 		puts("LOCAL SYMTABLE DUMP BEGIN");
-		SymTableDump(&localSymTable, stdout);
+		SymTableDump(&localSymTable_, stdout);
 		puts("LOCAL SYMTABLE DUMP END");
 #endif
 
@@ -351,48 +359,60 @@ static void EmitAll(Linker* linker)
 		for(j = 0; j < sectionCount; ++j)
 		{
 			SectionLinkHandle* section = &object->sections[j];
-			EmitSection(linker, &objReader, section, &localSymTable);
+			EmitSection(section);
 		}
 
-		ObjectReaderClose(&objReader);
+		ObjectReaderClose();
 	}
 }
 
-static int FindSymbol(Linker* linker, SymTable* localTable, const char* name, size_t nameLength, uword_t* address)
+//static int FindSymbol(SymTable* localTable, const char* name, size_t nameLength, uword_t* address)
+//{
+//	if(!SymTableFind(localTable, name, nameLength, address)
+//			|| !SymTableFind(&globalSymTable_, name, nameLength, address))
+//	{
+//		return 0;
+//	}
+//
+//	return -1;
+//}
+
+static void LinkSection(SectionLinkHandle* section, uword_t* data)
 {
-	if(!SymTableFind(localTable, name, nameLength, address)
-			|| !SymTableFind(&linker->globalSymTable, name, nameLength, address))
+	//ObjExprIterator it;
+	ObjExpReader expReader;
+
+	if(ObjExpReaderInit(&expReader))
 	{
-		return 0;
+		return; //no unlinked expressions in this section
 	}
 
-	return -1;
+//	if(ObjExprIteratorInit(&it))
+//	{
+//		return;
+//	}
+
+	//while(!ObjExprIteratorNext(&it))
+
+	uword_t address, value;
+	while(!ObjExpReaderNext(&expReader, &address, &value))
+	{
+//		char name[it.curExpr.nameLen];
+//		ObjExprIteratorReadName(&it, name);
+//		const Expression* expr = ObjExprIteratorGetExpr(&it);
+//
+//		uword_t symAddr;
+//		assert(!FindSymbol(expr->name, expr->nameLen, &symAddr));
+//		data[expr->address] = HTON_WORD(symAddr);
+
+		data[address] = HTON_WORD(value);
+	}
 }
 
-static void LinkSection(Linker* linker, ObjectReader* objReader, SectionLinkHandle* section, SymTable* localSymTable, uword_t* data)
+static void EmitSection(SectionLinkHandle* section)
 {
-	ObjExprIterator it;
-	if(ObjExprIteratorInit(&it, objReader))
-	{
-		return;
-	}
-
-	while(!ObjExprIteratorNext(&it))
-	{
-		char name[it.curExpr.nameLen];
-		ObjExprIteratorReadName(&it, name);
-		const Expression* expr = ObjExprIteratorGetExpr(&it);
-
-		uword_t symAddr;
-		assert(!FindSymbol(linker, localSymTable, expr->name, expr->nameLen, &symAddr));
-		data[expr->address] = HTON_WORD(symAddr);
-	}
-}
-
-static void EmitSection(Linker* linker, ObjectReader* objReader, SectionLinkHandle* section, SymTable* localSymTable)
-{
-	ObjReadSection(objReader, section->offset);
-	byte_t type = ObjReadType(objReader);
+	ObjReadSection(section->offset);
+	byte_t type = ObjReadType();
 
 	switch(type)
 	{
@@ -400,9 +420,9 @@ static void EmitSection(Linker* linker, ObjectReader* objReader, SectionLinkHand
 	{
 		ObjDataReader dataReader;
 		uword_t data[section->size];
-		ObjDataReaderInit(&dataReader, objReader);
+		ObjDataReaderInit(&dataReader);
 		ObjDataReaderRead(&dataReader, data, section->size);
-		LinkSection(linker, objReader, section, localSymTable, data);
+		LinkSection(section, data);
 
 #ifdef ESC_DEBUG
 //		puts("EmitSection() DATA DUMP BEGIN");
@@ -415,10 +435,10 @@ static void EmitSection(Linker* linker, ObjectReader* objReader, SectionLinkHand
 //		puts("EmitSection() DATA DUMP END");
 #endif
 
-		ExeWriteData(linker->exeWriter, section->address, section->size, data);
+		ExeWriteData(exeWriter_, section->address, section->size, data);
 	} break;
 	case SECTION_TYPE_BSS:
-		ExeWriteBss(linker->exeWriter, section->address, section->size);
+		ExeWriteBss(exeWriter_, section->address, section->size);
 		break;
 	default:
 		assert(0 && "unknown section");
@@ -426,14 +446,14 @@ static void EmitSection(Linker* linker, ObjectReader* objReader, SectionLinkHand
 	}
 }
 
-static void DumpObjects(Linker* linker)
+static void DumpObjects(void)
 {
 	printf("OBJECT DUMP BEGIN\n");
-	printf("#objects=%u\n\n", linker->objectCount);
+	printf("#objects=%u\n\n", objectCount_);
 	size_t i;
-	for(i = 0; i < linker->objectCount; ++i)
+	for(i = 0; i < objectCount_; ++i)
 	{
-		ObjectLinkHandle* object = &linker->objects[i];
+		ObjectLinkHandle* object = &objects_[i];
 		printf("path=`%s'\n", object->path);
 		printf("sections:\n");
 		DumpSections(object->sections, object->relocSectionList.count + object->absSectionList.count);

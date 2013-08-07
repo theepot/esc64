@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include <esc64asm/objcode.h>
+#include <esc64asm/objread.h>
 #include <esc64asm/link.h>
 
 typedef struct ExeSection_

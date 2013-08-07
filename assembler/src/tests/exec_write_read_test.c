@@ -4,7 +4,7 @@
 #include <string.h>
 #include <assert.h>
 
-#include <esc64asm/objcode.h>
+#include <esc64asm/obj.h>
 #include <esc64asm/link.h>
 #include <esc64asm/esctypes.h>
 

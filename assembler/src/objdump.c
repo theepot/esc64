@@ -1,14 +1,14 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <esc64asm/objcode.h>
+#include <esc64asm/objread.h>
 #include <esc64asm/opcodes.h>
 
 static void PrintHeader(const ObjectHeader* header);
-static void PrintSection(ObjectReader* objReader);
-static void PrintSymbols(ObjectReader* objReader, objsize_t offset);
-static void PrintExpr(ObjectReader* objReader);
-static void PrintData(ObjectReader* objReader, size_t dataSize);
+static void PrintSection(void);
+static void PrintSymbols(objsize_t offset);
+static void PrintExpr(void);
+static void PrintData(size_t dataSize);
 static void PrintInstruction(uword_t instrWord);
 static const char* SectionTypeToString(byte_t type);
 
@@ -18,23 +18,22 @@ int main(int argc, char** argv)
 
 	//OpcodeTransInit();
 	OpcodeTableInit();
-	ObjectReader objReader;
 	ObjectHeader header;
-	ObjectReaderInit(&objReader, argv[1]);
+	ObjectReaderInit(argv[1]);
 
-	ObjReadHeader(&objReader, &header);
+	ObjReadHeader(&header);
 	PrintHeader(&header);
 
-	ObjectReaderStart(&objReader, header.absSectionOffset);
-	while(!ObjReaderNextSection(&objReader))
+	ObjectReaderStart(header.absSectionOffset);
+	while(!ObjReaderNextSection())
 	{
-		PrintSection(&objReader);
+		PrintSection();
 	}
 
-	ObjectReaderStart(&objReader, header.relocSectionOffset);
-	while(!ObjReaderNextSection(&objReader))
+	ObjectReaderStart(header.relocSectionOffset);
+	while(!ObjReaderNextSection())
 	{
-		PrintSection(&objReader);
+		PrintSection();
 	}
 
 	return 0;
@@ -62,32 +61,32 @@ static void PrintHeader(const ObjectHeader* header)
 			header->relocSectionOffset);
 }
 
-static void PrintSection(ObjectReader* objReader)
+static void PrintSection(void)
 {
-	uword_t address = ObjReadAddress(objReader);
-	uword_t size = ObjReadSize(objReader);
+	uword_t address = ObjReadAddress();
+	uword_t size = ObjReadSize();
 
 	printf(
 			"%s section address=0x%X(%u); size=0x%X(%u)\n",
-			SectionTypeToString(objReader->type),
+			SectionTypeToString(ObjGetType()),
 			address, address,
 			size, size);
 
 	puts("\tlocal symbols:");
-	PrintSymbols(objReader, OBJ_SECTION_LOCAL_SYM_RECORD_OFFSET);
+	PrintSymbols(OBJ_SECTION_LOCAL_SYM_RECORD_OFFSET);
 
 	puts("\tglobal symbols:");
-	PrintSymbols(objReader, OBJ_SECTION_GLOBAL_SYM_RECORD_OFFSET);
+	PrintSymbols(OBJ_SECTION_GLOBAL_SYM_RECORD_OFFSET);
 
-	switch(objReader->type)
+	switch(ObjGetType())
 	{
 	case SECTION_TYPE_DATA:
 	{
 		puts("\tunlinked expressions:");
-		PrintExpr(objReader);
+		PrintExpr();
 
 		puts("\tdata / instructions:");
-		PrintData(objReader, size);
+		PrintData(size);
 	} break;
 
 	case SECTION_TYPE_BSS:
@@ -99,29 +98,33 @@ static void PrintSection(ObjectReader* objReader)
 	}
 }
 
-static void PrintExpr(ObjectReader* objReader)
+static void PrintExpr()
 {
-	ObjExprIterator it;
-	if(ObjExprIteratorInit(&it, objReader))
+	//ObjExprIterator it;
+	ObjExpReader reader;
+	ObjExpReaderInit(&reader);
+
+	if(/*ObjExprIteratorInit(&it)*/ ObjExpReaderInit(&reader))
 	{
 		puts("\t\tnone");
 		return;
 	}
 
-	while(!ObjExprIteratorNext(&it))
-	{
-		char buf[it.curExpr.nameLen + 1];
-		ObjExprIteratorReadName(&it, buf);
-		buf[it.curExpr.nameLen] = 0;
-		const Expression* expr = ObjExprIteratorGetExpr(&it);
-		printf("\t\t`%s' = 0x%X(%u)\n", expr->name, expr->address, expr->address);
-	}
+//	while(!ObjExprIteratorNext(&it))
+//	{
+//		char buf[it.curExpr.nameLen + 1];
+//		ObjExprIteratorReadName(&it, buf);
+//		buf[it.curExpr.nameLen] = 0;
+//		const Expression* expr = ObjExprIteratorGetExpr(&it);
+//		printf("\t\t`%s' = 0x%X(%u)\n", expr->name, expr->address, expr->address);
+//	}
+	puts("\t\tExpression dump temporarily broken. Sorry :(");
 }
 
-static void PrintData(ObjectReader* objReader, size_t dataSize)
+static void PrintData(size_t dataSize)
 {
 	ObjDataReader dataReader;
-	ObjDataReaderInit(&dataReader, objReader);
+	ObjDataReaderInit(&dataReader);
 	uword_t dataBuf[dataSize];
 	ObjDataReaderRead(&dataReader, dataBuf, dataSize);
 	size_t i;
@@ -167,10 +170,10 @@ static const char* SectionTypeToString(byte_t type)
 	}
 }
 
-static void PrintSymbols(ObjectReader* objReader, objsize_t offset)
+static void PrintSymbols(objsize_t offset)
 {
 	ObjSymIterator localSymIt;
-	if(ObjSymIteratorInit(&localSymIt, objReader, offset))
+	if(ObjSymIteratorInit(&localSymIt, offset))
 	{
 		puts("\t\tnone");
 		return;

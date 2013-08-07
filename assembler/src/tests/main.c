@@ -4,7 +4,7 @@
 #include <unistd.h>
 
 #include <esc64asm/reswords.h>
-#include <esc64asm/objcode.h>
+#include <esc64asm/parser.h>
 
 extern void TestScanner(const char* asmFile);
 extern int TestSymTable(void);
@@ -19,7 +19,7 @@ extern void TestFreelist(void);
 #error no base path for test files defined
 #endif
 
-extern void TestParseExpression(void);
+void TestParseExpression(const char* asmPath, const char* objPath);
 
 int main(int argc, char** argv)
 {
@@ -36,11 +36,7 @@ int main(int argc, char** argv)
 //	TestExecWriteRead(ESC_TEST_FILE_BASE_PATH"/assembler_exec_test");
 //	TestFreelist();
 
-	ObjectWriter writer;
-	ObjectWriterInit(&writer, "/home/lukas/exp.o");
-	ScannerInit("/home/lukas/exp.txt");
-	ParserInit(&writer);
-	TestParseExpression();
+	TestParseExpression("/home/lukas/exp.txt", "/home/lukas/exp.o");
 
 	clock_t stop = clock();
 	clock_t ms = (stop - start) / 1000;

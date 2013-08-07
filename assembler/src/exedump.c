@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <esc64asm/link.h>
-#include <esc64asm/objcode.h>
+#include <esc64asm/objread.h>
 #include <esc64asm/esctypes.h>
 #include <esc64asm/opcodes.h>
 

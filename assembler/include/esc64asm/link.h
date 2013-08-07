@@ -138,17 +138,18 @@ typedef struct ObjectLinkHandle_
 	SectionLinkHandleList relocSectionList;
 } ObjectLinkHandle;
 
-typedef struct Linker_
-{
-	size_t objectCount;
-	size_t sectionCount;
-	size_t globalSymCount;
-	size_t globalSymNameSize;
-	ExeWriter* exeWriter;
-	ObjectLinkHandle* objects;
-	SymTable globalSymTable;
-} Linker;
+//typedef struct Linker_
+//{
+//	size_t objectCount;
+//	size_t sectionCount;
+//	size_t globalSymCount;
+//	size_t globalSymNameSize;
+//	ExeWriter* exeWriter;
+//	ObjectLinkHandle* objects;
+//	SymTable globalSymTable;
+//} Linker;
 
 void Link(ExeWriter* exeWriter, const char** objFiles, size_t objFileCount);
+int ResolveSymbol(const char* str, size_t len, uword_t* value);
 
 #endif
