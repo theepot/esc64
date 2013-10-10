@@ -3,19 +3,27 @@ namespace java esc64.sim.srv
 
 enum SimState
 {
-	STOPPED,
+	HALTED,
 	PAUSED,
 	RUNNING,
-	STEPPING,
+	STEPPING
+}
+
+enum ErrCode
+{
+	NONE,
+	ILLEGAL_OPCODE,
+	ILLEGAL_STATE
 }
 
 service SimService
 {
 	SimState getState(),
 	void start(),
-	void stop(),
 	void pause(),
 	void step(),
-	list<i16> getRegister(1: i32 offset, 2: i32 size),
-	list<i16> getMemory(1: i32 offset, 2: i32 size)
+	ErrCode getErrCode(),
+	void reset(),
+	list<i32> getRegister(1: i32 offset, 2: i32 size),
+	list<i32> getMemory(1: i32 offset, 2: i32 size)
 }

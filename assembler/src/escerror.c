@@ -3,6 +3,9 @@
 #include <stdio.h>
 #include <stdarg.h>
 
+#include <esc64asm/parser.h>
+
+static void NORETURN Shutdown(void);
 static void PrintPrefix(const char* str);
 
 void NORETURN FORMATPRINTF(1, 2) EscFatal(const char* fmt, ...)
@@ -11,9 +14,9 @@ void NORETURN FORMATPRINTF(1, 2) EscFatal(const char* fmt, ...)
 	va_start (args, fmt);
 	PrintPrefix("Fatal");
 	vfprintf (stderr, fmt, args);
-	fprintf(stderr, "\n");
+	fputc('\n', stderr);
 	va_end (args);
-	EXIT_ERROR;
+	Shutdown();
 }
 
 void NORETURN FORMATPRINTF(1, 2) EscError(const char* fmt, ...)
@@ -22,9 +25,9 @@ void NORETURN FORMATPRINTF(1, 2) EscError(const char* fmt, ...)
 	va_start (args, fmt);
 	PrintPrefix("Error");
 	vfprintf (stderr, fmt, args);
-	fprintf(stderr, "\n");
+	fputc('\n', stderr);
 	va_end (args);
-	EXIT_ERROR;
+	Shutdown();
 }
 
 void FORMATPRINTF(1, 2) EscWarning(const char* fmt, ...)
@@ -33,14 +36,24 @@ void FORMATPRINTF(1, 2) EscWarning(const char* fmt, ...)
 	va_start (args, fmt);
 	PrintPrefix("Warning");
 	vfprintf (stderr, fmt, args);
-	fprintf(stderr, "\n");
+	fputc('\n', stderr);
 	va_end (args);
+	Shutdown();
+}
+
+static void NORETURN Shutdown(void)
+{
+#if defined(ESC_AS)
+	//TODO remove target object file
+#elif defined(ESC_LN)
+	//TODO remove target executable file
+#endif
 	EXIT_ERROR;
 }
 
 static void PrintPrefix(const char* str)
 {
-	unsigned line = 0; //TODO get line number
-	unsigned ch = 0; //TODO get character count
+	unsigned line = ParserGetLineNr();
+	unsigned ch = ScannerGetCharCount();
 	fprintf(stderr, "%s:%u:%u: ", str, line, ch);
 }

@@ -4,7 +4,7 @@
 //TODO separate parser and assembler code. right now both tasks fall to the parser
 
 #include <esc64asm/scanner.h>
-#include <esc64asm/objcode.h>
+#include <esc64asm/objwrite.h>
 
 //	Grammar:
 //
@@ -41,8 +41,8 @@
 //		Number:
 //			token<number>
 
-void ParserInit(ObjectWriter* objWriter);
-void Parse(void);
+void Parse(const char* asmPath, const char* objPath);
+unsigned ParserGetLineNr(void);
 void ParserExpect(TokenDescrId expected);
 void ParserExpectClass(TokenClass tClass);
 __attribute__((noreturn)) void ParserError(const char* errMsg);
@@ -61,9 +61,9 @@ typedef struct ParserArgIt_
 
 void ParserArgItInit(ParserArgIt* it);
 void ParserArgItClose(ParserArgIt* it);
-const Token* ParserArgItNext(ParserArgIt* it);
-const Token* ParserArgItNextExpect(ParserArgIt* it, TokenDescrId expected);
-const Token* ParserArgItNextExpectClass(ParserArgIt* it, TokenClass tClass);
+//const Token* ParserArgItNext(ParserArgIt* it);
+//const Token* ParserArgItNextExpect(ParserArgIt* it, TokenDescrId expected);
+//const Token* ParserArgItNextExpectClass(ParserArgIt* it, TokenClass tClass);
 
 typedef uword_t operand_t;
 

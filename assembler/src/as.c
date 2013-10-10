@@ -1,6 +1,6 @@
 #include <assert.h>
 #include <esc64asm/scanner.h>
-#include <esc64asm/objcode.h>
+#include <esc64asm/objwrite.h>
 #include <esc64asm/parser.h>
 #include <esc64asm/reswords.h>
 
@@ -12,16 +12,7 @@ int main(int argc, char** argv)
 
 	ReservedWordsInit();
 
-	ScannerInit(asmPath);
-
-	ObjectWriter objWriter;
-	ObjectWriterInit(&objWriter, objPath);
-
-	ParserInit(&objWriter);
-	Parse();
-
-	ObjectWriterClose(&objWriter);
-	ScannerClose();
+	Parse(asmPath, objPath);
 
 	return 0;
 }

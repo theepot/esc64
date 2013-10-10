@@ -15,32 +15,37 @@
 #include <esc64asm/mempool.h>
 #include <esc64asm/registers.h>
 
-#define SY_QUEUE_SIZE			32
-#define SY_QUEUE_MEM_POOL_SIZE	128
-#define SY_STACK_SIZE			32
-#define SY_STACK_MEM_POOL_SIZE	128
+#define SY_OUT_STACK_SIZE	32
+#define SY_OP_STACK_SIZE	32
 
-#define TOKENLIST_APPEND_OVERFLOW	1
-#define TOKENLIST_APPEND_OUT_OF_MEM	2
+#define SY_EXPECT_VALUE			(1 << 0)
+#define SY_EXPECT_UNARY			(1 << 1)
+#define SY_EXPECT_BINARY		(1 << 2)
+#define SY_EXPECT_PAREN_OPEN	(1 << 3)
+#define SY_EXPECT_PAREN_CLOSE	(1 << 4)
+#define SY_EXPECT_END			(1 << 5)
 
-#define SY_PUSH(t)	TokenListAppend(&syStack_, (t))
-#define SY_POP		TokenListRmLast(&syStack_);
-#define SY_TOP		TokenListTop(&syStack_)
-#define SY_OUT(t)	TokenListAppend(&syQueue_, (t))
+#define PARSE_ARG_REG	(1 << 0)
+#define PARSE_ARG_IMM	(1 << 1)
+#define PARSE_ARG_CONST	(1 << 2)
+#define PARSE_ARG_OTHER	(1 << 3)
+#define PARSE_ARG_END	(1 << 4)
 
-#define GET_OP_DESCR(t)		((const OperatorDescr*)GetTokenDescr((t)->descrId)->cmdDescr)
+#define GET_ID_OP_DESCR(id)		((const OperatorDescr*)(GetTokenDescr((id))->cmdDescr))
+#define GET_TOKEN_OP_DESCR(t)	(GET_ID_OP_DESCR((t)->descrId))
 
-typedef struct TokenList_
+typedef enum OperatorAssoc_
 {
-	Token* list;
-	size_t listSize;
-	size_t listIndex;
-	MemPool strPool;
-} TokenList;
+	OPERATOR_ASSOC_LEFT = 0,
+	OPERATOR_ASSOC_RIGHT
+} OperatorAssoc;
 
 typedef struct OperatorDescr_
 {
-	unsigned precedence;
+	OperatorAssoc assoc;
+	unsigned prec;
+	unsigned nAry;
+	byte_t operatorType;
 } OperatorDescr;
 
 typedef struct AmbOperatorDescr_
@@ -49,31 +54,33 @@ typedef struct AmbOperatorDescr_
 	TokenDescrId binary;
 } AmbOperatorDescr;
 
-static ObjectWriter* objWriter_;
 static Token curToken_;
 static uword_t pc_;
 static unsigned line_;
+static unsigned argN_;
 
-static byte_t syQueuePoolMem_[SY_QUEUE_MEM_POOL_SIZE];
-static Token syQueueListMem_[SY_QUEUE_SIZE];
-static TokenList syQueue_ = { syQueueListMem_, SY_QUEUE_SIZE, 0, MEMPOOL_STATIC_INIT(syQueuePoolMem_, SY_QUEUE_MEM_POOL_SIZE) };
+static word_t syOutStack_[SY_OUT_STACK_SIZE];
+static size_t syOutStackN_;
+static TokenDescrId syOpStack_[SY_OP_STACK_SIZE];
+static size_t syOpStackN_;
 
-static byte_t syStackPoolMem_[SY_STACK_MEM_POOL_SIZE];
-static Token syStackListMem_[SY_STACK_SIZE];
-static TokenList syStack_ = { syStackListMem_, SY_STACK_SIZE, 0, MEMPOOL_STATIC_INIT(syStackPoolMem_, SY_STACK_MEM_POOL_SIZE) };
+static int SyEval(TokenDescrId operator, word_t* result);
+static void SyOutPushOperator(TokenDescrId operator);
 
-/**
- * @brief	Append token to the end of the list
- * @return	TOKENLIST_APPEND_OVERFLOW or TOKENLIST_APPEND_OUT_OF_MEM on error. 0 otherwise
- */
-static int TokenListAppend(TokenList* list, const Token* token);
+static void SyOutStackPush(word_t val);
+static const word_t SyOutStackPeek(size_t depth);
+static void SyOutStackPop(size_t amount);
+static void SyOutStackFlush(void);
+#ifdef ESC_DEBUG
+static void SyOutStackDump(void);
+#endif
 
-/**
- * @brief	Removes the last added token from the list
- */
-static void TokenListRmLast(TokenList* list);
-static const Token* TokenListTop(TokenList* list);
-static void TokenListClear(TokenList* list);
+static void SyOpStackPush(TokenDescrId id);
+static int SyOpStackPeek(TokenDescrId* id);
+static void SyOpStackPop(void);
+#ifdef ESC_DEBUG
+static void SyOpStackDump(void);
+#endif
 
 static Token* Peek(void);
 static Token* Next(void);
@@ -84,10 +91,15 @@ static void ParseLocalLabelDecls(void);
 static int ParseLine(void);
 static int ParseLabelDecl(Symbol* sym);
 static void ParseCommand(void);
+
+static void FirstArgument(unsigned accept, Token* ret);
+static void NextArgument(unsigned accept, Token* ret);
+
 /**
  * @brief	Based on Edsger Dijkstra's Shunting-yard algorithm
+ * @return	Non-zero if expression was constant, zero otherwise
  */
-static void ParseExpression(void);
+static int ParseExpression(int needConst);
 
 static void PrintString(const char* str, size_t strLen);
 NORETURN static void UnexpectedToken(void);
@@ -142,15 +154,6 @@ typedef struct ShiftOp_
 } ShiftOp;
 
 static void ParseShiftOp(const void* implData, ParserArgIt* argIt, Instruction* instr);
-
-typedef struct CmpOp_
-{
-	uword_t opcodeRegReg;
-	uword_t opcodeRegImm;
-	uword_t opcodeImmReg;
-} CmpOp;
-
-static void ParseCmpOp(const void* implData, ParserArgIt* argIt, Instruction* instr);
 
 typedef struct Instr1Op_
 {
@@ -211,6 +214,7 @@ const InstrDescr INSTR_DESCR_INC	= { &(Instr2Op){ OPCODE_INC, { 0, 1 } }, Parse2
 const InstrDescr INSTR_DESCR_DEC	= { &(Instr2Op){ OPCODE_DEC, { 0, 1 } }, Parse2Op };
 const InstrDescr INSTR_DESCR_LDR	= { &(Instr2Op){ OPCODE_LDR, { 0, 1 } }, Parse2Op };
 const InstrDescr INSTR_DESCR_STR	= { &(Instr2Op){ OPCODE_STR, { 1, 2 } }, Parse2Op };
+const InstrDescr INSTR_DESCR_CMP	= { &(Instr2Op){ OPCODE_CMP, { 1, 2 } }, Parse2Op };
 
 const InstrDescr INSTR_DESCR_SHL	= { &(ShiftOp){
 	{
@@ -249,8 +253,6 @@ const InstrDescr INSTR_DESCR_SHR	= { &(ShiftOp){
 		OPCODE_SHR15
 	} }, ParseShiftOp };
 
-const InstrDescr INSTR_DESCR_CMP	= { (void*)&(CmpOp){ OPCODE_CMP, OPCODE_CMP_WIDE, OPCODE_CMP_REV_WIDE }, ParseCmpOp };
-
 const InstrDescr INSTR_DESCR_PUSH	= { (void*)&(Instr1Op){ OPCODE_PUSH, 1 }, Parse1Op };
 const InstrDescr INSTR_DESCR_POP	= { (void*)&(Instr1Op){ OPCODE_POP, 0 }, Parse1Op };
 
@@ -263,35 +265,40 @@ const DirectiveDescr DIR_DESCR_GLOBAL	= { NULL, ParseGlobal };
 /**@{
  * @note	Precedence levels from C/C++ are used here
  */
-const OperatorDescr OPERATOR_DESCR_AND		= { 2 };
-const OperatorDescr OPERATOR_DESCR_PLUS		= { 4 };
-const OperatorDescr OPERATOR_DESCR_OR		= { 0 };
-const OperatorDescr OPERATOR_DESCR_NOT		= { 6 };
-const OperatorDescr OPERATOR_DESCR_SUB		= { 4 };
-const OperatorDescr OPERATOR_DESCR_NEG		= { 6 };
-const OperatorDescr OPERATOR_DESCR_DIVIDE	= { 5 };
+const OperatorDescr OPERATOR_DESCR_AND		= { OPERATOR_ASSOC_LEFT, 2, 2, EXPR_T_OP_AND };
+const OperatorDescr OPERATOR_DESCR_PLUS		= { OPERATOR_ASSOC_LEFT, 4, 2, EXPR_T_OP_PLUS };
+const OperatorDescr OPERATOR_DESCR_OR		= { OPERATOR_ASSOC_LEFT, 0, 2, EXPR_T_OP_OR };
+const OperatorDescr OPERATOR_DESCR_NOT		= { OPERATOR_ASSOC_RIGHT, 6, 1, EXPR_T_OP_NOT };
+const OperatorDescr OPERATOR_DESCR_SUB		= { OPERATOR_ASSOC_LEFT, 4, 2, EXPR_T_OP_SUB };
+const OperatorDescr OPERATOR_DESCR_NEG		= { OPERATOR_ASSOC_RIGHT, 6, 1, EXPR_T_OP_NEG };
+const OperatorDescr OPERATOR_DESCR_DIVIDE	= { OPERATOR_ASSOC_LEFT, 5, 2, EXPR_T_OP_DIVIDE };
 //TODO see below:
 //const OperatorDescr OPERATOR_DESCR_MUL	= { 5 };
 //const OperatorDescr OPERATOR_DESCR_MOD	= { 5 };
 //const OperatorDescr OPERATOR_DESCR_XOR	= { 1 };
 //const OperatorDescr OPERATOR_DESCR_SHLOP	= { 3 };
 //const OperatorDescr OPERATOR_DESCR_SHROP	= { 3 };
-/**@{*/
+/**@}*/
 
 const AmbOperatorDescr OPERATOR_DESCR_MINUS	= { TOKEN_DESCR_NEG, TOKEN_DESCR_SUB };
 
-void ParserInit(ObjectWriter* objWriter)
+void Parse(const char* asmPath, const char* objPath)
 {
-	objWriter_ = objWriter;
+	ScannerInit(asmPath);
+	ObjectWriterInit(objPath);
 	pc_ = 0;
 	line_ = 1;
-}
 
-void Parse(void)
-{
-	//TODO do initialization here, the scanner and objWriter arguments won't be needed anymore in the future.
 	Next();
 	while(!ParseLine()) continue;
+
+	ObjectWriterClose();
+	ScannerClose();
+}
+
+unsigned ParserGetLineNr(void)
+{
+	return line_;
 }
 
 void ParserExpect(TokenDescrId expected)
@@ -324,104 +331,137 @@ void ParserArgItClose(ParserArgIt* it)
 	}
 }
 
-const Token* ParserArgItNext(ParserArgIt* it)
+//const Token* ParserArgItNext(ParserArgIt* it)
+//{
+//	const Token* token;
+//
+//	switch(it->state)
+//	{
+//	case ARG_IT_STATE_START:
+//		it->state = ARG_IT_STATE_INTERIM;
+//		token = Next();
+//		break;
+//	case ARG_IT_STATE_INTERIM:
+//		if(Next()->descrId != TOKEN_DESCR_COMMA)
+//		{
+//			it->state = ARG_IT_STATE_END;
+//			return NULL;
+//		}
+//		token = Next();
+//		break;
+//	default:
+//		EscFatal("Argument iterator has illegal state (%u)", it->state);
+//		return NULL; //prevent warning
+//	}
+//
+//	if(token->descrId == TOKEN_DESCR_LABEL_REF)
+//	{
+//		Expression expr;
+//		expr.name = token->strValue->str;
+//		expr.nameLen = token->strValue->size;
+//		expr.address = pc_ + 1;
+//		ObjWriteExpr(&expr);
+//	}
+//
+//	return token;
+//}
+
+//const Token* ParserArgItNextExpect(ParserArgIt* it, TokenDescrId expected)
+//{
+//	const Token* token = ParserArgItNext(it);
+//	if(!token)
+//	{
+//		UnexpectedToken();
+//	}
+//	ParserExpect(expected);
+//	return token;
+//}
+
+//const Token* ParserArgItNextExpectClass(ParserArgIt* it, TokenClass tClass)
+//{
+//	const Token* token = ParserArgItNext(it);
+//	ParserExpectClass(tClass);
+//	return token;
+//}
+
+static void SyOutStackPush(word_t val)
 {
-	const Token* token;
-
-	switch(it->state)
-	{
-	case ARG_IT_STATE_START:
-		it->state = ARG_IT_STATE_INTERIM;
-		token = Next();
-		break;
-	case ARG_IT_STATE_INTERIM:
-		if(Next()->descrId != TOKEN_DESCR_COMMA)
-		{
-			it->state = ARG_IT_STATE_END;
-			return NULL;
-		}
-		token = Next();
-		break;
-	default:
-		EscFatal("Argument iterator has illegal state (%u)", it->state);
-		return NULL; //prevent warning
-	}
-
-	if(token->descrId == TOKEN_DESCR_LABEL_REF)
-	{
-		Expression expr;
-		expr.name = token->strValue->str;
-		expr.nameLen = token->strValue->size;
-		expr.address = pc_ + 1;
-		ObjWriteExpr(objWriter_, &expr);
-	}
-
-	return token;
+	ESC_ASSERT_FATAL(syOutStackN_ < SY_OUT_STACK_SIZE, "expression output stack overflow in parser");
+	syOutStack_[syOutStackN_++] = val;
 }
 
-const Token* ParserArgItNextExpect(ParserArgIt* it, TokenDescrId expected)
+static const word_t SyOutStackPeek(size_t depth)
 {
-	const Token* token = ParserArgItNext(it);
-	if(!token)
-	{
-		UnexpectedToken();
-	}
-	ParserExpect(expected);
-	return token;
+	size_t n = syOutStackN_ - 1 - depth;
+	ESC_ASSERT_FATAL(n < SY_OUT_STACK_SIZE, "index out of bounds while accessing expression output stack in parser");
+	return syOutStack_[n];
 }
 
-const Token* ParserArgItNextExpectClass(ParserArgIt* it, TokenClass tClass)
+static void SyOutStackPop(size_t amount)
 {
-	const Token* token = ParserArgItNext(it);
-	ParserExpectClass(tClass);
-	return token;
+	ESC_ASSERT_FATAL(amount <= syOutStackN_, "expression output stack underflow in parser");
+	syOutStackN_ -= amount;
 }
 
-static int TokenListAppend(TokenList* list, const Token* token)
+static void SyOutStackFlush(void)
 {
-	if(list->listIndex + 1 >= list->listSize)
+	word_t* p = syOutStack_;
+	for(p = syOutStack_; p < syOutStack_ + syOutStackN_; ++p)
 	{
-		return TOKENLIST_APPEND_OVERFLOW;
+		ObjExprPutNum(*p);
 	}
 
-	list->list[list->listIndex] = *token;
-	Token* nw = &list->list[list->listIndex];
-	++list->listIndex;
+	syOutStackN_ = 0;
+}
 
-	if(GetTokenDescr(nw->descrId)->valueType == TOKEN_VALUE_TYPE_STRING)
+#ifdef ESC_DEBUG
+static void SyOutStackDump(void)
+{
+	printf("SyOutStackDump():");
+	word_t* p;
+	for(p = syOutStack_; p < syOutStack_ + syOutStackN_; ++p)
 	{
-		nw->strValue = MemPoolAlloc(&list->strPool, PSTR_MEM_SIZE(token->strValue->size));
-		ESC_ASSERT_FATAL(nw->strValue, "Expression too large (sy queue mem pool overflow)");
-		if(!nw->strValue)
-		{
-			return TOKENLIST_APPEND_OUT_OF_MEM;
-		}
-		PSTR_COPY(nw->strValue, token->strValue);
+		printf(" %d", *p);
+	}
+	putchar('\n');
+}
+#endif
+
+static void SyOpStackPush(TokenDescrId id)
+{
+	ESC_ASSERT_FATAL(syOpStackN_ < SY_OP_STACK_SIZE, "operator stack overflow in parser");
+	syOpStack_[syOpStackN_++] = id;
+}
+
+static int SyOpStackPeek(TokenDescrId* id)
+{
+	if(syOpStackN_ == 0)
+	{
+		return -1;
 	}
 
+	*id = syOpStack_[syOpStackN_ - 1];
 	return 0;
 }
 
-static void TokenListRmLast(TokenList* list)
+static void SyOpStackPop(void)
 {
-	ESC_ASSERT_FATAL(list->listIndex > 0, "Token list underflow");
-	Token* top = &list->list[--list->listIndex];
-	if(top->descrId == TOKEN_DESCR_LABEL_REF)
+	ESC_ASSERT_FATAL(syOpStackN_ > 0, "operator stack underflow in parser");
+	--syOpStackN_;
+}
+
+#ifdef ESC_DEBUG
+static void SyOpStackDump(void)
+{
+	printf("SyOpStackDump(): ");
+	TokenDescrId* p;
+	for(p = syOpStack_; p < syOpStack_ + syOpStackN_; ++p)
 	{
-		list->strPool.head -= PSTR_MEM_SIZE(top->strValue->size);;
+		ScannerDumpToken(stdout, &(Token){ *p });
 	}
+	putchar('\n');
 }
-
-static const Token* TokenListTop(TokenList* list)
-{
-	return list->listIndex == 0 ? NULL : &list->list[list->listIndex - 1];
-}
-
-static void TokenListClear(TokenList* list)
-{
-	list->listIndex = 0;
-	MemPoolClear(&list->strPool);
-}
+#endif
 
 static Token* Peek(void)
 {
@@ -465,7 +505,7 @@ static void ParseLocalLabelDecls(void)
 		PrintString(sym.name, sym.nameLen);
 		printf("'\n");
 #endif
-		ObjWriteLocalSym(objWriter_, &sym);
+		ObjWriteLocalSym(&sym);
 		Next();
 	}
 }
@@ -485,6 +525,7 @@ static int ParseLabelDecl(Symbol* sym)
 	return 0;
 }
 
+//TODO directive parsing routines and instruction parsing routines don't need separate cases here i think, should think about 'merging' them
 static void ParseCommand(void)
 {
 	const TokenDescr* tDescr = GetTokenDescr(Peek()->descrId);
@@ -495,10 +536,12 @@ static void ParseCommand(void)
 	{
 		const DirectiveDescr* dDescr = (DirectiveDescr*)tDescr->cmdDescr;
 		ParserArgIt argIt;
-		ParserArgItInit(&argIt);
+//		ParserArgItInit(&argIt);
 		assert(dDescr->parseProc);
+		argN_ = 0;
+		Next();
 		dDescr->parseProc(dDescr->implData, &argIt);
-		ParserArgItClose(&argIt);
+//		ParserArgItClose(&argIt);
 	} break;
 
 	case TOKEN_CLASS_MNEMONIC:
@@ -506,10 +549,12 @@ static void ParseCommand(void)
 		const InstrDescr* iDescr = (InstrDescr*)tDescr->cmdDescr;
 		Instruction instr = { 0 };
 		ParserArgIt argIt;
-		ParserArgItInit(&argIt);
+//		ParserArgItInit(&argIt);
 		assert(iDescr->parseProc);
-		iDescr->parseProc(iDescr->implData, &argIt, &instr);
-		ParserArgItClose(&argIt);
+		argN_ = 0;
+		Next();
+		iDescr->parseProc(iDescr->implData, &argIt, &instr); //TODO (pseudo) instructions should be able to emit more than 1 actual instructions
+//		ParserArgItClose(&argIt);
 		EmitInstr(&instr);
 	} break;
 
@@ -519,23 +564,148 @@ static void ParseCommand(void)
 	}
 }
 
-void TestParseExpression(void)
+//TODO maybe use something else than 'Token' to represent arguments?
+static void FirstArgument(unsigned accept, Token* ret)
+{
+#define ARG_EXPECT(m)	if(!(accept & (m))) { UnexpectedToken(); }
+
+	switch(Peek()->descrId)
+	{
+	//FIXME quickfix
+	case TOKEN_DESCR_MINUS:
+	case TOKEN_DESCR_LABEL_REF:
+	case TOKEN_DESCR_PAREN_OPEN:
+	case TOKEN_DESCR_NUMBER:
+		{
+			ARG_EXPECT(PARSE_ARG_IMM)
+			int isConst = ParseExpression(accept & PARSE_ARG_CONST);
+			ret->descrId = TOKEN_DESCR_NUMBER;
+			ret->intValue = isConst ? SyOutStackPeek(0) : 0xDEAD;
+		}
+		break;
+
+	case TOKEN_DESCR_REGISTER_REF:
+		ARG_EXPECT(PARSE_ARG_REG)
+		ESC_ASSERT_ERROR(accept & PARSE_ARG_REG, "Expected register");
+		*ret = *Peek();
+		Next();
+		break;
+
+	default:
+		UnexpectedToken();
+		break;
+	}
+
+	++argN_;
+}
+
+static void NextArgument(unsigned accept, Token* ret)
+{
+	if(Peek()->descrId != TOKEN_DESCR_COMMA)
+	{
+		UnexpectedToken();
+	}
+	else
+	{
+		Next();
+		return FirstArgument(accept, ret);
+	}
+}
+
+//FIXME debug
+void TestParseExpression(const char* asmPath, const char* objPath)
 {
 	puts("TestParseExpression() BEGIN");
 
-	Next();
-	ParseExpression();
+	ScannerInit(asmPath);
+	ObjectWriterInit(objPath);
+	pc_ = 0;
+	line_ = 1;
 
-	Token* t;
-	for(t = syQueue_.list; t < syQueue_.list + syQueue_.listIndex; ++t)
-	{
-		ScannerDumpToken(stdout, t);
-	}
+	Next();
+	ParseExpression(0);
+
+	ScannerClose();
+	ObjectWriterClose();
 
 	puts("\nTestParseExpression() END");
 }
+//end debug
 
-//TODO implement this in ParseExpression() to check that a valid expression is entered
+static int SyEval(TokenDescrId operator, word_t* result)
+{
+	const OperatorDescr* descr = GET_ID_OP_DESCR(operator);
+
+	if(syOutStackN_ < descr->nAry)
+	{
+#ifdef ESC_DEBUG
+		printf("not enough values on output stack. need %d, got %d\n", descr->nAry, syOutStackN_);
+#endif
+		return -1;
+	}
+
+	switch (descr->operatorType)
+	{
+	case EXPR_T_OP_AND:
+		*result = SyOutStackPeek(1) & SyOutStackPeek(0);
+		return 0;
+	case EXPR_T_OP_PLUS:
+		*result = SyOutStackPeek(1) + SyOutStackPeek(0);
+		return 0;
+	case EXPR_T_OP_OR:
+		*result = SyOutStackPeek(1) | SyOutStackPeek(0);
+		return 0;
+	case EXPR_T_OP_NOT:
+		*result = ~SyOutStackPeek(0);
+		return 0;
+	case EXPR_T_OP_SUB:
+		*result = SyOutStackPeek(1) - SyOutStackPeek(0);
+		return 0;
+	case EXPR_T_OP_NEG:
+		*result = -SyOutStackPeek(0);
+		return 0;
+	case EXPR_T_OP_DIVIDE:
+		*result = SyOutStackPeek(1) / SyOutStackPeek(0);
+		return 0;
+
+	default:
+		EscFatal("token id passed to SyEval() does not describe an operator");
+		return -1; //prevent warning
+	}
+}
+
+static void SyOutPushOperator(TokenDescrId operator)
+{
+#ifdef ESC_DEBUG
+	printf("SyOutPushOperator(): try eval ");
+	ScannerDumpToken(stdout, &(Token){ operator });
+#endif
+	word_t result;
+	if(!SyEval(operator, &result))
+	{
+#ifdef ESC_DEBUG
+		printf(" success, result=%d", result);
+#endif
+		SyOutStackPop(GET_ID_OP_DESCR(operator)->nAry);
+		SyOutStackPush(result);
+#ifdef ESC_DEBUG
+		SyOutStackDump();
+#endif
+	}
+	else
+	{
+#ifdef ESC_DEBUG
+		printf(" failure");
+		SyOutStackFlush();
+#endif
+		ObjExprPutOperator(GET_ID_OP_DESCR(operator)->operatorType);
+#ifdef ESC_DEBUG
+		SyOutStackDump();
+#endif
+	}
+}
+
+//this is only still here for reference purposes
 //
 //	expect (, value, unary, END
 //
@@ -551,30 +721,58 @@ void TestParseExpression(void)
 //		case )
 //			expect binary, END
 
-static void ParseExpression(void)
+#define PARSE_EXPRESSION_CONST		0
+#define PARSE_EXPRESSION_NON_CONST	1
+
+static int ParseExpression(int needConst)
 {
+	//TODO check for constness
+#define SY_ASSERT_EXPECT(m)	(expect & (m) ? (void)0 : UnexpectedToken())
+
 	TokenDescrId prevId = TOKEN_DESCR_INVALID;
 	Token* token;
-	const Token* top = NULL;
+	TokenDescrId top;
+	unsigned expect = SY_EXPECT_VALUE | SY_EXPECT_UNARY | SY_EXPECT_PAREN_OPEN;
+	int isConst = 1;
+	syOpStackN_ = 0;
+	syOutStackN_ = 0;
+	token = Peek();
 
-	TokenListClear(&syQueue_);
-	TokenListClear(&syStack_);
+	if(!needConst)
+	{
+		ObjExprBegin(pc_ + 1); //TODO this is the right address for operand 3 of wide instructions, but maybe not for future fields that need to be linked
+	}
 
-#ifdef ESC_DEBUG
-	puts("ParseExpression(): infix BEGIN");
-#endif
-
-	for(token = Peek(); ; prevId = token->descrId, token = Next())
+	for(;;) //while valid tokens are available
 	{
 #ifdef ESC_DEBUG
+		putchar('\n');
+		SyOutStackDump();
+		SyOpStackDump();
+		printf("ParseExpression(): got: ");
 		ScannerDumpToken(stdout, token);
+		putchar('\n');
 #endif
 
 		switch(GetTokenDescr(token->descrId)->tokenClass)
 		{
 		case TOKEN_CLASS_VALUE:
-			SY_OUT(token);
-			continue;
+			SY_ASSERT_EXPECT(SY_EXPECT_VALUE);
+			expect = SY_EXPECT_BINARY | SY_EXPECT_PAREN_CLOSE | SY_EXPECT_END;
+			if(token->descrId == TOKEN_DESCR_NUMBER)
+			{
+				SyOutStackPush(token->intValue);
+			}
+			else
+			{
+				//TODO if parsing const expression: EscError()
+				ESC_ASSERT_ERROR(token->descrId == TOKEN_DESCR_LABEL_REF, "Only numbers and label references are legal values in expressions");
+				ESC_ASSERT_ERROR(!needConst, "Expected constant expression");
+				isConst = 0;
+				SyOutStackFlush();
+				ObjExprPutSymbol(token->strValue);
+			}
+			break;
 
 		case TOKEN_CLASS_AMBIGUOUS_OPERATOR:
 			{
@@ -585,57 +783,76 @@ static void ParseExpression(void)
 			}
 			//fall through
 		case TOKEN_CLASS_OPERATOR:
-			top = SY_TOP;
-			while(top && GET_OP_DESCR(token)->precedence < GET_OP_DESCR(top)->precedence)
 			{
-				SY_OUT(top);
-				SY_POP;
-				top = SY_TOP;
-			}
-			SY_PUSH(token);
-			continue;
+				const OperatorDescr* tokenOp = GET_TOKEN_OP_DESCR(token);
+				SY_ASSERT_EXPECT(tokenOp->nAry == 1 ? SY_EXPECT_UNARY : SY_EXPECT_BINARY);
+				expect = SY_EXPECT_VALUE | SY_EXPECT_UNARY | SY_EXPECT_PAREN_OPEN;
 
-		default: break;
+				while(!SyOpStackPeek(&top))
+				{
+					unsigned topPrec = GET_ID_OP_DESCR(top)->prec;
+					if(!((tokenOp->assoc == OPERATOR_ASSOC_LEFT && tokenOp->prec == topPrec) || tokenOp->prec < topPrec))
+					{
+						break;
+					}
+
+					SyOutPushOperator(top);
+					SyOpStackPop();
+				}
+				SyOpStackPush(token->descrId);
+			} break;
+
+		default:
+			//if no valid token class was found, check for ( or )
+			switch(token->descrId)
+			{
+			case TOKEN_DESCR_PAREN_OPEN:
+				SyOpStackPush(token->descrId);
+				break;
+
+			case TOKEN_DESCR_PAREN_CLOSE:
+				ESC_ASSERT_ERROR(!SyOpStackPeek(&top) && top != TOKEN_DESCR_PAREN_OPEN, "No expression between parenthesis");
+
+				while(!SyOpStackPeek(&top) && top != TOKEN_DESCR_PAREN_OPEN)
+				{
+					SyOutPushOperator(top);
+					SyOpStackPop();
+				}
+				ESC_ASSERT_ERROR(top, "Parenthesis mismatch");
+				SyOpStackPop();
+				break;
+
+			default:
+				//no valid token was found, break from loop
+				SY_ASSERT_EXPECT(SY_EXPECT_END);
+				goto breakLoop;
+			}
+			break;
 		}
 
-		//if no valid token class was found, check for ( or )
-		switch(token->descrId)
-		{
-		case TOKEN_DESCR_PAREN_OPEN:
-			SY_PUSH(token);
-			continue;
-
-		case TOKEN_DESCR_PAREN_CLOSE:
-			top = SY_TOP;
-			ESC_ASSERT_ERROR(top && top->descrId != TOKEN_DESCR_PAREN_OPEN, "No expression between parenthesis");
-
-			while(top && top->descrId != TOKEN_DESCR_PAREN_OPEN)
-			{
-				SY_OUT(top);
-				SY_POP;
-				top = SY_TOP;
-			}
-			ESC_ASSERT_ERROR(top, "Parenthesis mismatch");
-			SY_POP;
-			continue;
-
-		default: break;
-		}
-
-		break;
-	}
+		prevId = token->descrId;
+		token = Next();
+	} breakLoop:
 
 	//end of expression
-	while((top = SY_TOP))
+	while(!SyOpStackPeek(&top))
 	{
-		ESC_ASSERT_ERROR(top->descrId != TOKEN_DESCR_PAREN_OPEN, "Parenthesis mismatch in expression");
-		SY_OUT(top);
-		SY_POP;
+		ESC_ASSERT_ERROR(top != TOKEN_DESCR_PAREN_OPEN, "Parenthesis mismatch in expression");
+		SyOutPushOperator(top);
+		SyOpStackPop();
 	}
 
-#ifdef ESC_DEBUG
-	puts("\nParseExpression(): infix END");
-#endif
+	if(isConst)
+	{
+		if(syOutStackN_ != 1) { UnexpectedToken(); }
+	}
+	else
+	{
+		SyOutStackFlush();
+		ObjExprEnd();
+	}
+
+	return isConst;
 }
 
 static void EmitInstr(Instruction* instr)
@@ -645,7 +862,7 @@ static void EmitInstr(Instruction* instr)
 			instr->opcode, instr->wide, instr->operands[0], instr->operands[1], instr->operands[2], instr->operands[3]);
 #endif
 
-	pc_ += ObjWriteInstr(objWriter_, instr);
+	pc_ += ObjWriteInstr(instr);
 }
 
 static void EmitWord(uword_t word)
@@ -654,7 +871,7 @@ static void EmitWord(uword_t word)
 	printf("\tword 0x%X(%u)\n", word, word);
 #endif
 	uword_t x = HTON_WORD(word);
-	ObjWriteData(objWriter_, &x, 1);
+	ObjWriteData(&x, 1);
 	++pc_;
 }
 
@@ -704,38 +921,38 @@ __attribute__((noreturn)) void ParserError(const char* errMsg)
 static void Parse3Op(const void* implData, ParserArgIt* argIt, Instruction* instr)
 {
 	//reg, reg, reg
-	const Token* token;
-	size_t i;
-
 	instr->opcode = ((const Instr3Op*)implData)->opcode;
 	instr->wide = 0;
+	Token arg;
 
-	for(i = 0; i < 3; ++i)
-	{
-		token = ParserArgItNextExpect(argIt, TOKEN_DESCR_REGISTER_REF);
-		instr->operands[i] = token->intValue;
-	}
+	FirstArgument(PARSE_ARG_REG, &arg);
+	instr->operands[0] = arg.intValue;
+	NextArgument(PARSE_ARG_REG, &arg);
+	instr->operands[1] = arg.intValue;
+	NextArgument(PARSE_ARG_REG, &arg);
+	instr->operands[2] = arg.intValue;
 }
 
 static void ParseJumpOp(const void* implData, ParserArgIt* argIt, Instruction* instr)
 {
 	//reg/imm
 	const JumpOp* jumpOp = (const JumpOp*)implData;
-	const Token* token = ParserArgItNextExpectClass(argIt, TOKEN_CLASS_VALUE);
+	Token arg;
+	FirstArgument(PARSE_ARG_REG | PARSE_ARG_IMM, &arg);
 
 	instr->operands[0] = REG_PC;
 
-	if(token->descrId == TOKEN_DESCR_REGISTER_REF)
+	if(arg.descrId == TOKEN_DESCR_REGISTER_REF)
 	{
 		instr->opcode = jumpOp->opcodeReg;
 		instr->wide = 0;
-		instr->operands[1] = token->intValue;
+		instr->operands[1] = arg.intValue;
 	}
 	else
 	{
 		instr->opcode = jumpOp->opcodeImm;
 		instr->wide = 1;
-		instr->operands[3] = token->intValue;
+		instr->operands[3] = arg.intValue;
 	}
 }
 
@@ -743,36 +960,35 @@ static void ParseMovOp(const void* implData, ParserArgIt* argIt, Instruction* in
 {
 	//reg, reg/imm
 	const MovOp* movOp = (const MovOp*)implData;
-	const Token* token = ParserArgItNextExpect(argIt, TOKEN_DESCR_REGISTER_REF);
+	Token arg;
 
-	instr->operands[0] = token->intValue;
-	token = ParserArgItNextExpectClass(argIt, TOKEN_CLASS_VALUE);
+	FirstArgument(PARSE_ARG_REG, &arg);
+	instr->operands[0] = arg.intValue;
 
-	if(token->descrId == TOKEN_DESCR_REGISTER_REF)
+	NextArgument(PARSE_ARG_IMM | PARSE_ARG_REG, &arg);
+	if(arg.descrId == TOKEN_DESCR_REGISTER_REF)
 	{
 		instr->opcode = movOp->opcodeReg;
 		instr->wide = 0;
-		instr->operands[1] = token->intValue;
+		instr->operands[1] = arg.intValue;
 	}
 	else
 	{
 		instr->opcode = movOp->opcodeImm;
 		instr->wide = 1;
-		instr->operands[3] = token->intValue;
+		instr->operands[3] = arg.intValue;
 	}
 }
 
 static void Parse2Op(const void* implData, ParserArgIt* argIt, Instruction* instr)
 {
 	const Instr2Op* op = (const Instr2Op*)implData;
-	size_t i;
-	const Token* token;
+	Token arg;
 
-	for(i = 0; i < 2; ++i)
-	{
-		token = ParserArgItNextExpect(argIt, TOKEN_DESCR_REGISTER_REF);
-		instr->operands[op->operandIndices[i]] = token->intValue;
-	}
+	FirstArgument(PARSE_ARG_REG, &arg);
+	instr->operands[op->operandIndices[0]] = arg.intValue;
+	NextArgument(PARSE_ARG_REG, &arg);
+	instr->operands[op->operandIndices[1]] = arg.intValue;
 
 	instr->opcode = op->opcode;
 	instr->wide = 0;
@@ -780,76 +996,28 @@ static void Parse2Op(const void* implData, ParserArgIt* argIt, Instruction* inst
 
 static void ParseShiftOp(const void* implData, ParserArgIt* argIt, Instruction* instr)
 {
-	//reg, reg, reg
+	//reg, reg, const
 	const ShiftOp* op = (const ShiftOp*)implData;
-	const Token* token;
-	size_t i;
+	Token arg;
 
-	for(i = 0; i < 2; ++i)
-	{
-		token = ParserArgItNextExpect(argIt, TOKEN_DESCR_REGISTER_REF);
-		instr->operands[i] = token->intValue;
-	}
+	FirstArgument(PARSE_ARG_REG, &arg);
+	instr->operands[0] = arg.intValue;
+	NextArgument(PARSE_ARG_REG, &arg);
+	instr->operands[1] = arg.intValue;
 
-	token = ParserArgItNextExpect(argIt, TOKEN_DESCR_NUMBER);
-	int n = token->intValue;
-	if(n < 1 || n > 15)
-	{
-		ParserError("Third operand of shift instruction should be a number between 1 and 15 (inclusive)");
-	}
-
+	NextArgument(PARSE_ARG_IMM | PARSE_ARG_CONST, &arg);
+	unsigned n = (unsigned)arg.intValue;
+	ESC_ASSERT_ERROR(n > 0 && n < 16, "Third operand of shift instruction should be a number N where 0 < N < 16");
 	instr->opcode = op->ops[n - 1];
 	instr->wide = 0;
-}
-
-static void ParseCmpOp(const void* implData, ParserArgIt* argIt, Instruction* instr)
-{
-	const CmpOp* op = (const CmpOp*)implData;
-	const Token* token = ParserArgItNext(argIt);
-
-	if(token->descrId == TOKEN_DESCR_REGISTER_REF)	//reg, ?
-	{
-		instr->operands[1] = token->intValue;
-		token = ParserArgItNext(argIt);
-
-		if(token->descrId == TOKEN_DESCR_REGISTER_REF)	//reg, reg
-		{
-			instr->operands[2] = token->intValue;
-			instr->wide = 0;
-			instr->opcode = op->opcodeRegReg;
-		}
-		else if(GetTokenDescr(token->descrId)->tokenClass == TOKEN_CLASS_VALUE)	//reg, imm
-		{
-			EscFatal("cmp reg, imm not supported by CPU yet");
-//			instr->operands[3] = token->intValue;
-//			instr->wide = 1;
-//			instr->opcode = op->opcodeRegImm;
-		}
-		else
-		{
-			UnexpectedToken();
-		}
-	}
-	else if(GetTokenDescr(token->descrId)->tokenClass == TOKEN_CLASS_VALUE)	//imm, reg
-	{
-		EscFatal("cmp imm, reg not supported by CPU yet");
-//		instr->operands[3] = token->intValue;
-//		token = ParserArgItNextExpect(argIt, parser, TOKEN_DESCR_REGISTER_REF);
-//		instr->operands[1] = token->intValue;
-//		instr->wide = 1;
-//		instr->opcode = op->opcodeImmReg;
-	}
-	else
-	{
-		UnexpectedToken();
-	}
 }
 
 static void Parse1Op(const void* implData, ParserArgIt* argIt, Instruction* instr)
 {
 	const Instr1Op* op = (const Instr1Op*)implData;
-	const Token* token = ParserArgItNextExpect(argIt, TOKEN_DESCR_REGISTER_REF);
-	instr->operands[op->operandIndex] = token->intValue;
+	Token arg;
+	FirstArgument(PARSE_ARG_REG, &arg);
+	instr->operands[op->operandIndex] = arg.intValue;
 	instr->opcode = op->opcode;
 	instr->wide = 0;
 }
@@ -860,9 +1028,7 @@ static void ParseSection(const void* implData, ParserArgIt* argIt)
 	//.section bss, size[,address]
 	(void)implData;
 
-	const Token* token = ParserArgItNext(argIt);
-
-	switch(token->descrId)
+	switch(Peek()->descrId) //FIXME quickfix, want to get rid of section directive anyway...
 	{
 	case TOKEN_DESCR_DATA:
 		ParseDataSection(argIt);
@@ -883,80 +1049,75 @@ static void ParseSection(const void* implData, ParserArgIt* argIt)
 static void ParseDataSection(ParserArgIt* argIt)
 {
 	//.section data[,address]
-	const Token* token;
 	uword_t address;
 	byte_t placement;
 
-	token = ParserArgItNext(argIt);
-	if(!token)
+	if(Next()->descrId == TOKEN_DESCR_COMMA) //FIXME quickfix
 	{
-		address = ~0;
-		placement = OBJ_RELOC;
-	}
-	else if(token->descrId == TOKEN_DESCR_NUMBER)
-	{
-		placement = OBJ_ABS;
-		address = token->intValue;
-		ParserArgItNext(argIt);
+		Token arg;
+		Next();
+		FirstArgument(PARSE_ARG_IMM | PARSE_ARG_CONST, &arg);
+		placement = OBJ_PLACEMENT_ABS;
+		address = arg.intValue;
 	}
 	else
 	{
-		UnexpectedToken();
+		address = ~0;
+		placement = OBJ_PLACEMENT_RELOC;
 	}
 
 #ifdef ESC_DEBUG
 	printf("\tentering data section. placement=%u; address=%u\n", placement, address);
 #endif
-	ObjWriteDataSection(objWriter_, placement, address);
+	ObjWriteDataSection(placement, address);
 }
 
 static void ParseBSSSection(ParserArgIt* argIt)
 {
 	//.section bss, size[,address]
-	const Token* token;
+	Token arg;
 	uword_t size;
 	uword_t address;
 	byte_t placement;
 
-	token = ParserArgItNextExpect(argIt, TOKEN_DESCR_NUMBER);
-	size = token->intValue;
+	Next();
+	NextArgument(PARSE_ARG_IMM | PARSE_ARG_CONST, &arg);
+	size = arg.intValue;
 
-	token = ParserArgItNext(argIt);
-	if(!token)
+	if(Peek()->descrId == TOKEN_DESCR_COMMA)
 	{
-		placement = OBJ_RELOC;
-		address = ~0;
-	}
-	else if(token->descrId == TOKEN_DESCR_NUMBER)
-	{
-		placement = OBJ_ABS;
-		address = token->intValue;
-		ParserArgItNext(argIt);
+		Next();
+		FirstArgument(PARSE_ARG_IMM | PARSE_ARG_CONST, &arg);
+		placement = OBJ_PLACEMENT_ABS;
+		address = arg.intValue;
 	}
 	else
 	{
-		UnexpectedToken();
+		placement = OBJ_PLACEMENT_RELOC;
+		address = ~0;
 	}
+
 
 #ifdef ESC_DEBUG
 	printf("\tentering BSS section. placement=%u; size=%u; address=%u\n", placement, size, address);
 #endif
-	ObjWriteBssSection(objWriter_, placement, address, size);
+	ObjWriteBssSection(placement, address, size);
 }
 
 static void ParseWord(const void* implData, ParserArgIt* argIt)
 {
 	//.word imm
 	(void)implData;
-	const Token* token = ParserArgItNextExpect(argIt, TOKEN_DESCR_NUMBER);
-	EmitWord(token->intValue);
+	Token arg;
+	FirstArgument(PARSE_ARG_IMM, &arg);
+	EmitWord(arg.intValue);
 }
 
+//TODO write less invasive implementation
 static void ParseGlobal(const void* implData, ParserArgIt* argIt)
 {
 	//.global ldecl+
 	Symbol sym;
-	Next();
 
 	do
 	{
@@ -969,16 +1130,9 @@ static void ParseGlobal(const void* implData, ParserArgIt* argIt)
 		PrintString(sym.name, sym.nameLen);
 		printf("'\n");
 #endif
-		ObjWriteGlobalSym(objWriter_, &sym);
+		ObjWriteGlobalSym(&sym);
 	} while(Next()->descrId == TOKEN_DESCR_LABEL_DECL);
-
-	//FIXME dirty workaround. will otherwise skip a token during ParserArgItClose()
-	argIt->state = ARG_IT_STATE_END;
-	//end dirty workaround
 }
-
-
-
 
 
 

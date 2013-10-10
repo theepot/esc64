@@ -36,7 +36,7 @@ module computer();
 	initial begin
 		$dumpfile("computer.vcd");
 		$dumpvars(0);
-		
+				
 		//$print_add(10, 20);
 		$start_thrift_server();
 		
@@ -46,16 +46,44 @@ module computer();
 		clock = 0;
 		#900 notReset = 1;
 
-		//#((`CLOCK_PERIOD / 2)*2*`MAX_CLOCK_CYCLES)
-		//$display("ERROR: computer did not halt in %d cycles", `MAX_CLOCK_CYCLES);
-		//$finish;
+		#((`CLOCK_PERIOD / 2)*2*`MAX_CLOCK_CYCLES)
+		$display("ERROR: computer did not halt in %d cycles", `MAX_CLOCK_CYCLES);
+		$finish;
 
 	end
 
 	always begin
 		$tick;
+	
+		if(cpu.irOpcode === 7'b1111111 && tick_counter != 0) begin
+			$display("halt @ tick %d", tick_counter);
+			$display("dumping ram");
+			#5 $writememb("ram_out.lst", ram.mem, 0, (1<<15)-1);
+			$halt;
+			//$finish;
+		end
+		else if(cpu.error !== 2'b00 && tick_counter != 0) begin
+			$display("error %d @ tick %d", cpu.error, tick_counter);
+			//$finish;
+			$error(cpu.error);
+		end
+		else begin
+			#(`CLOCK_PERIOD / 2) clock = 1'b1;
+			#(`CLOCK_PERIOD / 2) clock = 1'b0;
+			tick_counter = tick_counter + 1;
+		end
+	end
+
+	/*always begin
+		$tick;
+		
+		//FIXME debug
+		$display("tick=%d", tick);
+		tick = tick + 1;
+		//end debug
+		
 		#(`CLOCK_PERIOD / 2) clock = ~clock;
-		/*tick_counter = tick_counter + 1;
+		tick_counter = tick_counter + 1;
 		if(cpu.irOpcode === 7'b1111111) begin
 			$display("halt @ tick %d", tick_counter / 2);
 			$display("dumping ram");
@@ -65,8 +93,8 @@ module computer();
 		if(cpu.error !== 2'b00) begin
 			$display("error %d @ tick %d", cpu.error, tick_counter / 2);
 			$finish;
-		end*/
-	end
+		end
+	end*/
 	
 	always @ (posedge clock) begin
 		ram.test_state();
@@ -80,6 +108,7 @@ module computer();
 	wire [15:0] reg4 = cpu.registers.r[4].content;
 	wire [15:0] reg5 = cpu.registers.r[5].content;
 	wire [15:0] reg6 = cpu.registers.r[6].content;
+	wire [15:0] reg7 = cpu.registers.pc.content;
 	wire [15:0] pc = cpu.registers.pc.content;
 	
 	wire carry = cpu.statusCOut;

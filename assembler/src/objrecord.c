@@ -7,6 +7,7 @@
 #include <arpa/inet.h>
 
 #include <esc64asm/ioutils.h>
+#include <esc64asm/escerror.h>
 
 static void BufferRecordData(RecordWriter* writer, const void* data, size_t dataSize);
 static void FlushRecordData(RecordWriter* writer, FILE* stream, const void* extra, size_t extraSize);
@@ -45,6 +46,17 @@ void RecordWrite(RecordWriter* writer, FILE* stream, const void* data, size_t da
 	}
 }
 
+void RecordWriteByte(RecordWriter* writer, FILE* stream, byte_t val)
+{
+	RecordWrite(writer, stream, &val, sizeof val);
+}
+
+void RecordWriteWord(RecordWriter* writer, FILE* stream, uword_t val)
+{
+	val = HTON_WORD(val);
+	RecordWrite(writer, stream, &val, sizeof val);
+}
+
 size_t RecordRead(RecordReader* reader, FILE* stream, void* buf, size_t amount)
 {
 	size_t i = 0;
@@ -65,6 +77,24 @@ size_t RecordRead(RecordReader* reader, FILE* stream, void* buf, size_t amount)
 	}
 
 	return i;
+}
+
+int RecordReadWord(RecordReader* reader, FILE* stream, uword_t* val)
+{
+	uword_t x;
+
+	if(RecordRead(reader, stream, &x, sizeof x) != sizeof x)
+	{
+		return -1;
+	}
+
+	*val = NTOH_WORD(x);
+	return 0;
+}
+
+int RecordReadByte(RecordReader* reader, FILE* stream, byte_t* val)
+{
+	return RecordRead(reader, stream, val, sizeof *val) == sizeof *val ? 0 : -1;
 }
 
 static void GetRecordData(RecordReader* reader, FILE* stream, void* buf, size_t amount)

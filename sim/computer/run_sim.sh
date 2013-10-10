@@ -11,6 +11,7 @@ HERE="$( cd -P "$( dirname "$HERE" )" && pwd )"
 
 ### start simulation back-end ###
 vvp -M$HERE/thrift-server -mthriftserver $HERE/computer.vpp
+#for your convenience: gdb -args vvp -M`pwd`/thrift-server -mthriftserver `pwd`/computer.vpp
 
 ### start simulation front-end ###
 #TODO

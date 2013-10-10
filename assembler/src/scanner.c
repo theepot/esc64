@@ -25,8 +25,6 @@ typedef uint16_t char_traits_t;
 #define CT_SYM_FIRST	(CT_LETTER | CT_UNDERSCORE)
 #define CT_SYM_REST		(CT_SYM_FIRST | CT_DIGIT)
 
-//#define DEF_CT_DESCR(d)	((d) & 0xFF)
-
 #define CT_RES_AND			(CT_RESCHAR | 0)
 #define CT_RES_PAREN_OPEN	(CT_RESCHAR | 1)
 #define CT_RES_PAREN_CLOSE	(CT_RESCHAR | 2)
@@ -188,8 +186,7 @@ static char_traits_t GetCharTraits(int c);
 
 static FILE* stream_;
 static int curChar_;
-//static char buf_[SCANNER_BUF_SIZE];
-//static size_t bufIndex_;
+static unsigned charCount_;
 static Token* token_;
 
 static char bufMem_[PSTR_MEM_SIZE(SCANNER_BUF_SIZE)];
@@ -244,6 +241,7 @@ void ScannerNext(Token* token)
 {
 	token_ = token;
 	ClearBuf();
+	charCount_ = 0;
 	IgnoreWhitespaces();
 
 	if(Peek() == EOF)
@@ -256,10 +254,10 @@ void ScannerNext(Token* token)
 	}
 }
 
-//size_t ScannerStrLen(void)
-//{
-//	return bufIndex_;
-//}
+unsigned ScannerGetCharCount(void)
+{
+	return charCount_;
+}
 
 void ScannerDumpToken(FILE* stream, const Token* token)
 {
@@ -267,7 +265,15 @@ void ScannerDumpToken(FILE* stream, const Token* token)
 	switch(tDescr->valueType)
 	{
 		case TOKEN_VALUE_TYPE_STRING:
-			fprintf(stream, "[%s:%s]", tDescr->name, token->strValue->str); //TODO strValue->str is not 0-terminated
+			{
+				fprintf(stream, "[%s:", tDescr->name);
+				char* c;
+				for(c = token->strValue->str; c < token->strValue->str + token->strValue->size; ++c)
+				{
+					putc(*c, stream);
+				}
+				putc(']', stream);
+			}
 			break;
 		case TOKEN_VALUE_TYPE_NUMBER:
 			fprintf(stream, "[%s:%d]", tDescr->name, token->intValue);
@@ -323,6 +329,7 @@ static int Peek(void)
 
 static int ReadRaw(void)
 {
+	++charCount_;
 	return curChar_ = getc(stream_);
 }
 
