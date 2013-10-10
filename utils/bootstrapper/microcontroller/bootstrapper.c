@@ -8,12 +8,30 @@
 #include <common.h>
 #include "bootstrapper.h"
 
-uint8_t outoe_data[OUTOE_SHIFTR_NUM_BYTES];
-uint8_t out_data[OUT_SHIFTR_NUM_BYTES];
-uint8_t in_data[IN_NUM_BYTES];
+static uint8_t outoe_data[OUTOE_SHIFTR_NUM_BYTES];
+static uint8_t out_data[OUT_SHIFTR_NUM_BYTES];
+static uint8_t in_data[IN_NUM_BYTES];
 
-volatile uint32_t clock_freq;
-volatile uint8_t clock_running;
+volatile static uint32_t clock_freq;
+volatile static uint8_t clock_tmr_param_prescaler;
+volatile static uint16_t clock_tmr_param_counter;
+volatile static uint8_t clock_running;
+
+//loops forever and blinks led indicating the error code
+void error(uint8_t code) {
+	LED_OFF;
+	
+	uint8_t n;
+	for(;;) {
+		for(n = 0; n < code; ++n) {
+			LED_ON;
+			_delay_ms(500);
+			LED_OFF;
+			_delay_ms(500);
+		}
+		_delay_ms(2000);
+	}
+}
 
 void in_shiftr_init(void)
 {
@@ -30,15 +48,20 @@ void in_shiftr_capture(void)
 	IN_CLOCK_ON;
 	_delay_us(10);
 	IN_CLOCK_OFF;
+	IN_SHIFT;
 }
 
-void in_shiftr_pull(void)
+void in_shiftr_pull(uint8_t shift_num_of_bytes)
 {
+	if(shift_num_of_bytes > IN_NUM_BYTES) {
+		error(1);
+	}
+	
 	IN_SHIFT;
 	_delay_us(10);
 	uint8_t * data = in_data;
 	uint8_t byte, bit;
-	for(byte = 0; byte < IN_NUM_BYTES; byte++)
+	for(byte = 0; byte < shift_num_of_bytes; byte++)
 	{
 		data[byte] = 0;
 		for(bit = 0; bit < 8; bit++)
@@ -162,14 +185,9 @@ void address_hi(void)
 	outoe_data[0] &= ~((1 << OUT_SHIFTR_ADDRESS_L) | (1 << OUT_SHIFTR_ADDRESS_H));
 }
 
-uint16_t get_data(void)
+uint16_t get_data_bus(void)
 {
 	return in_data[IN_DATA_L] | (in_data[IN_DATA_H] << 8);
-}
-
-uint16_t get_address(void)
-{
-	return in_data[IN_ADDRESS_L] | (in_data[IN_ADDRESS_H] << 8);
 }
 
 void io_init(void)
@@ -183,12 +201,16 @@ void io_init(void)
 	RESET_HIGH;
 	MEMOE_HI;
 	MEMWR_HI;
+	
+	LED_INIT;
 }
 
 void sram_write(const uint8_t* data, uint16_t start, uint16_t length)
 {
-	if(clock_running)
-		return;
+	if(clock_running) {
+		error(6);
+	}
+
 	MEMOE_HIGH;
 	MEMWR_HIGH;
 	MEMOE_OE;
@@ -222,8 +244,10 @@ void sram_write(const uint8_t* data, uint16_t start, uint16_t length)
 
 void sram_read(uint8_t* data, uint16_t start, uint16_t length)
 {
-	if(clock_running)
-		return;
+	if(clock_running) {
+		error(5);
+	}
+
 	MEMOE_HIGH;
 	MEMWR_HIGH;
 	MEMOE_OE;
@@ -232,7 +256,7 @@ void sram_read(uint8_t* data, uint16_t start, uint16_t length)
 
 	address_oe();
 	outoe_shiftr_push();
-
+	
 	uint16_t n;
 	uint16_t d;
 	for(n = 0; n < length; ++n)
@@ -244,10 +268,10 @@ void sram_read(uint8_t* data, uint16_t start, uint16_t length)
 		MEMOE_LOW;
 		_delay_us(1);
 		in_shiftr_capture();
-		in_shiftr_pull();
+		in_shiftr_pull(IN_DATA_CAPTURE_AT_LEAST);
 		MEMWR_HIGH;
 
-		d = get_data();
+		d = get_data_bus();
 		data[n*SRAM_WORD_SIZE] = d & 0xFF;
 		data[n*SRAM_WORD_SIZE + 1] = (d >> 8) & 0xFF;
 	}
@@ -268,9 +292,9 @@ uint8_t sram_verify(uint8_t* data, uint16_t start, uint16_t length)
 	{
 		if(data[n] != data_in_sram[n])
 		{
-			usart_send(REPLY_VERIFY_FAILED);
-			usart_send(n & 0xFF);
-			usart_send((n >> 8) & 0xFF);
+			uart_send(REPLY_VERIFY_FAILED);
+			uart_send(n & 0xFF);
+			uart_send((n >> 8) & 0xFF);
 			return 0;
 		}
 
@@ -280,27 +304,40 @@ uint8_t sram_verify(uint8_t* data, uint16_t start, uint16_t length)
 
 void clock_init(void)
 {
+	TCCR1A = (1 << COM1A0);
+	TCCR1B = (1 << WGM12);
 	CLOCK_INIT;
 	CLOCK_LOW;
-	clock_stop();
-	clock_freq = 1*FREQ_DIVIDER;
+	clock_freq = 1*FREQ_DIVIDER; //1 hz
+	if(!clock_calc_timer_parameters(clock_freq, &clock_tmr_param_prescaler, &clock_tmr_param_counter)) {
+		error(4);
+	}
+	clock_running = 0;
 }
 
 void clock_stop(void)
 {
-	TCCR1A = 0;
-	TCCR1B = 0;
+	TCCR1B &= ~3;
 	clock_running = 0;
 }
 
-uint8_t clock_set_freq_and_start(uint32_t freq)
+void clock_start(void)
 {
-	TCCR1A = (1 << COM1A0);
-	TCCR1B = (1 << WGM12);
+	if(clock_running) {
+		error(3);
+	}
+	if(clock_tmr_param_prescaler == 0) {
+		error(2);
+	}
+	OCR1A = clock_tmr_param_counter;
+	TCNT1 = 0;
+	TCCR1B |= clock_tmr_param_prescaler;
+	clock_running = 1;
+}
 
+uint8_t clock_calc_timer_parameters(uint32_t freq, volatile uint8_t* out_prescaler, volatile uint16_t* out_counter) {
 	if(freq/FREQ_DIVIDER > F_CPU)
 	{
-		clock_running = 0;
 		return 0;
 	}
 
@@ -309,36 +346,35 @@ uint8_t clock_set_freq_and_start(uint32_t freq)
 
 	if(ticks <= 0xFFFF)
 	{
-		OCR1A = ticks;
-		TCCR1B |= (1 << CS10);
+		*out_counter = ticks;
+		*out_prescaler = (1 << CS10);
 		success = 1;
 	}
 	else if(ticks / 8 <= 0xFFFF)
 	{
-		OCR1A = ticks / 8;
-		TCCR1B |= (1 << CS11);
+		*out_counter = ticks / 8;
+		*out_prescaler = (1 << CS11);
 		success = 1;
 	}
 	else if(ticks / 64 <= 0xFFFF)
 	{
-		OCR1A = ticks / 64;
-		TCCR1B |= (1 << CS11) | (1 << CS10);
+		*out_counter = ticks / 64;
+		*out_prescaler = (1 << CS11) | (1 << CS10);
 		success = 1;
 	}
 	else if(ticks / 256 <= 0xFFFF)
 	{
-		OCR1A = ticks / 256;
-		TCCR1B |= (1 << CS12);
+		*out_counter = ticks / 256;
+		*out_prescaler = (1 << CS12);
 		success = 1;
 	}
 	else if(ticks / 1024 <= 0xFFFF)
 	{
-		OCR1A = ticks / 1024;
-		TCCR1B |= (1 << CS12) | (1 << CS10);
+		*out_counter = ticks / 1024;
+		*out_prescaler = (1 << CS12) | (1 << CS10);
 		success = 1;
 	}
 
-	clock_running = 1;
 	return success;
 }
 
@@ -358,16 +394,16 @@ void reset(void)
 	CLOCK_LOW;
 
 	if(clock_was_running)
-		clock_set_freq_and_start(clock_freq);
+		clock_start();
 }
 
-uint8_t usart_receive(void)
+uint8_t uart_receive(void)
 {
 	while(!(UCSR0A & (1 << RXC0)));
 	return UDR0;
 }
 
-uint8_t usart_timed_receive(uint8_t sec, uint8_t* result)
+uint8_t uart_timed_receive(uint8_t sec, uint8_t* result)
 {
 	sec *= (F_CPU / 1024 / 250);
 	TCNT0 = 0;
@@ -385,7 +421,7 @@ uint8_t usart_timed_receive(uint8_t sec, uint8_t* result)
 	return 1;
 }
 
-void usart_send(uint8_t d)
+void uart_send(uint8_t d)
 {
 	while(!(UCSR0A & (1 << UDRE0)));
 	UDR0 = d;
@@ -397,22 +433,22 @@ void timeout_timer_init(void)
 	TCCR0B = 0x05;
 }
 
-void usart_init(void)
+void uart_init(void)
 {
-	//initialize USART
+	//initialize uart
 	UBRR0H = 0; //set baudrate at 19.2k bps (with fosc = 8.00 MHz)
 	UBRR0L = 25;
 	UCSR0B = 0; //no double speed mode, no Multi-processor Communication mode
-	UCSR0C = (1 << UCSZ00) | (1 << UCSZ01); //asynchronous USART, no parity, 1 stopbit, 8 bit data
-	UCSR0B = (1 << TXEN0) | (1 << RXEN0); //enable the USART transmitter and receiver, disable all interrupts
+	UCSR0C = (1 << UCSZ00) | (1 << UCSZ01); //asynchronous uart, no parity, 1 stopbit, 8 bit data
+	UCSR0B = (1 << TXEN0) | (1 << RXEN0); //enable the uart transmitter and receiver, disable all interrupts
 
 	timeout_timer_init();
 }
 
 void handshake(void)
 {
-	while(usart_receive() != HANDSHAKE_OUTGOING);
-	usart_send(HANDSHAKE_INCOMMING);
+	while(uart_receive() != HANDSHAKE_OUTGOING);
+	uart_send(HANDSHAKE_INCOMMING);
 }
 
 #define CRC_INITIAL_VALUE	0xFFFF
@@ -430,120 +466,118 @@ void command_upload(void)
 {
 	if(clock_running)
 	{
-		usart_send(REPLY_CLOCK_IS_RUNNING);
+		uart_send(REPLY_CLOCK_IS_RUNNING);
 		return;
 	}
 
-	uint8_t start, n_blocks, crcL, crcH;
+	uint8_t block, crcL, crcH;
 	uint16_t n;
-	if(!usart_timed_receive(5, &start))
+	if(!uart_timed_receive(5, &block))
 	{
-		usart_send(REPLY_TIME_OUT);
+		uart_send(REPLY_TIME_OUT);
 		return;
 	}
 
-	if(!usart_timed_receive(5, &n_blocks))
+	if(!uart_timed_receive(5, &crcL))
 	{
-		usart_send(REPLY_TIME_OUT);
+		uart_send(REPLY_TIME_OUT);
 		return;
 	}
 
-	if(!usart_timed_receive(5, &crcL))
+	if(!uart_timed_receive(5, &crcH))
 	{
-		usart_send(REPLY_TIME_OUT);
+		uart_send(REPLY_TIME_OUT);
 		return;
 	}
 
-	if(!usart_timed_receive(5, &crcH))
-	{
-		usart_send(REPLY_TIME_OUT);
+	if(block >= SRAM_BLOCKS) {
+		uart_send(REPLY_ACTION_FAILED);
 		return;
 	}
 
-	const uint16_t len = n_blocks*SRAM_BLOCK_SIZE*SRAM_WORD_SIZE;
+	/*const uint16_t len = SRAM_BLOCK_SIZE*SRAM_WORD_SIZE;
 	if(len > MAX_MCU_BUF_SIZE)
 	{
-		usart_send(REPLY_BUF_TO_BIG);
+		uart_send(REPLY_BUF_TO_BIG);
 		return;
-	}
+	}*/
 
-	uint8_t data[len];
-	for(n = 0; n < len; ++n)
+	uint8_t data[SRAM_BLOCK_SIZE*SRAM_WORD_SIZE];
+	for(n = 0; n < SRAM_BLOCK_SIZE*SRAM_WORD_SIZE; ++n)
 	{
-		if(!usart_timed_receive(5, &data[n]))
+		if(!uart_timed_receive(5, &data[n]))
 		{
-			usart_send(REPLY_TIME_OUT);
+			uart_send(REPLY_TIME_OUT);
 			return;
 		}
 
 	}
 
-	uint16_t crc_local = crc16(CRC_INITIAL_VALUE, data, len);
+	uint16_t crc_local = crc16(CRC_INITIAL_VALUE, data, SRAM_BLOCK_SIZE*SRAM_WORD_SIZE);
 	if((crc_local & 0xFF) != crcL || ((crc_local >> 8) & 0xFF) != crcH)
 	{
-		usart_send(REPLY_BAD_CRC);
+		uart_send(REPLY_BAD_CRC);
 		return;
 	}
 
-	sram_write(data, start*SRAM_BLOCK_SIZE, n_blocks*SRAM_BLOCK_SIZE);
-	for(n = 0; n < n_blocks; ++n)
+	sram_write(data, block*SRAM_BLOCK_SIZE, SRAM_BLOCK_SIZE);
+
+	if(!sram_verify(data, SRAM_BLOCK_SIZE*block, SRAM_BLOCK_SIZE))
 	{
-		if(!sram_verify(data + SRAM_WORD_SIZE*SRAM_BLOCK_SIZE*n, SRAM_BLOCK_SIZE*(start + n), SRAM_BLOCK_SIZE))
-		{
-
-			usart_send(n & 0xFF);
-			usart_send((n >> 8) & 0xFF);
-
-			return;
-		}
+		uart_send(REPLY_VERIFY_FAILED);
+		return;
 	}
 
-	usart_send(REPLY_OK);
+	uart_send(REPLY_OK);
 }
 
 void command_download(void)
 {
 	if(clock_running)
 	{
-		usart_send(REPLY_CLOCK_IS_RUNNING);
+		uart_send(REPLY_CLOCK_IS_RUNNING);
 		return;
 	}
 
-	uint16_t block;
+	uint8_t block;
+	if(!uart_timed_receive(5, &block))
+	{
+		uart_send(REPLY_TIME_OUT);
+		return;
+	}
+
+	if(block >= SRAM_BLOCKS) {
+		uart_send(REPLY_ACTION_FAILED);
+		return;
+	}
+
+	uart_send(REPLY_OK);
+
 	uint8_t data[SRAM_BLOCK_SIZE*SRAM_WORD_SIZE];
 	uint16_t crc = CRC_INITIAL_VALUE;
 	uint16_t n;
-	for(block = 0; block < SRAM_DEPTH; block += SRAM_BLOCK_SIZE)
+
+	sram_read(data, SRAM_BLOCK_SIZE*block, SRAM_BLOCK_SIZE);
+	crc = crc16(crc, data, SRAM_BLOCK_SIZE*SRAM_WORD_SIZE);
+	for(n = 0; n < SRAM_BLOCK_SIZE*SRAM_WORD_SIZE; ++n)
 	{
-		sram_read(data, block, SRAM_BLOCK_SIZE);
-		crc = crc16(crc, data, SRAM_BLOCK_SIZE*SRAM_WORD_SIZE);
-		for(n = 0; n < SRAM_BLOCK_SIZE*SRAM_WORD_SIZE; ++n)
-		{
-			usart_send(data[n]);
-		}
+		uart_send(data[n]);
 	}
 
-	usart_send(crc & 0xFF);
-	usart_send((crc >> 8) & 0xFF);
-
+	uart_send(crc & 0xFF);
+	uart_send((crc >> 8) & 0xFF);
 }
 
 void command_start(void)
 {
-	if(!clock_set_freq_and_start(clock_freq))
-	{
-		usart_send(REPLY_ACTION_FAILED);
-	}
-	else
-	{
-		usart_send(REPLY_OK);
-	}
+	clock_start();
+	uart_send(REPLY_OK);
 }
 
 void command_stop(void)
 {
 	clock_stop();
-	usart_send(REPLY_OK);
+	uart_send(REPLY_OK);
 }
 
 void command_set_clock(void)
@@ -552,49 +586,86 @@ void command_set_clock(void)
 	uint8_t n;
 	for(n = 0; n < 4; ++n)
 	{
-		if(!usart_timed_receive(5, &freq[n]))
-			return;
-	}
-	clock_freq = (uint32_t)freq[0] |
-			((uint32_t)freq[1] << 8) |
-			((uint32_t)freq[2] << 16) |
-			((uint32_t)freq[3] << 24);
-	if(clock_running)
-	{
-		if(!clock_set_freq_and_start(clock_freq))
+		if(!uart_timed_receive(5, &freq[n]))
 		{
-			usart_send(REPLY_ACTION_FAILED);
+			uart_send(REPLY_TIME_OUT);
 			return;
 		}
 	}
+	uint32_t new_clock_freq = (uint32_t)freq[0] |
+			((uint32_t)freq[1] << 8) |
+			((uint32_t)freq[2] << 16) |
+			((uint32_t)freq[3] << 24);
+	
+	uint8_t clock_was_running = clock_running;
+	if(clock_running)
+		clock_stop();
 
-	usart_send(REPLY_OK);
+	uint8_t prescaler;
+	uint16_t counter;
+	if(!clock_calc_timer_parameters(new_clock_freq, &prescaler, &counter))
+	{
+		uart_send(REPLY_ACTION_FAILED);
+		return;
+	}
+	clock_tmr_param_prescaler = prescaler;
+	clock_tmr_param_counter = counter;
+	clock_freq = new_clock_freq;
+
+	if(clock_was_running)
+		clock_start();
+
+	uart_send(REPLY_OK);
 }
 
 void command_reset(void)
 {
 	reset();
-	usart_send(REPLY_OK);
+	uart_send(REPLY_OK);
 }
 
 void command_step(void)
 {
 	if(clock_running)
 	{
-		usart_send(REPLY_CLOCK_IS_RUNNING);
+		uart_send(REPLY_CLOCK_IS_RUNNING);
 		return;
 	}
 
-	CLOCK_HIGH;
-	_delay_ms(10);
-	CLOCK_LOW;
+	uint8_t steps_bytes[4];
+	uint8_t n;
+	for(n = 0; n < 4; ++n)
+	{
+		if(!uart_timed_receive(5, &steps_bytes[n]))
+		{
+			uart_send(REPLY_TIME_OUT);
+		}
+	}
 
-	usart_send(REPLY_OK);
+	uint32_t steps = (uint32_t)steps_bytes[0] |
+			((uint32_t)steps_bytes[1] << 8) |
+			((uint32_t)steps_bytes[2] << 16) |
+			((uint32_t)steps_bytes[3] << 24);
+
+	for(; steps != 0; --steps)
+	{
+		CLOCK_HIGH;
+		_delay_ms(10);
+		CLOCK_LOW;
+	}
+
+
+	uart_send(REPLY_OK);
 }
 
 void command_step_instr(void)
 {
-	usart_send(REPLY_ACTION_FAILED);
+	uart_send(REPLY_ACTION_FAILED);
+}
+
+void command_read_inputs(void)
+{
+	
 }
 
 int main(void)
@@ -604,14 +675,14 @@ int main(void)
 	CLKPR = 0x00;
 	
 	io_init();
-	usart_init();
+	uart_init();
 
 	uint8_t cmd, cmd_XORed;
 	for(;;)
 	{
 		handshake();
-		cmd = usart_receive();
-		if(!usart_timed_receive(5, &cmd_XORed))
+		cmd = uart_receive();
+		if(!uart_timed_receive(5, &cmd_XORed))
 		{
 			continue;
 		}
@@ -644,6 +715,9 @@ int main(void)
 				break;
 			case COMMAND_STEP_INSTR:
 				command_step_instr();
+				break;
+			case COMMAND_READ_INPUTS:
+				command_read_inputs();
 				break;
 		}
 	}

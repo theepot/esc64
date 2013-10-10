@@ -13,8 +13,8 @@
 
 #define IN_DATA_L			0
 #define IN_DATA_H			1
-#define IN_ADDRESS_L		2
-#define IN_ADDRESS_H		3
+#define IN_DATA_CAPTURE_AT_LEAST (IN_DATA_L > IN_DATA_H ? IN_DATA_L : IN_DATA_H)
+#define IN_REST_INPUTS		2
 
 #define OUTOE_SHIFTR_IO_INIT (DDRC |= (1 << DDC3) | (1 << DDC4) | (1 << DDC5))
 #define OUTOE_SHIFTR_STROBE_ON (PORTC |= 1 << PORTC5)
@@ -44,7 +44,7 @@
 #define IN_CLOCK_ON (PORTD |= 1 << PORTD3)
 #define IN_CLOCK_OFF (PORTD &= ~(1 << PORTD3))
 #define IN_DATA_IS_HIGH (PIND & (1 << PIND4))
-#define IN_NUM_BYTES 5
+#define IN_NUM_BYTES 20
 
 #define CLOCK_INIT (DDRB |= 1 << DDB1) //do not change clock out pin, because the port's special function is used
 #define CLOCK_HIGH (PORTB |= 1 << PORTB1)
@@ -60,6 +60,10 @@
 #define MEMWR_HI (DDRB &= ~(1 << DDB7))
 #define MEMWR_HIGH (PORTB |= 1 << PORTB7)
 #define MEMWR_LOW (PORTB &= ~(1 << PORTB7))
+
+#define LED_INIT (DDRB |= 1 << DDB2)
+#define LED_ON	(PORTB |= 1 << PORTB2)
+#define LED_OFF	(PORTB &= ~(1 << PORTB2))
 
 #define OUT_SHIFTR_PUT_1 do {\
 	OUT_SHIFTR_DATA_ON;\
@@ -94,13 +98,16 @@
 } while(0)
 
 
+
+void error(uint8_t code);
+
 void outoe_shiftr_push(void);
 void out_shiftr_init(void);
 void outoe_shiftr_init(void);
 void out_shiftr_push(void);
 
 void in_shiftr_init(void);
-void in_shiftr_pull(void);
+void in_shiftr_pull(uint8_t shift_num_of_bytes);
 void in_shiftr_capture(void);
 
 void set_address(uint16_t address);
@@ -109,22 +116,22 @@ void data_oe(void);
 void data_hi(void);
 void address_oe(void);
 void address_hi(void);
-uint16_t get_data(void);
-uint16_t get_address(void);
+uint16_t get_data_bus(void);
 void io_init(void);
 void sram_write(const uint8_t* data, uint16_t start, uint16_t length);
 void sram_read(uint8_t* data, uint16_t start, uint16_t length);
 uint8_t sram_verify(uint8_t* data, uint16_t start, uint16_t length);
 void clock_init(void);
 void clock_stop(void);
-uint8_t clock_set_freq_and_start(uint32_t freq);
+void clock_start(void);
+uint8_t clock_calc_timer_parameters(uint32_t freq, volatile uint8_t* out_prescaler, volatile uint16_t* out_counter);
 void reset(void);
 
-uint8_t usart_receive(void);
-uint8_t usart_timed_receive(uint8_t sec, uint8_t* result);
-void usart_send(uint8_t d);
+uint8_t uart_receive(void);
+uint8_t uart_timed_receive(uint8_t sec, uint8_t* result);
+void uart_send(uint8_t d);
 void timeout_timer_init(void);
-void usart_init(void);
+void uart_init(void);
 void handshake(void);
 uint16_t crc16(uint16_t crc_in, const uint8_t* data, uint16_t len);
 void command_upload(void);
@@ -136,5 +143,6 @@ void command_reset(void);
 void command_step(void);
 void command_step_instr(void);
 void command_write(void);
+void command_read_inputs(void);
 
 #endif

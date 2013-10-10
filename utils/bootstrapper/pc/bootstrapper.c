@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <assert.h>
 #include <ctype.h>
 #include <serial.h>
@@ -143,7 +144,7 @@ int main(int argc, char** argv)
 		action_upload_sram(arguments.optarg0);
 		break;
 	case ACTION_download:
-		action_download_sram(arguments.optarg0);
+		action_download_sram(arguments.optarg0, 0, SRAM_BLOCKS);
 		break;
 	case ACTION_start:
 		action_start();
@@ -185,10 +186,10 @@ void init_SRAM_mem(SRAM_t* mem)
 	}
 }
 
-void print_SRAM(FILE* f, const SRAM_t* const mem)
+void print_SRAM(FILE* f, const SRAM_t* const mem, int number_of_words)
 {
 	size_t n;
-	for(n = 0; n < SRAM_DEPTH*SRAM_WIDTH; n++)
+	for(n = 0; n < number_of_words*SRAM_WIDTH; n++)
 	{
 		switch(mem[SRAM_WIDTH*((n / SRAM_WIDTH)+1) - (n % SRAM_WIDTH) - 1])
 		{
@@ -203,7 +204,7 @@ void print_SRAM(FILE* f, const SRAM_t* const mem)
 	fputc('\n', f);
 }
 
-int detect_data_width(FILE* f)
+int verilog_mem_image_detect_data_width(FILE* f)
 {
 	int result = 0;
 	int c;
@@ -237,7 +238,7 @@ int detect_data_width(FILE* f)
 
 void process_verilog_file(SRAM_t* const mem, FILE* f)
 {
-	const int width = detect_data_width(f);
+	const int width = verilog_mem_image_detect_data_width(f);
 	if(width != SRAM_WIDTH)
 	{
 		printf("Detected width of memory file is %d. It should be %d\n", width, SRAM_WIDTH);
@@ -271,7 +272,6 @@ void process_verilog_file(SRAM_t* const mem, FILE* f)
 			
 			if(c == EOF)
 			{
-
 				break;
 			}
 			
@@ -528,24 +528,23 @@ void procces_raw_data(SRAM_t* const dest, const uint8_t* raw, int len_words)
 	}
 }
 
-void send_blocks_with_header(const SRAM_t* const mem, const int start, const int length)
+/*void send_block_with_header(const SRAM_t* const mem, const int block)
 {
-	assert(start >= 0 && length > 0 && (start+length) < SRAM_BLOCKS && start < 0xFF && length < 0xFF);
+	assert(block >= 0 && (block+1) < SRAM_BLOCKS && block < 0xFF);
 
-	size_t buf_size = length*SRAM_BLOCK_SIZE*SRAM_WORD_SIZE;
+	size_t buf_size = SRAM_BLOCK_SIZE*SRAM_WORD_SIZE;
 	uint8_t buf[buf_size];
-	prepare_data(mem, buf, start, length);
+	prepare_data(mem, buf, block, 1);
 
 	uint16_t crc = crc16(buf, buf_size);
 
-	uint8_t head[4];
-	head[0] = (uint8_t)start;
-	head[1] = (uint8_t)length;
-	head[2] = crc & 0xFF;
-	head[3] = (crc >> 8) & 0xFF;
-	send_bytes(head, 4);
+	uint8_t head[3];
+	head[0] = (uint8_t)block;
+	head[1] = crc & 0xFF;
+	head[2] = (crc >> 8) & 0xFF;
+	send_bytes(head, 3);
 	send_bytes(buf, buf_size);
-}
+}*/
 
 int wait_for_command_response(int read_timeout, int read_attempts, int reads_per_wait_notification)
 {
@@ -594,13 +593,28 @@ int sram_block_is_empty(const SRAM_t* const mem, const int n)
 }
 
 
-int command_upload(const SRAM_t* const mem, const int start, const int length)
+int command_upload(const SRAM_t* const mem, const int block)
 {
 	retry:
 	handshake();
-	printf("sram upload of %d blocks from position %d\n", length, start);
+	printf("sram upload of block %d\n", block);
 	send_command(COMMAND_UPLOAD);
-	send_blocks_with_header(mem, start, length);
+
+	assert(block >= 0 && (block+1) < SRAM_BLOCKS && block < 0xFF);
+
+	uint8_t buf[SRAM_BLOCK_SIZE*SRAM_WORD_SIZE];
+	prepare_data(mem, buf, block, 1);
+
+	uint16_t crc = crc16(buf, SRAM_BLOCK_SIZE*SRAM_WORD_SIZE);
+
+	uint8_t head[3];
+	head[0] = (uint8_t)block;
+	head[1] = crc & 0xFF;
+	head[2] = (crc >> 8) & 0xFF;
+	send_bytes(head, 3);
+	send_bytes(buf, SRAM_BLOCK_SIZE*SRAM_WORD_SIZE);
+
+	//send_block_with_header(mem, block);
 	int response = wait_for_command_response(30, 5, 1);
 
 	if(response == REPLY_BAD_CRC)
@@ -608,48 +622,53 @@ int command_upload(const SRAM_t* const mem, const int start, const int length)
 		puts("bad crc, retrying");
 		goto retry;
 	}
-	if(response == REPLY_VERIFY_FAILED)
-	{
-		int n;
-		for(n = 0; n < 4; n++)
-		{
-			printf("%d:%d\n", n, recv_byte(100));
-		}
-	}
 
 	return response;
 }
 
-void command_download(SRAM_t* mem)
+int command_download(SRAM_t* mem, const int block, bool* out_download_success)
 {
+	*out_download_success = false;
 	handshake();
+	printf("sram download of block %d\n", block);
 	send_command(COMMAND_DOWNLOAD);
 
-	uint8_t data[SRAM_DEPTH*SRAM_WORD_SIZE];
-	int read_n = serial_timed_read(&global_serial_device, data, SRAM_DEPTH*SRAM_WORD_SIZE, 30);
-	if(read_n != SRAM_DEPTH*SRAM_WORD_SIZE)
+	send_byte((uint8_t)block);
+
+	int response = wait_for_command_response(30, 5, 1);
+	if(response != REPLY_OK)
+		return response;
+
+	uint8_t data[SRAM_BLOCK_SIZE*SRAM_WORD_SIZE];
+	int read_n = serial_timed_read(&global_serial_device, data, SRAM_BLOCK_SIZE*SRAM_WORD_SIZE, 30);
+	if(read_n != SRAM_BLOCK_SIZE*SRAM_WORD_SIZE)
 	{
 		puts("failed receiving data. Action timed out");
-		exit(1);
+		return response;
 	}
 
 	uint8_t crc_remote[2];
 	if(serial_timed_read(&global_serial_device, crc_remote, 2, 10) != 2)
 	{
 		puts("failed receiving crc. Action timed out");
-		exit(1);
+		return response;
 	}
 
-	uint16_t crc_local = crc16(data, SRAM_DEPTH*SRAM_WORD_SIZE);
+	uint16_t crc_local = crc16(data, SRAM_BLOCK_SIZE*SRAM_WORD_SIZE);
 	uint16_t crc_remote16 = (((uint16_t)crc_remote[1]) << 8) | ((uint16_t)crc_remote[0]);
 	if(crc_local != crc_remote16)
 	{
 		printf("crc check failed: got %X, expected %X\n", crc_remote16, crc_local);
-		exit(1);
+		return response;
 	}
 
-	procces_raw_data(mem, data, SRAM_DEPTH);
+	procces_raw_data(mem, data, SRAM_BLOCK_SIZE);
+
+	*out_download_success = true;
+	return response;
 }
+
+
 int command_start(void)
 {
 	handshake();
@@ -716,9 +735,6 @@ void print_reponse_str(FILE* f, int response)
 		case REPLY_VERIFY_FAILED:
 			fputs("verification failed\n", f);
 			break;
-		case REPLY_BUF_TO_BIG:
-			fputs("buffer to big for device\n", f);
-			break;
 		case REPLY_CLOCK_IS_RUNNING:
 			fputs("clock is running\n", f);
 			break;
@@ -731,23 +747,28 @@ void print_reponse_str(FILE* f, int response)
 	}
 }
 
-
-//TODO: make this function less ugly
 void action_upload_sram(const char* file_path)
 {
-	FILE* f = fopen(file_path, "r");
-	if(f == NULL)
-	{
-		fprintf(stderr, "failed to open file %s for reading: %s\n", file_path, strerror(errno));
-		return;
-	}
+	FILE* f;
+	SRAM_FORMAT_t file_format;
+	if(strcmp("-", file_path) == 0) {
+		f = stdin;
+		file_format = SRAM_FORMAT_VERILOG;
+	} else {
+		f = fopen(file_path, "r");
+		if(f == NULL)
+		{
+			fprintf(stderr, "failed to open file %s for reading: %s\n", file_path, strerror(errno));
+			return;
+		}
 
-	SRAM_FORMAT_t file_format = detect_file_format(file_path);
-	if(file_format == SRAM_FORMAT_UNKNOWN)
-	{
-		fprintf(stderr, "could not detect file format of file %s\n", file_path);
-		fclose(f);
-		return;
+		file_format = detect_file_format(file_path);
+		if(file_format == SRAM_FORMAT_UNKNOWN)
+		{
+			fprintf(stderr, "could not detect file format of file %s\n", file_path);
+			fclose(f);
+			return;
+		}
 	}
 
 	SRAM_t mem[SRAM_WIDTH*SRAM_DEPTH];
@@ -768,56 +789,55 @@ void action_upload_sram(const char* file_path)
 		assert(0);
 	}
 
-
-	int start = 0;
-	int end;
-	int command_response;
-
-	while(start < SRAM_BLOCKS)
-	{
-		if(sram_block_is_empty(mem, start))
-		{
-			start++;
-			continue;
-		}
-		end = start + 1;
-		while(end < SRAM_BLOCKS && (end - start)*SRAM_BLOCK_SIZE*SRAM_WORD_SIZE < MAX_MCU_BUF_SIZE)
-		{
-			if(!sram_block_is_empty(mem, end))
-				end++;
-			else
-				break;
-		}
-		command_response = command_upload(mem, start, end - start);
-		print_reponse_str(stdout, command_response);
-		if(command_response != REPLY_OK)
-		{
-			if(f != NULL)
-				fclose(f);
-			return;
-		}
-		start = end;
-	}
-
 	if(f != NULL)
 		fclose(f);
+
+	int block;
+	for(block = 0; block < SRAM_BLOCKS; ++block)
+	{
+		if(!sram_block_is_empty(mem, block)) {
+			int command_response = command_upload(mem, block);
+			print_reponse_str(stdout, command_response);
+			if(command_response != REPLY_OK)
+			{
+				return;
+			}
+		}
+	}
 }
 
-void action_download_sram(const char* file_path)
+void action_download_sram(const char* file_path, int block, int number_of_blocks)
 {
-	FILE* f = fopen(file_path, "w");
-	if(f == NULL)
-	{
-		fprintf(stderr, "failed to open file %s for writing: %s\n", file_path, strerror(errno));
-		fclose(f);
-		return;
+	assert(number_of_blocks + block <= SRAM_BLOCKS);
+	assert(block >= 0 && number_of_blocks > 0);
+
+	FILE* f;
+	if(strcmp("-", file_path) == 0) {
+		f = stdout;
+	} else {
+		f = fopen(file_path, "w");
+		if(f == NULL)
+		{
+			fprintf(stderr, "failed to open file %s for writing: %s\n", file_path, strerror(errno));
+			return;
+		}
 	}
 
-	SRAM_t mem[SRAM_WIDTH*SRAM_DEPTH];
+	SRAM_t mem[SRAM_WIDTH*SRAM_BLOCK_SIZE * number_of_blocks];
 
-	command_download(mem);
+	fprintf(f, "//word %X:", block * SRAM_BLOCK_SIZE);
 
-	print_SRAM(f, mem);
+	int n;
+	for(n = 0; n < number_of_blocks; ++n)
+	{
+		bool download_success = false;
+		while(!download_success) {
+			int response = command_download(mem + n * SRAM_BLOCK_SIZE*SRAM_WIDTH, block + n, &download_success);
+			print_reponse_str(stdout, response);
+		}
+	}
+
+	print_SRAM(f, mem, number_of_blocks*SRAM_BLOCK_SIZE);
 
 	fclose(f);
 }
@@ -1013,7 +1033,7 @@ void action_interactive(void)
 			}
 			else
 			{
-				action_download_sram(l + 2);
+				action_download_sram(l + 2, 0, SRAM_BLOCKS);
 			}
 			break;
 		case 's':

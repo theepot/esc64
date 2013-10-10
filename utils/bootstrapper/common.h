@@ -13,21 +13,21 @@
 #define COMMAND_RESET			0x06
 #define COMMAND_STEP			0x07
 #define COMMAND_STEP_INSTR		0x08
+#define COMMAND_READ_INPUTS		0x09
 
 #define REPLY_OK				0x01
 #define REPLY_BAD_CRC			0x02
 #define REPLY_ACTION_FAILED		0x03
 #define REPLY_TIME_OUT			0x04
 #define REPLY_VERIFY_FAILED		0x05
-#define REPLY_BUF_TO_BIG		0x06
-#define REPLY_CLOCK_IS_RUNNING	0x07
+#define REPLY_CLOCK_IS_RUNNING	0x06
 
 #define HANDSHAKE_OUTGOING		0xB4 //handshake byte to microcontroller
 #define HANDSHAKE_INCOMMING		0x3A //handshake byte to pc
 
 #define SRAM_WIDTH				16
 #define SRAM_DEPTH				(1 << 15)
-#define SRAM_BLOCK_SIZE			128
+#define SRAM_BLOCK_SIZE			128 //in number of words
 #define SRAM_BLOCKS				(SRAM_DEPTH / SRAM_BLOCK_SIZE)
 #define SRAM_WORD_SIZE			(SRAM_WIDTH / 8)
 
