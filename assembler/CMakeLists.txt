@@ -8,9 +8,13 @@ set(CMAKE_SHARED_LINKER_FLAGS "-Wall")
 
 set(CMAKE_BUILD_TYPE DEBUG)
 
-set(SOURCE_DIR ${CMAKE_BINARY_DIR}/src)
+#set(SOURCE_DIR ${CMAKE_BINARY_DIR}/src)
+set(SOURCE_DIR src)
 set(TEST_DIR ${SOURCE_DIR}/tests)
-set(LIB_DIR ${CMAKE_BINARY_DIR}/lib)
+#set(LIB_DIR lib)
+get_filename_component(TESTFILES "testfiles" ABSOLUTE)
+get_filename_component(LIB_DIR "lib" ABSOLUTE)
+get_filename_component(EXECUTABLE_OUTPUT_PATH "bin" ABSOLUTE)
 
 set(
 	COMMON_SOURCES
@@ -63,12 +67,12 @@ set(
 	${SOURCE_DIR}/exetolst.c)
 	
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${LIB_DIR})
-set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
+#set(EXECUTABLE_OUTPUT_PATH bin)
 
-include_directories(${CMAKE_BINARY_DIR}/include)
+include_directories(include)
 link_directories(${LIB_DIR})
 
-add_definitions(-DESC_TEST_FILE_BASE_PATH="${CMAKE_BINARY_DIR}/testfiles")
+add_definitions(-DESC_TEST_FILE_BASE_PATH="${TESTFILES}")
 add_library(esc-asm-common SHARED ${COMMON_SOURCES})
 
 add_executable(esc-as ${AS_SOURCES})

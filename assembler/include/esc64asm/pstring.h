@@ -13,8 +13,19 @@ typedef struct PString_
 #define PSTR_COPY(dest, src) \
 	do \
 	{ \
-		PString* s = (src); \
+		const PString* s = (src); \
 		memcpy((dest), s, PSTR_MEM_SIZE(s->size)); \
+	} while(0)
+
+#define PSTR_PRINT(s, f) \
+	do \
+	{ \
+		const PString* s_ = (s); \
+		const char* c; \
+		for(c = s_->str; c < s_->str + s_->size; ++c) \
+		{ \
+			putc(*c, (f)); \
+		} \
 	} while(0)
 
 #endif
