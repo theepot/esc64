@@ -10,7 +10,7 @@ int main(int argc, char** argv)
 	const char* objPath = argv[1];
 	const char* asmPath = argv[2];
 
-	ReservedWordsInit();
+//	ReservedWordsInit();
 
 	Parse(asmPath, objPath);
 

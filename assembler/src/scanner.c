@@ -9,6 +9,7 @@
 #include <esc64asm/reswords.h>
 #include <esc64asm/escerror.h>
 #include <esc64asm/registers.h>
+#include <esc64asm/keywords.h>
 
 typedef uint16_t char_traits_t;
 
@@ -25,30 +26,16 @@ typedef uint16_t char_traits_t;
 #define CT_SYM_FIRST	(CT_LETTER | CT_UNDERSCORE)
 #define CT_SYM_REST		(CT_SYM_FIRST | CT_DIGIT)
 
-#define CT_RES_AND			(CT_RESCHAR | 0)
-#define CT_RES_PAREN_OPEN	(CT_RESCHAR | 1)
-#define CT_RES_PAREN_CLOSE	(CT_RESCHAR | 2)
-#define CT_RES_PLUS			(CT_RESCHAR | 3)
-#define CT_RES_OR			(CT_RESCHAR | 4)
-#define CT_RES_NOT			(CT_RESCHAR | 5)
-#define CT_RES_COMMA		(CT_RESCHAR | 6)
-#define CT_RES_MINUS		(CT_RESCHAR | 7)
-#define CT_RES_DIVIDE		(CT_RESCHAR | 8)
+#define CT_RES_AND			(CT_RESCHAR | TOKEN_ID_AND)
+#define CT_RES_PLUS			(CT_RESCHAR | TOKEN_ID_PLUS)
+#define CT_RES_OR			(CT_RESCHAR | TOKEN_ID_OR)
+#define CT_RES_NOT			(CT_RESCHAR | TOKEN_ID_NOT)
+#define CT_RES_MINUS		(CT_RESCHAR | TOKEN_ID_SUB)
+#define CT_RES_DIV			(CT_RESCHAR | TOKEN_ID_DIV)
 
-static TokenDescrId CT_RES_IDS[] =
-{
-	TOKEN_DESCR_AND,
-	TOKEN_DESCR_PAREN_OPEN,
-	TOKEN_DESCR_PAREN_CLOSE,
-	TOKEN_DESCR_PLUS,
-	TOKEN_DESCR_OR,
-	TOKEN_DESCR_NOT,
-	TOKEN_DESCR_COMMA,
-	TOKEN_DESCR_MINUS,
-	TOKEN_DESCR_DIVIDE
-};
-
-static TokenDescrId GetIdFromCt(char_traits_t ct);
+#define CT_RES_COMMA		(CT_RESCHAR | TOKEN_ID_COMMA)
+#define CT_RES_PAREN_OPEN	(CT_RESCHAR | TOKEN_ID_PAREN_OPEN)
+#define CT_RES_PAREN_CLOSE	(CT_RESCHAR | TOKEN_ID_PAREN_CLOSE)
 
 static char_traits_t CHAR_TRAITS[] =
 {
@@ -99,7 +86,7 @@ static char_traits_t CHAR_TRAITS[] =
 	CT_RES_COMMA, // ,
 	CT_RES_MINUS, // -
 	0, // .
-	CT_RES_DIVIDE, // /
+	CT_RES_DIV, // /
 	CT_DIGIT | CT_OCT, // 0
 	CT_DIGIT | CT_OCT, // 1
 	CT_DIGIT | CT_OCT, // 2
@@ -187,7 +174,8 @@ static char_traits_t GetCharTraits(int c);
 static FILE* stream_;
 static int curChar_;
 static unsigned charCount_;
-static Token* token_;
+static Token token_;
+static TokenClass tokenClass_;
 
 static char bufMem_[PSTR_MEM_SIZE(SCANNER_BUF_SIZE)];
 static PString* buf_ = (PString*)bufMem_;
@@ -217,7 +205,6 @@ static void GetDirective(void);
 static int GetRegisterRef(void);
 static int GetRegisterNumeric(void);
 static int GetOpcode(void);
-static int GetReservedSym(void);
 
 static int GetReservedChar(void);
 static int GetEOL(void);
@@ -228,7 +215,7 @@ void ScannerInit(const char* filePath)
 {
 	stream_ = fopen(filePath, "r");
 	assert(stream_);
-	ClearBuf();
+//	ClearBuf();
 	Read();
 }
 
@@ -237,81 +224,38 @@ void ScannerClose(void)
 	fclose(stream_);
 }
 
-void ScannerNext(Token* token)
+const Token* ScannerNext(void)
 {
-	token_ = token;
 	ClearBuf();
 	charCount_ = 0;
+	tokenClass_ = TOKEN_CLASS_NONE;
 	IgnoreWhitespaces();
 
 	if(Peek() == EOF)
 	{
-		token->descrId = TOKEN_DESCR_EOF;
+		token_.id = TOKEN_ID_EOF;
 	}
 	else if(GetString() && GetNumber() && GetSymbol() && GetReservedChar() && GetEOL())
 	{
 		ScannerError("Invalid sequence of characters");
 	}
+
+	return &token_;
+}
+
+const Token* GetToken(void)
+{
+	return &token_;
+}
+
+TokenClass GetTokenClass(void)
+{
+	return tokenClass_;
 }
 
 unsigned ScannerGetCharCount(void)
 {
 	return charCount_;
-}
-
-void ScannerDumpToken(FILE* stream, const Token* token)
-{
-	const TokenDescr* tDescr = GetTokenDescr(token->descrId);
-	switch(tDescr->valueType)
-	{
-		case TOKEN_VALUE_TYPE_STRING:
-			{
-				fprintf(stream, "[%s:", tDescr->name);
-				char* c;
-				for(c = token->strValue->str; c < token->strValue->str + token->strValue->size; ++c)
-				{
-					putc(*c, stream);
-				}
-				putc(']', stream);
-			}
-			break;
-		case TOKEN_VALUE_TYPE_NUMBER:
-			fprintf(stream, "[%s:%d]", tDescr->name, token->intValue);
-			break;
-		default:
-			fprintf(stream, "[%s]", tDescr->name);
-			break;
-	}
-}
-
-void ScannerDumpPretty(FILE* stream)
-{
-	int line = 1;
-	Token token;
-	fprintf(stream, "line %04d:", line);
-	ScannerNext(&token);
-	while(token.descrId != TOKEN_DESCR_EOF)
-	{
-		putc(' ', stream);
-		ScannerDumpToken(stream, &token);
-		if(token.descrId == TOKEN_DESCR_EOL)
-		{
-			fprintf(stream, "\nline %04d:", ++line);
-		}
-		ScannerNext(&token);
-	}
-	putc(' ', stream);
-	ScannerDumpToken(stream, &token);
-}
-
-static TokenDescrId GetIdFromCt(char_traits_t ct)
-{
-	size_t n = ct & CT_DESCR;
-#ifdef ESC_DEBUG
-	assert(ct & CT_RESCHAR);
-	assert(n < sizeof CT_RES_IDS / sizeof (TokenDescrId));
-#endif
-	return CT_RES_IDS[n];
 }
 
 static char_traits_t GetCharTraits(int c)
@@ -352,12 +296,11 @@ static void ClearBuf(void)
 
 static void PushBuf(int c)
 {
-	if(buf_->size + 1 >= SCANNER_BUF_SIZE) //(bufIndex_ >= SCANNER_BUF_SIZE)
+	if(buf_->size + 1 >= SCANNER_BUF_SIZE)
 	{
 		ScannerError("Symbol buffer overflow");
 	}
 	
-//	buf_[bufIndex_++] = c;
 	buf_->str[buf_->size++] = c;
 }
 
@@ -367,23 +310,9 @@ static void IgnoreWhitespaces(void)
 	for(c = Peek(); GetCharTraits(c) & CT_SPACE; c = Read()) { }
 }
 
-//static int IsWhiteSpace(int c)
-//{
-//	switch(c)
-//	{
-//		case ' ':
-//		case '\v':
-//		case '\t':
-//		case '\f':
-//			return 1;
-//		default:
-//			return 0;
-//	}
-//}
-
 static int GetString(void)
 {
-	if(Peek() != '"')
+	if(curChar_ != '"')
 	{
 		return -1;
 	}
@@ -404,8 +333,9 @@ static int GetString(void)
 		c = ReadRaw();
 	}
 
-	token_->descrId = TOKEN_DESCR_STRING;
-	token_->strValue = buf_;
+	token_.id = TOKEN_ID_STRING;
+	tokenClass_ = TOKEN_CLASS_VALUE;
+	token_.strValue = buf_;
 
 	return 0;
 }
@@ -458,7 +388,7 @@ static int GetEscSeq(int* subst)
 
 static int GetNumber(void)
 {
-	int c = Peek();
+	int c = curChar_;
 	if(c == '0')
 	{
 		c = Read();
@@ -466,7 +396,7 @@ static int GetNumber(void)
 		{
 			c = Read();
 			char_traits_t ct = GetCharTraits(c);
-			if(!(ct & CT_HEX_CHAR)) //if(!isdigit(c) && !(c >= 'a' && c <= 'f') && !(c >= 'A' && c <= 'F'))
+			if(!(ct & CT_HEX_CHAR))
 			{
 				return -1;
 			}
@@ -486,7 +416,9 @@ static int GetNumber(void)
 		return -1;
 	}
 	
-	token_->descrId = TOKEN_DESCR_NUMBER;
+	token_.id = TOKEN_ID_NUMBER;
+	tokenClass_ = TOKEN_CLASS_VALUE;
+
 	return 0;
 }
 
@@ -502,21 +434,21 @@ static void GetHex(void)
 		c = Read();
 	}
 	
-	token_->intValue = num;
+	token_.intValue = num;
 }
 
 static int GetHexDigit(int c, int* d)
 {
 	char_traits_t ct = GetCharTraits(c);
-	if(ct & CT_DIGIT) //if(isdigit(c))
+	if(ct & CT_DIGIT)
 	{
 		*d = c - '0';
 	}
-	else if(ct & CT_HEX_LO) //else if(c >= 'a' && c <= 'f')
+	else if(ct & CT_HEX_LO)
 	{
 		*d = c - 'a' + 10;
 	}
-	else if(ct & CT_HEX_UP) //else if(c >= 'A' && c <= 'F')
+	else if(ct & CT_HEX_UP)
 	{
 		*d = c - 'A' + 10;
 	}
@@ -537,7 +469,7 @@ static void GetOct(void)
 		num = num * 8 + c - '0';
 		c = Read();
 	}
-	token_->intValue = num;
+	token_.intValue = num;
 }
 
 static void GetDec(void)
@@ -549,12 +481,12 @@ static void GetDec(void)
 		num = num * 10 + c - '0';
 		c = Read();
 	}
-	token_->intValue = num;
+	token_.intValue = num;
 }
 
 static int GetSymbol(void)
 {
-	if(Peek() == '.')
+	if(curChar_ == '.')
 	{
 		Read();
 		if(BufferSymbol())
@@ -572,13 +504,13 @@ static int GetSymbol(void)
 		return -1;
 	}
 
-	if(Peek() == ':')
+	if(curChar_ == ':')
 	{
 		Read();
 		GetLabelDecl();
 		return 0;
 	}
-	else if(GetRegisterRef() && GetOpcode() && GetReservedSym())
+	else if(GetRegisterRef() && GetOpcode())
 	{
 		GetLabelRef();
 	}
@@ -588,9 +520,9 @@ static int GetSymbol(void)
 
 static int BufferSymbol(void)
 {
-	int c = Peek();
+	int c = curChar_;
 
-	if(!(GetCharTraits(c) & CT_SYM_FIRST)) //if(c != '_' && !isalpha(c))
+	if(!(GetCharTraits(c) & CT_SYM_FIRST))
 	{
 		return -1;
 	}
@@ -599,87 +531,83 @@ static int BufferSymbol(void)
 	{
 		PushBuf(c);
 		c = Read();
-	} while(GetCharTraits(c) & CT_SYM_REST); //while(c == '_' || isalnum(c));
+	} while(GetCharTraits(c) & CT_SYM_REST);
 
 	return 0;
 }
 
 static void GetLabelDecl(void)
 {
-	if(FindReservedWord(buf_->str, buf_->size) != TOKEN_DESCR_INVALID)
-	{
-		ScannerError("Declared label is reserved word");
-	}
+	ESC_ASSERT_ERROR(!FindKeyword(buf_), "Declared label is a keyword");
 
-	token_->descrId = TOKEN_DESCR_LABEL_DECL;
-	token_->strValue = buf_;
+	token_.id = TOKEN_ID_LABEL_DECL;
+	token_.strValue = buf_;
+	tokenClass_ = TOKEN_CLASS_NONE;
 }
 
 static void GetLabelRef(void)
 {
-	if(FindReservedWord(buf_->str, buf_->size) != TOKEN_DESCR_INVALID)
-	{
-		ScannerError("Referenced label is reserved word");
-	}
+	ESC_ASSERT_ERROR(!FindKeyword(buf_), "Referenced label is a keyword");
 
-	token_->descrId = TOKEN_DESCR_LABEL_REF;
-	token_->strValue = buf_;
+	token_.id = TOKEN_ID_LABEL_REF;
+	token_.strValue = buf_;
+	tokenClass_ = TOKEN_CLASS_VALUE;
 }
 
 static void GetDirective(void)
 {
-	TokenDescrId descrId = FindReservedWord(buf_->str, buf_->size);
-	if(descrId == TOKEN_DESCR_INVALID || GetTokenDescr(descrId)->tokenClass != TOKEN_CLASS_DIRECTIVE)
+	const Keyword* keyword = FindKeyword(buf_);
+
+	if(!keyword || keyword->type != KEYWORD_TYPE_DIR)
 	{
-		ScannerError("Illegal directive");
+		EscError("Illegal directive");
 	}
 
-	token_->descrId = descrId;
+	token_.id = TOKEN_ID_DIR;
+	token_.kwValue = keyword;
+
+
+//	TokenDescrId descrId = FindReservedWord(buf_->str, buf_->size);
+//	if(descrId == TOKEN_DESCR_INVALID || GetTokenDescr(descrId)->tokenClass != TOKEN_CLASS_DIRECTIVE)
+//	{
+//		ScannerError("Illegal directive");
+//	}
+//
+//	token_->descrId = descrId;
 }
 
 static int GetRegisterRef(void)
 {
-	/*
-	r0..r4
-	r5 PC
-	r6 LR
-	r7 SP
-	*/
+	//	r0..r4
+	//	r5 PC
+	//	r6 LR
+	//	r7 SP
 
-#ifdef EQ
-#error EQ was already defined
-#else
-//#define EQ(s)	(bufIndex_ == sizeof (s) - 1 && !strncasecmp(buf_, (s), sizeof (s) - 1))
-#define EQ(s)	(buf_->size == sizeof (s) - 1 && !strncasecmp(buf_->str, (s), sizeof (s) - 1))
-#endif
+	struct SpecialReg_ { const char* name; int val; };
+	static struct SpecialReg_ SPECIAL_REGS[] = { { "pc", REG_PC }, { "lr", REG_LR }, { "sp", REG_SP } };
+	static const size_t SPECIAL_REGS_SIZE = sizeof SPECIAL_REGS / sizeof (struct SpecialReg_);
 
-	if(EQ("pc"))
-	{
-		token_->descrId = TOKEN_DESCR_REGISTER_REF;
-		token_->intValue = REG_PC;
-		return 0;
-	}
-	else if(EQ("lr"))
-	{
-		token_->descrId = TOKEN_DESCR_REGISTER_REF;
-		token_->intValue = REG_LR;
-		return 0;
-	}
-	else if(EQ("sp"))
-	{
-		token_->descrId = TOKEN_DESCR_REGISTER_REF;
-		token_->intValue = REG_SP;
-		return 0;
-	}
+	//FIXME debug stuffs
 
-#undef EQ
+	unsigned n_ = 0;
+	struct SpecialReg_* i;
+	for(i = SPECIAL_REGS; i < SPECIAL_REGS + SPECIAL_REGS_SIZE; ++i)
+	{
+		if(!strncasecmp(buf_->str, i->name, buf_->size))
+		{
+			token_.id = TOKEN_ID_REG;
+			token_.intValue = i->val;
+			return 0;
+		}
+		++n_;
+	}
 
 	return GetRegisterNumeric();
 }
 
 static int GetRegisterNumeric(void)
 {
-	const size_t sz = buf_->size; //bufIndex_;
+	const size_t sz = buf_->size;
 	const char* str = buf_->str;
 
 	if(sz < 2)
@@ -715,87 +643,66 @@ static int GetRegisterNumeric(void)
 		return -1;
 	}
 
-	token_->descrId = TOKEN_DESCR_REGISTER_REF;
-	token_->intValue = num;
+	token_.id = TOKEN_ID_REG;
+	token_.intValue = num;
 
 	return 0;
 }
 
 static int GetOpcode(void)
 {
-	TokenDescrId descrId = FindReservedWord(buf_->str, buf_->size);
-	if(descrId == TOKEN_DESCR_INVALID)
+	const Keyword* keyword = FindKeyword(buf_);
+
+	if(!keyword || keyword->type != KEYWORD_TYPE_INST)
 	{
 		return -1;
 	}
 	
-	const TokenDescr* tDescr = GetTokenDescr(descrId);
+	token_.id = TOKEN_ID_INST;
+	token_.kwValue = keyword;
 
-	if(tDescr->tokenClass != TOKEN_CLASS_MNEMONIC)
-	{
-		return -1;
-	}
-
-	token_->descrId = descrId;
 	return 0;
-}
 
-static int GetReservedSym(void)
-{
-	TokenDescrId id = FindReservedWord(buf_->str, buf_->size);
-	if(id == TOKEN_DESCR_INVALID)
-	{
-		return -1;
-	}
 
-	const TokenDescr* tDescr = GetTokenDescr(id);
-	if(tDescr->tokenClass != TOKEN_CLASS_RESERVED_SYM)
-	{
-		return -1;
-	}
-
-	token_->descrId = id;
-	return 0;
+//	TokenDescrId descrId = FindReservedWord(buf_->str, buf_->size);
+//	if(descrId == TOKEN_DESCR_INVALID)
+//	{
+//		return -1;
+//	}
+//
+//	const TokenDescr* tDescr = GetTokenDescr(descrId);
+//
+//	if(tDescr->tokenClass != TOKEN_CLASS_MNEMONIC)
+//	{
+//		return -1;
+//	}
+//
+//	token_->descrId = descrId;
+//	return 0;
 }
 
 static int GetReservedChar(void)
 {
-	char_traits_t ct = GetCharTraits(Peek());
+	char_traits_t ct = GetCharTraits(curChar_);
 	if(!(ct & CT_RESCHAR))
 	{
 		return -1;
 	}
 	
-	token_->descrId = GetIdFromCt(ct);
+	TokenID id = ct & CT_DESCR;
+	token_.id = id;
+	if(id < TOKEN_ID_OPERATORS_END_)
+	{
+		tokenClass_ = TOKEN_CLASS_OPERATOR;
+	}
+
 	Read();
 	return 0;
-	
-//	TokenDescrId descrId = TOKEN_DESCR_INVALID;
-//
-//	switch(Peek())
-//	{
-//		case ',':
-//			descrId = TOKEN_DESCR_COMMA;
-//			break;
-//		case ':':
-//		default:
-//			break;
-//	}
-//
-//	if(descrId != TOKEN_DESCR_INVALID)
-//	{
-//		Read();
-//		token_->descrId = descrId;
-//		return 0;
-//	}
-//
-//	return -1;
 }
 
 static int GetEOL(void)
 {
-	int c = Peek();
-	switch(c)
+	switch(curChar_)
 	{
 		case '\r':
 			if(Read() == '\n')
@@ -810,7 +717,7 @@ static int GetEOL(void)
 			return -1;
 	}
 	
-	token_->descrId = TOKEN_DESCR_EOL;
+	token_.id = TOKEN_ID_EOL;
 	return 0;
 }
 

@@ -19,6 +19,7 @@
 
 #define ESC_ASSERT_FATAL(cond, msg)		((cond) ? (void)0 : EscFatal((msg)))
 #define ESC_ASSERT_ERROR(cond, msg)		((cond) ? (void)0 : EscError((msg)))
+#define ESC_ASSERT_WARNING(cond, msg)	((cond) ? (void)0 : EscWarning((msg)))
 
 void NORETURN FORMATPRINTF(1, 2) EscFatal(const char* fmt, ...);
 void NORETURN FORMATPRINTF(1, 2) EscError(const char* fmt, ...);

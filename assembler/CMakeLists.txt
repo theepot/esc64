@@ -8,6 +8,12 @@ set(CMAKE_SHARED_LINKER_FLAGS "-Wall")
 
 set(CMAKE_BUILD_TYPE DEBUG)
 
+set(KEYWORDS_INL include/esc64asm/keywords_gen.h)
+set(KEYWORDS_GPERF keywords.gperf)
+set(KW_GEN_PATH kwgen)
+set(KW_GEN_DESCS ${KW_GEN_PATH}/descriptions.rb)
+set(KW_GEN_FILES ${KW_GEN_PATH}/interpreter.rb ${KW_GEN_DESCS})
+
 #set(SOURCE_DIR ${CMAKE_BINARY_DIR}/src)
 set(SOURCE_DIR src)
 set(TEST_DIR ${SOURCE_DIR}/tests)
@@ -28,11 +34,13 @@ set(
 	${SOURCE_DIR}/reswords.c
 	${SOURCE_DIR}/scanner.c
 	${SOURCE_DIR}/symtable.c
-	${SOURCE_DIR}/tokendescr.c
+	${SOURCE_DIR}/token.c
 	${SOURCE_DIR}/freelist.c
 	${SOURCE_DIR}/escerror.c
 	${SOURCE_DIR}/opcodes.c
-	${SOURCE_DIR}/mempool.c)
+	${SOURCE_DIR}/mempool.c
+	${SOURCE_DIR}/keywords.c
+	${SOURCE_DIR}/assembler.c)
 
 set(
 	AS_SOURCES
@@ -71,6 +79,18 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${LIB_DIR})
 
 include_directories(include)
 link_directories(${LIB_DIR})
+
+add_custom_command(	OUTPUT ${KEYWORDS_INL}
+					COMMAND gperf --enum --omit-struct-type --language=C --lookup-function-name=FindKeyword_ --hash-function-name=Hash --slot-name=keyword -C -t --ignore-case ${KEYWORDS_GPERF} | sed -f comment_line_cmds.sed > ${KEYWORDS_INL}
+					DEPENDS ${KEYWORDS_GPERF}
+					COMMENT "Generating ${KEYWORDS_INL}")
+	
+add_custom_command(	OUTPUT ${KEYWORDS_GPERF}
+					COMMAND ruby -I ${KW_GEN_PATH} ${KW_GEN_DESCS} -g ${KEYWORDS_GPERF}
+					DEPENDS ${KW_GEN_FILES}
+					COMMENT "Generating ${KEYWORDS_GPERF}")
+					
+add_custom_target(genkeywords DEPENDS ${KEYWORDS_INL})
 
 add_definitions(-DESC_TEST_FILE_BASE_PATH="${TESTFILES}")
 add_library(esc-asm-common SHARED ${COMMON_SOURCES})

@@ -244,7 +244,7 @@ int ObjExpReaderNext(ObjExpReader* expReader, uword_t* address, uword_t* value)
 			result = -PostfixPeek(0);
 			PostfixPop(1);
 			break;
-		case EXPR_T_OP_DIVIDE:
+		case EXPR_T_OP_DIV:
 			result = PostfixPeek(1) / PostfixPeek(0);
 			PostfixPop(2);
 			break;

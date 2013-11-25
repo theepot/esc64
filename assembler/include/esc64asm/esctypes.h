@@ -4,6 +4,12 @@
 #include <stdint.h>
 #include <arpa/inet.h>
 
+#ifdef __GNUC__
+#define PACKED __attribute__((packed))
+#else
+#error can not support PACKED modifier
+#endif
+
 typedef unsigned char byte_t;
 
 typedef int16_t		word_t;
@@ -18,5 +24,14 @@ typedef uint32_t	objsize_t;
 
 #define HTON_OBJSIZE(x)	htonl((x))
 #define NTOH_OBJSIZE(x)	ntohl((x))
+
+typedef enum ArgType_
+{
+	ARG_T_REG = 0,
+	ARG_T_EXPR,
+	ARG_T_STRING,
+	ARG_T_EOL,
+	ARG_T_OTHER
+} ArgType;
 
 #endif

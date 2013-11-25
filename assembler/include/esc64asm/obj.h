@@ -64,6 +64,29 @@ typedef struct ObjectHeader_
 #define OBJ_SECTION_EXPR_RECORD_OFFSET			(OBJ_SECTION_GLOBAL_SYM_RECORD_OFFSET + sizeof (objsize_t))
 #define OBJ_SECTION_DATA_RECORD_OFFSET			(OBJ_SECTION_EXPR_RECORD_OFFSET + sizeof (objsize_t))
 
+typedef struct ObjSectionInfo_
+{
+	byte_t type;
+	byte_t placement;
+	uword_t address;
+} ObjSectionInfo;
+
+typedef struct PACKED ObjSectionHeader_
+{
+	byte_t type;
+	objsize_t next;
+	uword_t address;
+	uword_t size;
+	objsize_t localSymbolRecordOffset;
+	objsize_t globalSymbolRecordOffset;
+	objsize_t expRecordOffset;
+} ObjSectionHeader;
+
+typedef struct PACKED ObjDataSection_
+{
+	objsize_t dataRecordOffset;
+} ObjDataSection;
+
 //	instruction structure
 //		16       9     6     3     0  [ 16    0 ]
 //		| opcode | op0 | op1 | op2 |  [ | op3 | ]
@@ -103,7 +126,7 @@ typedef struct Symbol_
 #define EXPR_T_OP_NOT		3
 #define EXPR_T_OP_SUB		4
 #define EXPR_T_OP_NEG		5
-#define EXPR_T_OP_DIVIDE	6
+#define EXPR_T_OP_DIV		6
 #define EXPR_T_WORD			7
 #define EXPR_T_SYMBOL		8
 #define EXPR_T_END			9

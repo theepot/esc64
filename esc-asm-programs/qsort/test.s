@@ -28,19 +28,19 @@ list:
 	mov		r1, LIST_LEN
 	call	qsort
 	
-	mov		r0, 512
-loopie:
-	dec		r0, r0
-	movnz	pc, loopie
+;	mov		r0, 512
+;loopie:
+;	dec		r0, r0
+;	movnz	pc, loopie
 	
-	mov		r0, list
-	mov		r1, LIST_LEN
+;	mov		r0, list
+;	mov		r1, LIST_LEN
 	
-loopz:
-	ldr		r3, r0
-	inc 	r0, r0
-	dec		r1, r1
-	movnz	pc, loopz
+;loopz:
+;	ldr		r3, r0
+;	inc 	r0, r0
+;	dec		r1, r1
+;	movnz	pc, loopz
 		
 	
 .word 0xFFFF

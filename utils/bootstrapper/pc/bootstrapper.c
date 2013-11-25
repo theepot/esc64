@@ -20,7 +20,7 @@
 static serial_device global_serial_device;
 
 const char *argp_program_version =
-	"v1.0";
+	"v1.1";
 const char *argp_program_bug_address =
 	"<defusix@defusix.net>";
 static char doc[] =
@@ -478,7 +478,12 @@ void send_command(uint8_t command)
 
 void prepare_data(const SRAM_t* const mem, uint8_t* const buf, const int start, const int length)
 {
-	assert(start >= 0 && length > 0 && (start+length) < SRAM_BLOCKS && start < 0xFF && length < 0xFF);
+	assert(start >= 0);
+	assert(length > 0);
+	assert(start+length <= SRAM_BLOCKS);
+	assert(start <= 0xFF);
+	assert(length <= 0xFF);
+	
 	int word, bit, byte;
 	for(word = 0; word < length*SRAM_BLOCK_SIZE; word++)
 	{
@@ -531,7 +536,11 @@ void procces_raw_data(SRAM_t* const dest, const uint8_t* raw, int len_words)
 
 void send_blocks_with_header(const SRAM_t* const mem, const int start, const int length)
 {
-	assert(start >= 0 && length > 0 && (start+length) < SRAM_BLOCKS && start < 0xFF && length < 0xFF);
+	assert(start >= 0);
+	assert(length > 0);
+	assert(start+length <= SRAM_BLOCKS);
+	assert(start <= 0xFF);
+	assert(length <= 0xFF);
 
 	size_t buf_size = length*SRAM_BLOCK_SIZE*SRAM_WORD_SIZE;
 	uint8_t buf[buf_size];

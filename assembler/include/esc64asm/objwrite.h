@@ -4,28 +4,50 @@
 #include <esc64asm/obj.h>
 #include <esc64asm/pstring.h>
 
-void ObjectWriterInit(const char* path);
-void ObjectWriterClose(void);
-
-void ObjWriteDataSection(byte_t placement, uword_t address);
 /**
-* @param size		Size in words
+ * @return			0 on success
  */
-void ObjWriteBssSection(byte_t placement, uword_t address, uword_t size);
+int ObjectWriterInit(const char* path);
+
+/**
+ * @return			0 on success
+ */
+int ObjectWriterClose(void);
+
+objsize_t ObjGetLocation(void);
+
+//TODO make one ObjWriteSection() procedure
+
+/**
+ * @return			0 on success
+ */
+int ObjWriteSection(const ObjSectionInfo* sectionInfo);
 
 /**
  * @param dataSize	Size in words
+ * @return			0 on success, otherwise see enum ObjWriteDataErrors_
  */
-void ObjWriteData(const void* data, size_t dataSize);
-size_t ObjWriteInstr(const Instruction* instr);
+int ObjWriteData(const void* data, size_t dataSize);
+void ObjWriteInst(int isWide, uword_t instWord, uword_t extWord);
+int ObjResData(size_t size);
 
-void ObjWriteLocalSym(const Symbol* sym);
-void ObjWriteGlobalSym(const Symbol* sym);
+//TODO make one ObjWriteSym(visibility, sym) procedure
 
+/**@{
+ * @return			0 on success, otherwise see enum ObjWriteSymErrors_
+ */
+int ObjWriteLocalSym(const Symbol* sym);
+int ObjWriteGlobalSym(const Symbol* sym);
+/**@}*/
+
+/**@{
+ * @return			0 on success, otherwise see enum ObjWriteExpErrors_
+ */
 void ObjExprBegin(uword_t address);
-void ObjExprEnd(void);
-void ObjExprPutNum(word_t num);
-void ObjExprPutSymbol(const PString* str);
-void ObjExprPutOperator(byte_t operator);
+int ObjExprEnd(void);
+int ObjExprPutNum(word_t num);
+int ObjExprPutSymbol(const PString* str);
+int ObjExprPutOperator(byte_t operator);
+/**@}*/
 
 #endif

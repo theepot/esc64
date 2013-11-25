@@ -19,7 +19,7 @@
 `include "../cpu/cpu.v"
 
 `define CLOCK_PERIOD		1600
-`define MAX_CLOCK_CYCLES	100000
+//`define MAX_CLOCK_CYCLES	1000000
 
 module computer();
 	reg [63:0] tick_counter;
@@ -46,10 +46,11 @@ module computer();
 		clock = 0;
 		#900 notReset = 1;
 
+`ifdef MAX_CLOCK_CYCLES
 		#((`CLOCK_PERIOD / 2)*2*`MAX_CLOCK_CYCLES)
 		$display("ERROR: computer did not halt in %d cycles", `MAX_CLOCK_CYCLES);
 		$finish;
-
+`endif
 	end
 
 	always begin

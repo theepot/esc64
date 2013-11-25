@@ -2,7 +2,7 @@
 #define SCANNER_INCLUDED
 
 #include <stdio.h>
-#include <esc64asm/tokendescr.h>
+#include <esc64asm/token.h>
 #include <esc64asm/pstring.h>
 
 #define SCANNER_BUF_SIZE 64
@@ -39,19 +39,11 @@ DecDigit:
 
 */
 
-typedef struct Token_
-{
-	TokenDescrId descrId;
-	union
-	{
-		PString* strValue;
-		int intValue;
-	};
-} Token;
-
 void ScannerInit(const char* filePath);
 void ScannerClose(void);
-void ScannerNext(Token* token);
+const Token* ScannerNext(void);
+const Token* GetToken(void);
+TokenClass GetTokenClass(void);
 unsigned ScannerGetCharCount(void);
 void ScannerDumpToken(FILE* stream, const Token* token);
 void ScannerDumpPretty(FILE* stream);

@@ -5,3 +5,5 @@ CMakeFiles/
 *.cmake
 CMakeCache.txt
 Makefile
+include/esc64asm/keywords_gen.h
+keywords.gperf

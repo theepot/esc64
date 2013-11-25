@@ -25,8 +25,6 @@ int main(int argc, char** argv)
 {
 	clock_t start = clock();
 
-	ReservedWordsInit();
-
 //	TestScanner(ESC_TEST_FILE_BASE_PATH"/scanner_test.asm");
 //	TestSymTable();
 //	TestReservedWords();
