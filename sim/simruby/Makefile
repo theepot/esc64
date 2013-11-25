@@ -1,6 +1,6 @@
 
 SERVICE_GEN_DIR		=service
-SERVICE				=../computer/thrift-server/service.thrift
+SERVICE				=../thrift-server/service.thrift
 SERVICE_TIMESTAMP	=service_timestamp
 
 .PHONY: all

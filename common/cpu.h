@@ -1,5 +1,5 @@
-#ifndef __CPU_H
-#define __CPU_H
+#ifndef _CPU_H
+#define _CPU_H
 
 #define UROM_ADDR_WIDTH			13
 #define OPCODE_WIDTH 			7
@@ -43,8 +43,11 @@
 #define	ERROR_WIRE_ILLEGAL_OPCODE		1
 #define ERROR_WIRE_ILLEGAL_STATE		2
 
-#define IN_INSTRUCTION_DELAY	50
-#define OUT_INSTRUCTION_DELAY	50
+#define IO_READ_LENGTH			50
+#define IO_WRITE_LENGTH			50
+#define RAM_READ_LENGTH			1
+#define RAM_WRITE_LENGTH		1
+
 
 typedef enum opcode {
 	op_reset = 0,

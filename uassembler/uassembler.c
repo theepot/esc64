@@ -7,13 +7,15 @@
 #include "bin_table.h"
 #include "uassembler.h"
 
+//TODO: protection/warning against writing field second time
+
 void print_state(uassembler* uasm, FILE* f)
 {
 	fprintf(f, "uassembler state:\n\tcurrent address: %X\n\tprevious address: %X\n\tfree address: %X\n\tat op entry: %s\n",
 			uasm->addr_current, uasm->addr_previous, uasm->addr_free, uasm->current_at_op_entry ? "yes" : "no");
 	if(uasm->current_at_op_entry)
 	{
-		fprintf(f, "\top entry carry/zero mask: %X", uasm->op_entry_zero_carry_mask);
+		fprintf(f, "\top entry carry/zero flags: %X", uasm->op_entry_zero_carry_flags);
 	}
 }
 
@@ -49,25 +51,25 @@ void set_field(uassembler* uasm, const char* field_name, int value)
 	int field_index = bin_table_collumn_by_name(&(uasm->table), field_name);
 	if(uasm->current_at_op_entry)
 	{
-		if(uasm->op_entry_zero_carry_mask & NOT_CARRY_NOT_ZERO)
+		if(uasm->op_entry_zero_carry_flags & NOT_CARRY_NOT_ZERO)
 		{
 			bin_table_set_cell_value(&(uasm->table), field_index,
 						uasm->addr_current, value);
 		}
 
-		if(uasm->op_entry_zero_carry_mask & NOT_CARRY_ZERO)
+		if(uasm->op_entry_zero_carry_flags & NOT_CARRY_ZERO)
 		{
 			bin_table_set_cell_value(&(uasm->table), field_index,
 						uasm->addr_current | 1, value);
 		}
 
-		if(uasm->op_entry_zero_carry_mask & CARRY_NOT_ZERO)
+		if(uasm->op_entry_zero_carry_flags & CARRY_NOT_ZERO)
 		{
 			bin_table_set_cell_value(&(uasm->table), field_index,
 						uasm->addr_current | 2, value);
 		}
 
-		if(uasm->op_entry_zero_carry_mask & CARRY_ZERO)
+		if(uasm->op_entry_zero_carry_flags & CARRY_ZERO)
 		{
 			bin_table_set_cell_value(&(uasm->table), field_index,
 						uasm->addr_current | 3, value);
@@ -120,25 +122,25 @@ void set_next(uassembler* uasm, next_sel nxt)
 				int field_index = bin_table_collumn_by_name(&(uasm->table), uasm->next_addr_collumn_name);
 				if(uasm->current_at_op_entry)
 				{
-					if(uasm->op_entry_zero_carry_mask & NOT_CARRY_NOT_ZERO)
+					if(uasm->op_entry_zero_carry_flags & NOT_CARRY_NOT_ZERO)
 					{
 						bin_table_set_cell_value(&(uasm->table), field_index,
 									uasm->addr_current, uasm->addr_current);
 					}
 
-					if(uasm->op_entry_zero_carry_mask & NOT_CARRY_ZERO)
+					if(uasm->op_entry_zero_carry_flags & NOT_CARRY_ZERO)
 					{
 						bin_table_set_cell_value(&(uasm->table), field_index,
 									uasm->addr_current | 1, uasm->addr_current | 1);
 					}
 
-					if(uasm->op_entry_zero_carry_mask & CARRY_NOT_ZERO)
+					if(uasm->op_entry_zero_carry_flags & CARRY_NOT_ZERO)
 					{
 						bin_table_set_cell_value(&(uasm->table), field_index,
 									uasm->addr_current | 2, uasm->addr_current | 2);
 					}
 
-					if(uasm->op_entry_zero_carry_mask & CARRY_ZERO)
+					if(uasm->op_entry_zero_carry_flags & CARRY_ZERO)
 					{
 						bin_table_set_cell_value(&(uasm->table), field_index,
 									uasm->addr_current | 3, uasm->addr_current | 3);
@@ -185,7 +187,7 @@ void goto_next_free(uassembler* uasm)
 	uasm->addr_free++;
 }
 
-void goto_op_entry(uassembler* uasm, int opcode, int carry_zero_mask)
+void goto_op_entry(uassembler* uasm, int opcode, int carry_zero_flags)
 {
 	uasm->addr_previous = uasm->addr_current;
 
@@ -195,7 +197,7 @@ void goto_op_entry(uassembler* uasm, int opcode, int carry_zero_mask)
 		print_state(uasm, stderr);
 		exit(1);
 	}
-	uasm->op_entry_zero_carry_mask = carry_zero_mask;
+	uasm->op_entry_zero_carry_flags = carry_zero_flags;
 	uasm->current_at_op_entry = 1;
 
 	goto_address(uasm, opcode << 2);

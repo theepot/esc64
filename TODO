@@ -16,3 +16,5 @@ List of TODO things:
 	-find out bottleneck frequency
 	
 	-urom: reset instruction also resets program counter.
+	
+	verilog sram module. there is almost no difference between abstract and discrete version. resolve this weirdness

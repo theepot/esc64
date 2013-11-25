@@ -1,10 +1,18 @@
 #include <stdio.h>
 #include <cpu.h>
+#include <stdbool.h>
 #include "uassembler.h"
 #include "bin_table.h"
 
+//TODO: document changes (io interface)
+//TODO: y/a bus load-from/write-to enums.
+
 bin_table_collumn_description field_descrps[] = {
 	{.name = "padding", .width = -1, .active_high = H}, //most significant bits
+	{.name = "data_reg_ld_n", .width = 1, .active_high = L},
+	{.name = "address_reg_ld_n", .width = 1, .active_high = L},
+	{.name = "data_dir_out", .width = 1, .active_high = H},
+	{.name = "data_dir_in", .width = 1, .active_high = H},
 	{.name = "error", .width = 2, .active_high = H},
 	{.name = "statusNotLoad", .width = 1, .active_high = L},
 	{.name = "regselOE", .width = 1, .active_high = H},
@@ -19,7 +27,7 @@ bin_table_collumn_description field_descrps[] = {
 	{.name = "aluF", .width = 5, .active_high = H},
 	{.name = "aluNotShiftOE", .width = 1, .active_high = L},
 	{.name = "aluCSel", .width = 1, .active_high = H},
-	{.name = "aluSRCIn", .width = 1, .active_high = H},
+	{.name = "aluUCIn", .width = 1, .active_high = H},
 	{.name = "memRead", .width = 1, .active_high = H},
 	{.name = "memWrite", .width = 1, .active_high = H},
 	{.name = "irNotLoad", .width = 1, .active_high = L},
@@ -28,6 +36,10 @@ bin_table_collumn_description field_descrps[] = {
 };
 
 uassembler* u;
+#define set_next(nxt)			set_next(u, nxt)
+#define goto_next_free()		goto_next_free(u)
+#define goto_op_entry(op, con)	goto_op_entry(u, op, con)
+#define goto_fetch()			goto_fetch(u)
 
 typedef enum {
 	gpreg_oe_sel_0 = 0,
@@ -44,27 +56,23 @@ typedef enum {
 } gpreg_oe_sel;
 
 typedef enum {
-	gpreg_ld_sel_0 = 0,
-	gpreg_ld_sel_1,
-	gpreg_ld_sel_2,
-	gpreg_ld_sel_3,
-	gpreg_ld_sel_4,
-	gpreg_ld_sel_sp,
-	gpreg_ld_sel_lr,
-	gpreg_ld_sel_pc,
-	gpreg_ld_sel_op0,
-} gpreg_ld_sel;
+	reg_ld_sel_0 = 0,
+	reg_ld_sel_1,
+	reg_ld_sel_2,
+	reg_ld_sel_3,
+	reg_ld_sel_4,
+	reg_ld_sel_sp,
+	reg_ld_sel_lr,
+	reg_ld_sel_pc,
+	reg_ld_sel_op0,
+	reg_ld_sel_ir
+} reg_ld_sel;
 
 typedef enum {
 	carry_sel_zero = 0,
 	carry_sel_one,
 	carry_sel_status_reg
 } carry_sel;
-
-typedef enum {
-	mem_action_read = 0,
-	mem_action_write
-} mem_action;
 
 void gpreg_oe(gpreg_oe_sel sel)
 {
@@ -93,25 +101,32 @@ void gpreg_oe(gpreg_oe_sel sel)
 	set_field(u, "regselOESource", regselOESource);
 }
 
-void gpreg_ld(gpreg_ld_sel sel)
+void reg_ld(reg_ld_sel sel)
 {
-	assert_signal(u, "regselLoad");
+	
 	int regselLoadSource;
 	switch(sel)
 	{
-	case gpreg_ld_sel_0 ... gpreg_ld_sel_pc:
+	case reg_ld_sel_0 ... reg_ld_sel_pc:
+		assert_signal(u, "regselLoad");
 		regselLoadSource = RGS_LOADSRC_USEQ;
 		set_field(u, "regselLoaduSel", sel);
+		set_field(u, "regselLoadSource", regselLoadSource);
 		break;
-	case gpreg_ld_sel_op0:
+	case reg_ld_sel_op0:
+		assert_signal(u, "regselLoad");
 		regselLoadSource = RGS_LOADSRC_OP0;
+		set_field(u, "regselLoadSource", regselLoadSource);
+		break;
+	case reg_ld_sel_ir:
+		assert_signal(u, "irNotLoad");
 		break;
 	default:
-		fprintf(stderr, "error: unkown gpreg_ld_sel\n");
+		fprintf(stderr, "error: unkown reg_ld_sel\n");
 		print_state(u, stderr);
 		break;
 	}
-	set_field(u, "regselLoadSource", regselLoadSource);
+	
 }
 
 void alu_enable(int func)
@@ -139,11 +154,6 @@ void status_ld(void)
 	assert_signal(u, "statusNotLoad");
 }
 
-void ir_ld(void)
-{
-	assert_signal(u, "irNotLoad");
-}
-
 void carry_set(carry_sel sel)
 {
 	if(sel == carry_sel_status_reg)
@@ -153,7 +163,7 @@ void carry_set(carry_sel sel)
 	else
 	{
 		set_field(u, "aluCSel", ALU_CSEL_UCIN);
-		set_field(u, "aluSRCIn", sel);
+		set_field(u, "aluUCIn", sel);
 	}
 }
 
@@ -162,16 +172,69 @@ void pc_inc(void)
 	assert_signal(u, "pcInc");
 }
 
-void mem(mem_action action)
+void mem_read(reg_ld_sel reg_dest, gpreg_oe_sel reg_with_address, bool increase_pc, int length)
 {
-	if(action == mem_action_read)
+	length--;
+	assert_signal(u, "data_dir_in");
+	gpreg_oe(reg_with_address);
+	assert_signal(u, "address_reg_ld_n");
+	
+	for(; length > 0; --length)
 	{
+		set_next(next_sel_next_free);
+		goto_next_free();
+		assert_signal(u, "data_dir_in");
 		assert_signal(u, "memRead");
 	}
-	else
+	
+	set_next(next_sel_next_free);
+	goto_next_free();
+	assert_signal(u, "data_dir_in");
+	assert_signal(u, "memRead");
+	reg_ld(reg_dest);
+	if(increase_pc)
+		pc_inc();
+}
+
+void mem_write(gpreg_oe_sel reg_dest_addr, gpreg_oe_sel reg_src, int length)
+{
+	
+	gpreg_oe(reg_src);
+	alu_enable(ALU_F_A);
+	assert_signal(u, "data_reg_ld_n");
+	
+	set_next(next_sel_next_free);
+	goto_next_free();
+	
+	gpreg_oe(reg_dest_addr);
+	assert_signal(u, "address_reg_ld_n");
+	assert_signal(u, "data_dir_out");
+	
+	for(; length > 0; --length)
 	{
+		set_next(next_sel_next_free);
+		goto_next_free();
+	
+		assert_signal(u, "data_dir_out");
 		assert_signal(u, "memWrite");
 	}
+	
+	set_next(next_sel_next_free);
+	goto_next_free();
+	
+	assert_signal(u, "data_dir_out");
+	gpreg_oe(reg_dest_addr);
+	
+}
+
+void io_read(reg_ld_sel reg_dest, gpreg_oe_sel reg_with_address)
+{
+	mem_read(reg_dest, reg_with_address, false, IO_READ_LENGTH);
+}
+
+void io_write(gpreg_oe_sel reg_dest_addr, gpreg_oe_sel reg_src)
+{
+	mem_write(reg_dest_addr, reg_src, IO_WRITE_LENGTH);
 }
 
 void error(int error_code)
@@ -179,61 +242,54 @@ void error(int error_code)
 	set_field(u, "error", error_code);
 }
 
-void create_2op_alu_instruction(enum opcode op, int alu_fun, carry_sel c)
+void create_2op_alu_instruction(opcode op, int alu_fun, carry_sel c)
 {
-	goto_op_entry(u, op, ALWAYS);
+	goto_op_entry(op, ALWAYS);
 		breg_ld();
 		gpreg_oe(gpreg_oe_sel_op2);
-	set_next(u, next_sel_next_free);
-	goto_next_free(u);
+	set_next(next_sel_next_free);
+	goto_next_free();
 		alu_enable(alu_fun);
 		carry_set(c);
 		status_ld();
 		gpreg_oe(gpreg_oe_sel_op1);
-		gpreg_ld(gpreg_ld_sel_op0);
-	set_next(u, next_sel_fetch);
+		reg_ld(reg_ld_sel_op0);
+	set_next(next_sel_fetch);
 }
 
 void create_nop_instruction(opcode op, int condition)
 {
-	goto_op_entry(u, op, condition);
-	set_next(u, next_sel_fetch);
+	goto_op_entry(op, condition);
+	set_next(next_sel_fetch);
 }
 
 
 void create_conditional_mov_instruction(opcode op, int condition)
 {
 	create_nop_instruction(op, ~condition);
-	goto_op_entry(u, op, condition);
+	goto_op_entry(op, condition);
 	gpreg_oe(gpreg_oe_sel_op1);
-	gpreg_ld(gpreg_ld_sel_op0);
+	reg_ld(reg_ld_sel_op0);
 	alu_enable(ALU_F_A);
-	set_next(u, next_sel_fetch);
+	set_next(next_sel_fetch);
 }
 
 void create_conditional_mov_literal_instruction(opcode op, int condition)
 {
-	//create_nop_instruction(op, ~condition);
-	goto_op_entry(u, op, ~condition);
+	goto_op_entry(op, ~condition);
 	pc_inc();
-	set_next(u, next_sel_fetch);
+	set_next(next_sel_fetch);
 
-	goto_op_entry(u, op, condition);
-	gpreg_oe(gpreg_oe_sel_pc);
-	set_next(u, next_sel_next_free);
-	goto_next_free(u);
-	pc_inc();
-	gpreg_oe(gpreg_oe_sel_pc);
-	mem(mem_action_read);
-	gpreg_ld(gpreg_ld_sel_op0);
-	set_next(u, next_sel_fetch);
+	goto_op_entry(op, condition);
+	mem_read(reg_ld_sel_op0, gpreg_oe_sel_pc, true, RAM_READ_LENGTH);
+	set_next(next_sel_fetch);
 }
 
 void create_illegal_instruction(opcode op)
 {
-	goto_op_entry(u, op, ALWAYS);
+	goto_op_entry(op, ALWAYS);
 	error(ERROR_WIRE_ILLEGAL_OPCODE);
-	set_next(u, next_sel_current);
+	set_next(next_sel_current);
 }
 
 void fill_opcode_entrys_with_illegal_instructions(void)
@@ -253,7 +309,7 @@ void fill_whole_memory_with_illegal_state(void)
 		u->current_at_op_entry = 0;
 		goto_address(u, n);
 		error(ERROR_WIRE_ILLEGAL_STATE);
-		set_next(u, next_sel_current);
+		set_next(next_sel_current);
 	}
 }
 
@@ -271,61 +327,57 @@ int main(int argc, char** argv)
 
 	//reset
 	//goto_reset(u);
-	//TODO: PC reset?
-	goto_op_entry(u, op_reset, ALWAYS);
-	set_next(u, next_sel_next_free);
-	goto_next_free(u);
-	alu_enable(ALU_F_ZERO);
-	gpreg_ld(gpreg_ld_sel_0);
-	set_next(u, next_sel_next_free);
-	goto_next_free(u);
-	alu_enable(ALU_F_ZERO);
-	gpreg_ld(gpreg_ld_sel_1);
-	set_next(u, next_sel_next_free);
-	goto_next_free(u);
-	alu_enable(ALU_F_ZERO);
-	gpreg_ld(gpreg_ld_sel_2);
-	set_next(u, next_sel_next_free);
-	goto_next_free(u);
-	alu_enable(ALU_F_ZERO);
-	gpreg_ld(gpreg_ld_sel_3);
-	set_next(u, next_sel_next_free);
-	goto_next_free(u);
-	alu_enable(ALU_F_ZERO);
-	gpreg_ld(gpreg_ld_sel_4);
-	set_next(u, next_sel_next_free);
-	goto_next_free(u);
-	alu_enable(ALU_F_ZERO);
-	gpreg_ld(gpreg_ld_sel_sp);
-	set_next(u, next_sel_next_free);
-	goto_next_free(u);
-	alu_enable(ALU_F_ZERO);
-	gpreg_ld(gpreg_ld_sel_lr);
-	carry_set(carry_sel_zero);
-	ir_ld();
-	gpreg_oe(gpreg_oe_sel_sp);
-	breg_ld();
-	set_next(u, next_sel_next_free);
-	goto_next_free(u);
-	alu_enable(ALU_F_A_PLUS_ONE);
-	carry_set(carry_sel_one);
-	gpreg_oe(gpreg_oe_sel_sp);
-	status_ld();
-	set_next(u, next_sel_fetch);
+	goto_op_entry(op_reset, ALWAYS);
+	set_next(next_sel_next_free);
+	goto_next_free();
+		alu_enable(ALU_F_ZERO);
+		reg_ld(reg_ld_sel_0);
+	set_next(next_sel_next_free);
+	goto_next_free();
+		alu_enable(ALU_F_ZERO);
+		reg_ld(reg_ld_sel_1);
+	set_next(next_sel_next_free);
+	goto_next_free();
+		alu_enable(ALU_F_ZERO);
+		reg_ld(reg_ld_sel_2);
+	set_next(next_sel_next_free);
+	goto_next_free();
+		alu_enable(ALU_F_ZERO);
+		reg_ld(reg_ld_sel_3);
+	set_next(next_sel_next_free);
+	goto_next_free();
+		alu_enable(ALU_F_ZERO);
+		reg_ld(reg_ld_sel_4);
+	set_next(next_sel_next_free);
+	goto_next_free();
+		alu_enable(ALU_F_ZERO);
+		reg_ld(reg_ld_sel_sp);
+	set_next(next_sel_next_free);
+	goto_next_free();
+		alu_enable(ALU_F_ZERO);
+		reg_ld(reg_ld_sel_pc);
+	set_next(next_sel_next_free);
+	goto_next_free();
+		alu_enable(ALU_F_ZERO);
+		reg_ld(reg_ld_sel_lr);
+		carry_set(carry_sel_zero);
+		reg_ld(reg_ld_sel_ir);
+		gpreg_oe(gpreg_oe_sel_sp);
+		breg_ld();
+	set_next(next_sel_next_free);
+	goto_next_free();
+		alu_enable(ALU_F_A_PLUS_ONE);
+		carry_set(carry_sel_one);
+		gpreg_oe(gpreg_oe_sel_sp);
+		status_ld();
+	set_next(next_sel_fetch);
 
 	//fetch
-	goto_fetch(u);
-	gpreg_oe(gpreg_oe_sel_pc);
-	set_next(u, next_sel_next_free);
-	goto_next_free(u);
-	gpreg_oe(gpreg_oe_sel_pc);
-	mem(mem_action_read);
-	pc_inc();
-	ir_ld();
-	set_next(u, next_sel_next_free);
-
-	goto_next_free(u);
-	set_next(u, next_sel_op_entry);
+	goto_fetch();
+	mem_read(reg_ld_sel_ir, gpreg_oe_sel_pc, true, RAM_READ_LENGTH);
+	set_next(next_sel_next_free);
+	goto_next_free();
+	set_next(next_sel_op_entry);
 	
 	//mov
 	create_conditional_mov_instruction(op_mov, ALWAYS);
@@ -427,205 +479,130 @@ int main(int argc, char** argv)
 	create_2op_alu_instruction(op_xor, ALU_F_XOR, carry_sel_zero);
 
 	//compare
-	goto_op_entry(u, op_cmp, ALWAYS);
-	breg_ld();
-	gpreg_oe(gpreg_oe_sel_op2);
-	set_next(u, next_sel_next_free);
-	goto_next_free(u);
-	alu_enable(ALU_F_SUB);
-	status_ld();
-	carry_set(carry_sel_one);
-	gpreg_oe(gpreg_oe_sel_op1);
-	set_next(u, next_sel_fetch);
+	goto_op_entry(op_cmp, ALWAYS);
+		breg_ld();
+		gpreg_oe(gpreg_oe_sel_op2);
+	set_next(next_sel_next_free);
+	goto_next_free();
+		alu_enable(ALU_F_SUB);
+		status_ld();
+		carry_set(carry_sel_one);
+		gpreg_oe(gpreg_oe_sel_op1);
+	set_next(next_sel_fetch);
 
 	//shift left
-	goto_op_entry(u, op_shift_left_1, ALWAYS);
-	gpreg_oe(gpreg_oe_sel_op1);
-	gpreg_ld(gpreg_ld_sel_op0);
-	shift_enable(1);
-	status_ld();
-	set_next(u, next_sel_fetch);
+	goto_op_entry(op_shift_left_1, ALWAYS);
+		gpreg_oe(gpreg_oe_sel_op1);
+		reg_ld(reg_ld_sel_op0);
+		shift_enable(1);
+		status_ld();
+	set_next(next_sel_fetch);
 
 	//shift right
-	goto_op_entry(u, op_shift_right_1, ALWAYS);
-	gpreg_oe(gpreg_oe_sel_op1);
-	gpreg_ld(gpreg_ld_sel_op0);
-	shift_enable(0);
-	status_ld();
-	set_next(u, next_sel_fetch);
+	goto_op_entry(op_shift_right_1, ALWAYS);
+		gpreg_oe(gpreg_oe_sel_op1);
+		reg_ld(reg_ld_sel_op0);
+		shift_enable(0);
+		status_ld();
+	set_next(next_sel_fetch);
 
 	//inc
-	goto_op_entry(u, op_inc, ALWAYS);
-	gpreg_oe(gpreg_oe_sel_op1);
-	gpreg_ld(gpreg_ld_sel_op0);
-	alu_enable(ALU_F_A_PLUS_ONE);
-	carry_set(carry_sel_one);
-	status_ld();
-	set_next(u, next_sel_fetch);
+	goto_op_entry(op_inc, ALWAYS);
+		gpreg_oe(gpreg_oe_sel_op1);
+		reg_ld(reg_ld_sel_op0);
+		alu_enable(ALU_F_A_PLUS_ONE);
+		carry_set(carry_sel_one);
+		status_ld();
+	set_next(next_sel_fetch);
 
 	//dec
-	goto_op_entry(u, op_dec, ALWAYS);
-	gpreg_oe(gpreg_oe_sel_op1);
-	gpreg_ld(gpreg_ld_sel_op0);
-	alu_enable(ALU_F_A_MINUS_ONE);
-	carry_set(carry_sel_zero);
-	status_ld();
-	set_next(u, next_sel_fetch);
+	goto_op_entry(op_dec, ALWAYS);
+		gpreg_oe(gpreg_oe_sel_op1);
+		reg_ld(reg_ld_sel_op0);
+		alu_enable(ALU_F_A_MINUS_ONE);
+		carry_set(carry_sel_zero);
+		status_ld();
+	set_next(next_sel_fetch);
 
 	//not
-	goto_op_entry(u, op_not, ALWAYS);
-	gpreg_oe(gpreg_oe_sel_op1);
-	gpreg_ld(gpreg_ld_sel_op0);
-	alu_enable(ALU_F_NOT_A);
-	status_ld();
-	set_next(u, next_sel_fetch);
+	goto_op_entry(op_not, ALWAYS);
+		gpreg_oe(gpreg_oe_sel_op1);
+		reg_ld(reg_ld_sel_op0);
+		alu_enable(ALU_F_NOT_A);
+		status_ld();
+	set_next(next_sel_fetch);
 
 
 	//load
-	goto_op_entry(u, op_load, ALWAYS);
-		gpreg_oe(gpreg_oe_sel_op1);
-		set_next(u, next_sel_next_free);
-	goto_next_free(u);
-		gpreg_oe(gpreg_oe_sel_op1);
-		mem(mem_action_read);
-		gpreg_ld(gpreg_ld_sel_op0);
-	set_next(u, next_sel_fetch);
+	goto_op_entry(op_load, ALWAYS);
+	mem_read(reg_ld_sel_op0, gpreg_oe_sel_op1, false, RAM_READ_LENGTH);
+	set_next(next_sel_fetch);
 
 	//store
-	goto_op_entry(u, op_store, ALWAYS);
-		gpreg_oe(gpreg_oe_sel_op2);
-		breg_ld();
-		set_next(u, next_sel_next_free);
-	goto_next_free(u);
-		alu_enable(ALU_F_B);
-		gpreg_oe(gpreg_oe_sel_op1);
-		set_next(u, next_sel_next_free);
-	goto_next_free(u);
-		alu_enable(ALU_F_B);
-		gpreg_oe(gpreg_oe_sel_op1);
-		mem(mem_action_write);
-		set_next(u, next_sel_next_free);
-	goto_next_free(u);
-		alu_enable(ALU_F_B);
-		gpreg_oe(gpreg_oe_sel_op1);
-		set_next(u, next_sel_fetch);
+	goto_op_entry(op_store, ALWAYS);
+	mem_write(gpreg_oe_sel_op1, gpreg_oe_sel_op2, RAM_WRITE_LENGTH);
+	set_next(next_sel_fetch);
 
 	//in
-	goto_op_entry(u, op_in, ALWAYS);
-	gpreg_oe(gpreg_oe_sel_op1);
-	set_next(u, next_sel_next_free);
-	goto_next_free(u);
-	{
-		int n;
-		for(n = 0; n < IN_INSTRUCTION_DELAY; ++n)
-		{
-			gpreg_oe(gpreg_oe_sel_op1);
-			mem(mem_action_read);
-			set_next(u, next_sel_next_free);
-			goto_next_free(u);
-		}
-	}
-	gpreg_oe(gpreg_oe_sel_op1);
-	mem(mem_action_read);
-	gpreg_ld(gpreg_ld_sel_op0);
-	set_next(u, next_sel_fetch);
-
+	goto_op_entry(op_in, ALWAYS);
+	io_read(reg_ld_sel_op0, gpreg_oe_sel_op1);
+	set_next(next_sel_fetch);
+	
 	//out
-	goto_op_entry(u, op_out, ALWAYS);
-		gpreg_oe(gpreg_oe_sel_op2);
-		breg_ld();
-		set_next(u, next_sel_next_free);
-	goto_next_free(u);
-		alu_enable(ALU_F_B);
-		gpreg_oe(gpreg_oe_sel_op1);
-		set_next(u, next_sel_next_free);
-	goto_next_free(u);
-	{
-		int n;
-		for(n = 0; n < OUT_INSTRUCTION_DELAY; ++n)
-		{
-			alu_enable(ALU_F_B);
-			gpreg_oe(gpreg_oe_sel_op1);
-			mem(mem_action_write);
-			set_next(u, next_sel_next_free);
-			goto_next_free(u);
-		}
-	}
-	alu_enable(ALU_F_B);
-	gpreg_oe(gpreg_oe_sel_op1);
-	set_next(u, next_sel_fetch);
-
+	goto_op_entry(op_out, ALWAYS);
+	io_write(gpreg_oe_sel_op1, gpreg_oe_sel_op2);
+	set_next(next_sel_fetch);
 
 	//call
-	goto_op_entry(u, op_call, ALWAYS);
-	gpreg_oe(gpreg_oe_sel_pc);
-	alu_enable(ALU_F_A);
-	gpreg_ld(gpreg_ld_sel_lr);
-	set_next(u, next_sel_next_free);
-	goto_next_free(u);
-	gpreg_oe(gpreg_oe_sel_op1);
-	alu_enable(ALU_F_A);
-	gpreg_ld(gpreg_ld_sel_pc);
-	set_next(u, next_sel_fetch);
+	goto_op_entry(op_call, ALWAYS);
+		gpreg_oe(gpreg_oe_sel_pc);
+		alu_enable(ALU_F_A);
+		reg_ld(reg_ld_sel_lr);
+	set_next(next_sel_next_free);
+	goto_next_free();
+		gpreg_oe(gpreg_oe_sel_op1);
+		alu_enable(ALU_F_A);
+		reg_ld(reg_ld_sel_pc);
+	set_next(next_sel_fetch);
 
 	//call literal
-	goto_op_entry(u, op_call_literal, ALWAYS);
-	gpreg_oe(gpreg_oe_sel_pc);
-	alu_enable(ALU_F_A_PLUS_ONE);
-	carry_set(carry_sel_one);
-	gpreg_ld(gpreg_ld_sel_lr);
-	set_next(u, next_sel_next_free);
-	goto_next_free(u);
-	gpreg_oe(gpreg_oe_sel_pc);
-	mem(mem_action_read);
-	gpreg_ld(gpreg_ld_sel_pc);
-	set_next(u, next_sel_fetch);
+	goto_op_entry(op_call_literal, ALWAYS);
+		gpreg_oe(gpreg_oe_sel_pc);
+		alu_enable(ALU_F_A_PLUS_ONE);
+		carry_set(carry_sel_one);
+		reg_ld(reg_ld_sel_lr);
+	set_next(next_sel_next_free);
+	goto_next_free();
+		mem_read(reg_ld_sel_pc, gpreg_oe_sel_pc, false, RAM_READ_LENGTH);
+	set_next(next_sel_fetch);
 
 	//push
-	goto_op_entry(u, op_push, ALWAYS);
-		gpreg_oe(gpreg_oe_sel_op1);
-		breg_ld();
-		set_next(u, next_sel_next_free);
-	goto_next_free(u);
-		alu_enable(ALU_F_B);
-		gpreg_oe(gpreg_oe_sel_sp);
-		set_next(u, next_sel_next_free);
-	goto_next_free(u);
-		alu_enable(ALU_F_B);
-		gpreg_oe(gpreg_oe_sel_sp);
-		mem(mem_action_write);
-		set_next(u, next_sel_next_free);
-	goto_next_free(u);//TODO: this uop might not be necessary
-		alu_enable(ALU_F_B);
-		gpreg_oe(gpreg_oe_sel_sp);
-		set_next(u, next_sel_next_free);
-	goto_next_free(u);
+	//TODO: might be optimizable
+	goto_op_entry(op_push, ALWAYS);
+	mem_write(gpreg_oe_sel_sp, gpreg_oe_sel_op1, RAM_WRITE_LENGTH);
+	set_next(next_sel_next_free);
+	goto_next_free();
 		gpreg_oe(gpreg_oe_sel_sp);
 		alu_enable(ALU_F_A_MINUS_ONE);
 		carry_set(carry_sel_zero);
-		gpreg_ld(gpreg_ld_sel_sp);
-		set_next(u, next_sel_fetch);
+		reg_ld(reg_ld_sel_sp);
+	set_next(next_sel_fetch);
 
 	//pop
-	goto_op_entry(u, op_pop, ALWAYS);
+	goto_op_entry(op_pop, ALWAYS);
 		gpreg_oe(gpreg_oe_sel_sp);
 		alu_enable(ALU_F_A_PLUS_ONE);
 		carry_set(carry_sel_one);
-		gpreg_ld(gpreg_ld_sel_sp);
-		set_next(u, next_sel_next_free);
-	goto_next_free(u);
-		gpreg_oe(gpreg_oe_sel_sp);
-		set_next(u, next_sel_next_free);
-	goto_next_free(u);
-		gpreg_oe(gpreg_oe_sel_sp);
-		mem(mem_action_read);
-		gpreg_ld(gpreg_ld_sel_op0);
-	set_next(u, next_sel_fetch);
+		reg_ld(reg_ld_sel_sp);
+	set_next(next_sel_next_free);
+	goto_next_free();
+		mem_read(reg_ld_sel_op0, gpreg_oe_sel_sp, false, RAM_READ_LENGTH);
+	set_next(next_sel_fetch);
 
 
 	//halt
-	goto_op_entry(u, op_halt, ALWAYS);
-	set_next(u, next_sel_current);
+	goto_op_entry(op_halt, ALWAYS);
+	set_next(next_sel_current);
 
 	print_verilog(u, 1);
 

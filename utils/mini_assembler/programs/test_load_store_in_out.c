@@ -41,6 +41,11 @@ static int locations[] = {
 void asm_prgm(void)
 {
 	int n;
+	
+	for(n = 0; n < sizeof locations / sizeof locations[0]; ++n) {
+		locations[n] = n*2 + 2048;
+	}
+
 	for(n = 0; n < sizeof(locations)/sizeof(locations[0]); ++n)
 	{
 		store_stuff(locations[n], 1 << n);

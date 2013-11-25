@@ -33,7 +33,7 @@ typedef struct
 	int addr_previous;
 
 	int current_at_op_entry;
-	int op_entry_zero_carry_mask;
+	int op_entry_zero_carry_flags;
 } uassembler;
 
 typedef enum next_sel
@@ -43,13 +43,6 @@ typedef enum next_sel
 	next_sel_op_entry,
 	next_sel_current
 } next_sel;
-
-typedef enum flag_condition
-{
-	false,
-	true,
-	dontcare
-} flag_condition;
 
 void uassembler_init(uassembler* uasm, bin_table_collumn_description* field_descriptions, int number_of_fields,
 		int rom_addr_with, char* next_addr_collumn_name, char* nextsel_addr_collumn_name,
@@ -63,7 +56,7 @@ void goto_address(uassembler* uasm, int address);
 void goto_reset(uassembler* uasm);
 void goto_fetch(uassembler* uasm);
 void goto_next_free(uassembler* uasm);
-void goto_op_entry(uassembler* uasm, int opcode, int carry_zero_mask);
+void goto_op_entry(uassembler* uasm, int opcode, int carry_zero_flags);
 void copy_fields_from_previous(uassembler* uasm); //TODO: remove. this is deprecated
 void check_current_addr(uassembler* uasm);
 void print_state(uassembler* uasm, FILE* f);
