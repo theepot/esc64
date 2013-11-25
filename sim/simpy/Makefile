@@ -1,5 +1,4 @@
-
-SERVICE_GEN_DIR		=service
+SERVICE_GEN_DIR		=gen-py
 SERVICE				=../thrift-server/service.thrift
 SERVICE_TIMESTAMP	=service_timestamp
 
@@ -14,6 +13,6 @@ clean:
 
 ${SERVICE_TIMESTAMP}: ${SERVICE}
 	mkdir -p ${SERVICE_GEN_DIR}
-	thrift -out ${SERVICE_GEN_DIR} --gen rb ${SERVICE}
+	thrift -out ${SERVICE_GEN_DIR} --gen py ${SERVICE}
 	touch $@
 

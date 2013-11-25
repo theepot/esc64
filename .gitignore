@@ -12,3 +12,4 @@ a.out
 *.elf
 *.lst
 *.exe
+*.pyc

@@ -7,6 +7,8 @@
 #include "bin_table.h"
 #include "uassembler.h"
 
+//TODO: protection/warning against writing field second time
+
 void print_state(uassembler* uasm, FILE* f)
 {
 	fprintf(f, "uassembler state:\n\tcurrent address: %X\n\tprevious address: %X\n\tfree address: %X\n\tat op entry: %s\n",
