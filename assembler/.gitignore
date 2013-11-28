@@ -6,4 +6,5 @@ CMakeFiles/
 CMakeCache.txt
 Makefile
 include/esc64asm/keywords_gen.h
+include/esc64asm/decomp_gen.h
 keywords.gperf

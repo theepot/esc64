@@ -208,9 +208,11 @@ static void SyOutStackPop(size_t amount)
 static void SyOutStackFlush(void)
 {
 	word_t* p = syOutStack_;
+	ExpToken exp = { EXPR_T_WORD };
 	for(p = syOutStack_; p < syOutStack_ + syOutStackN_; ++p)
 	{
-		ObjExprPutNum(*p);
+		exp.wordVal = *p;
+		ObjExpPutToken(&exp);
 	}
 
 	syOutStackN_ = 0;
@@ -242,7 +244,7 @@ static const OperatorDesc* SyOpStackPeek(void)
 		return NULL;
 	}
 
-	return syOpStack_[syOutStackN_ - 1];
+	return syOpStack_[syOpStackN_ - 1];
 }
 
 static void SyOpStackPop(void)
@@ -405,7 +407,7 @@ static int ParseCommand(void)
 	}
 }
 
-extern void ParseWord(void)
+void ParseWord(void)
 {
 	ArgType t = FirstArgument();
 	if(t != ARG_T_EXPR) { UnexpectedToken(); }
@@ -413,8 +415,8 @@ extern void ParseWord(void)
 	word_t result = 0xDEAD;
 	ParseExpression(0, ObjGetLocation(), &result);
 
-	uword_t data = HTON_WORD(SyOutStackPeek(0));
-	ObjWriteData(&data, 1); //FIXME will later be size in bytes (now words)
+	result = HTON_WORD(result);
+	ObjWriteData(&result, 1); //FIXME will later be size in bytes (now words)
 }
 
 ///// directive parsing routines /////
@@ -638,7 +640,7 @@ static void SyOutPushOperator(const OperatorDesc* opDesc)
 	if(!SyEval(opDesc, &result))
 	{
 #ifdef ESC_DEBUG
-		printf(" success, result=%d", result);
+		printf("SyOutPushOperator(): eval success, result=%d\n", result);
 #endif
 		SyOutStackPop(opDesc->nAry);
 		SyOutStackPush(result);
@@ -649,11 +651,13 @@ static void SyOutPushOperator(const OperatorDesc* opDesc)
 	else
 	{
 #ifdef ESC_DEBUG
-		printf(" failure");
+		printf("SyOutPushOperator(): eval failure");
 		SyOutStackFlush();
 #endif
-		ObjExprPutOperator(opDesc->type);
+		ExpToken exp = { opDesc->type };
+		ObjExpPutToken(&exp);
 #ifdef ESC_DEBUG
+		putchar('\n');
 		SyOutStackDump();
 #endif
 	}
@@ -689,10 +693,11 @@ static int ParseExpression(int needConst, uword_t unlinkedAddr, word_t* result)
 	int isConst = 1;
 	syOpStackN_ = 0;
 	syOutStackN_ = 0;
+	ExpToken expTok;
 
 	if(!needConst)
 	{
-		ObjExprBegin(unlinkedAddr); //FIXME this is the right address for operand 3 of wide instructions, but maybe not for future fields that need to be linked
+		ObjExprBegin(unlinkedAddr);
 	}
 
 	for(;;) //while valid tokens are available
@@ -723,7 +728,11 @@ static int ParseExpression(int needConst, uword_t unlinkedAddr, word_t* result)
 				ESC_ASSERT_ERROR(!needConst, "Expected constant expression");
 				isConst = 0;
 				SyOutStackFlush();
-				ObjExprPutSymbol(token->strValue);
+
+				expTok.type = EXPR_T_SYMBOL;
+				expTok.strLen = token->strValue->size;
+				expTok.strVal = token->strValue->str;
+				ObjExpPutToken(&expTok);
 			}
 			break;
 
@@ -811,7 +820,9 @@ static int ParseExpression(int needConst, uword_t unlinkedAddr, word_t* result)
 	else
 	{
 		SyOutStackFlush();
-		ObjExprEnd();
+
+		expTok.type = EXPR_T_END;
+		ObjExpPutToken(&expTok);
 	}
 
 	return isConst;

@@ -13,6 +13,7 @@ set(KEYWORDS_GPERF keywords.gperf)
 set(KW_GEN_PATH kwgen)
 set(KW_GEN_DESCS ${KW_GEN_PATH}/descriptions.rb)
 set(KW_GEN_FILES ${KW_GEN_PATH}/interpreter.rb ${KW_GEN_DESCS})
+set(DECOMP_INL include/esc64asm/decomp_gen.h)
 
 #set(SOURCE_DIR ${CMAKE_BINARY_DIR}/src)
 set(SOURCE_DIR src)
@@ -40,7 +41,8 @@ set(
 	${SOURCE_DIR}/opcodes.c
 	${SOURCE_DIR}/mempool.c
 	${SOURCE_DIR}/keywords.c
-	${SOURCE_DIR}/assembler.c)
+	${SOURCE_DIR}/assembler.c
+	${SOURCE_DIR}/decomp.c)
 
 set(
 	AS_SOURCES
@@ -90,7 +92,13 @@ add_custom_command(	OUTPUT ${KEYWORDS_GPERF}
 					DEPENDS ${KW_GEN_FILES}
 					COMMENT "Generating ${KEYWORDS_GPERF}")
 					
+add_custom_command(	OUTPUT ${DECOMP_INL}
+					COMMAND ruby -I ${KW_GEN_PATH} ${KW_GEN_DESCS} -d ${DECOMP_INL}
+					DEPENDS ${KW_GEN_FILES}
+					COMMENT "Generating ${DECOMP_INL}")
+					
 add_custom_target(genkeywords DEPENDS ${KEYWORDS_INL})
+add_custom_target(gendecomp DEPENDS ${DECOMP_INL})
 
 add_definitions(-DESC_TEST_FILE_BASE_PATH="${TESTFILES}")
 add_library(esc-asm-common SHARED ${COMMON_SOURCES})

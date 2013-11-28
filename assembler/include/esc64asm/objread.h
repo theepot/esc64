@@ -40,6 +40,18 @@ int ObjSymIteratorNext(ObjSymIterator* it);
 void ObjSymIteratorReadName(ObjSymIterator* it, void* buf);
 const Symbol* ObjSymIteratorGetSym(ObjSymIterator* it);
 
+typedef struct XObjExpReader_
+{
+	RecordReader reader;
+	uword_t address;
+	ExpToken tok;
+} XObjExpReader;
+
+int XObjExpReaderInit(XObjExpReader* reader);
+int XObjExpReaderNextExp(XObjExpReader* reader);
+int XObjExpReaderNextToken(XObjExpReader* reader);
+int XObjExpReaderGetStr(XObjExpReader* reader);
+
 typedef struct ObjExpReader_
 {
 	RecordReader reader;

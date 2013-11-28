@@ -190,6 +190,53 @@ const Symbol* ObjSymIteratorGetSym(ObjSymIterator* it)
 	return &it->curSym;
 }
 
+int XObjExpReaderInit(XObjExpReader* reader)
+{
+	IOSetFilePos(objStream_, secOffset_ + OBJ_SECTION_EXPR_RECORD_OFFSET);
+	objsize_t firstOffset = IOReadObjSize(objStream_);
+	if(firstOffset == OBJ_RECORD_ILLEGAL_OFFSET) { return -1; }
+
+	RecordReaderInit(&reader->reader, objStream_, firstOffset);
+	return 0;
+}
+
+int XObjExpReaderNextExp(XObjExpReader* reader)
+{
+	if(RecordReadWord(&reader->reader, objStream_, &reader->address)) { return -1; }
+	return 0;
+}
+
+int XObjExpReaderNextToken(XObjExpReader* reader)
+{
+	ESC_ASSERT_ERROR(
+			!RecordReadByte(&reader->reader, objStream_, &reader->tok.type),
+			"Unexpected start or end to postfix expression");
+	switch(reader->tok.type)
+	{
+	case EXPR_T_WORD:
+	case EXPR_T_SYMBOL:
+		ESC_ASSERT_ERROR(
+				!RecordReadWord(&reader->reader, objStream_, (uword_t*)&reader->tok.wordVal),
+				"Incomplete token in postfix expression");
+		break;
+
+	case EXPR_T_END:	return -1;
+	}
+
+	return 0;
+}
+
+int XObjExpReaderGetStr(XObjExpReader* reader)
+{
+#ifdef ESC_DEBUG
+	ESC_ASSERT_FATAL(reader->tok.type == EXPR_T_SYMBOL, "XObjExpReaderGetStr() called while type != symbol");
+#endif
+	ESC_ASSERT_ERROR(
+			RecordRead(&reader->reader, objStream_, reader->tok.strVal, reader->tok.strLen) == reader->tok.strLen,
+			"Incomplete token in postfix expression");
+	return 0;
+}
+
 int ObjExpReaderInit(ObjExpReader* expReader)
 {
 	IOSetFilePos(objStream_, secOffset_ + OBJ_SECTION_EXPR_RECORD_OFFSET);
@@ -218,45 +265,82 @@ int ObjExpReaderNext(ObjExpReader* expReader, uword_t* address, uword_t* value)
 		uword_t result;
 		ESC_ASSERT_FATAL(!RecordReadByte(&expReader->reader, objStream_, &type), "Unexpected start or end to postfix expression");
 
+#ifdef ESC_DEBUG
+#define DUMP(s)	printf("ObjExpReaderNext(): type=%s, sp=%u", (s), postfixStackN_)
+#define RES2	printf(", result=%d, with [%d, %d]\n", result, PostfixPeek(1), PostfixPeek(0))
+#define RES1	printf(", result=%d, with [%d]\n", result, PostfixPeek(0))
+#else
+#define DUMP(s)
+#define RES2
+#define RES1
+#endif
+
 		switch(type)
 		{
 		case EXPR_T_OP_AND:
+			DUMP("and");
 			result = PostfixPeek(1) & PostfixPeek(0);
+			RES2;
 			PostfixPop(2);
 			break;
 		case EXPR_T_OP_PLUS:
+			DUMP("plus");
 			result = PostfixPeek(1) + PostfixPeek(0);
+			RES2;
 			PostfixPop(2);
 			break;
 		case EXPR_T_OP_OR:
+			DUMP("or");
 			result = PostfixPeek(1) | PostfixPeek(0);
+			RES2;
 			PostfixPop(2);
 			break;
 		case EXPR_T_OP_NOT:
+			DUMP("not");
 			result = ~PostfixPeek(0);
+			RES1;
 			PostfixPop(1);
 			break;
 		case EXPR_T_OP_SUB:
+			DUMP("sub");
 			result = PostfixPeek(1) - PostfixPeek(0);
+			RES2;
 			PostfixPop(2);
 			break;
 		case EXPR_T_OP_NEG:
+			DUMP("neg");
 			result = -PostfixPeek(0);
+			RES1;
 			PostfixPop(1);
 			break;
 		case EXPR_T_OP_DIV:
+			DUMP("div");
 			result = PostfixPeek(1) / PostfixPeek(0);
+			RES2;
 			PostfixPop(2);
 			break;
 		case EXPR_T_WORD:
+			DUMP("word");
 			ESC_ASSERT_FATAL(!RecordReadWord(&expReader->reader, objStream_, &result), "Incomplete postfix token with type EXPR_T_WORD");
+#ifdef ESC_DEBUG
+			printf(", result=%d\n", result);
+#endif
 			break;
 		case EXPR_T_SYMBOL:
 			{
+				DUMP("symbol");
 				uword_t size;
 				ESC_ASSERT_FATAL(!RecordReadWord(&expReader->reader, objStream_, &size), "Incomplete postfix token with type EXPR_T_SYMBOL (1)");
 				char str[size];
 				ESC_ASSERT_FATAL(RecordRead(&expReader->reader, objStream_, str, size) == size, "Incomplete postfix token with type EXPR_T_SYMBOL (2)");
+#ifdef ESC_DEBUG
+				{
+					printf(", str=");
+					char* c;
+					for(c = str; c < str + size; ++c) { putchar(*c); }
+					putchar('\n');
+				}
+#endif
 				uword_t value;
 				if(ResolveSymbol(str, size, &value))
 				{
@@ -265,6 +349,7 @@ int ObjExpReaderNext(ObjExpReader* expReader, uword_t* address, uword_t* value)
 				result = value;
 			} break;
 		case EXPR_T_END:
+			DUMP("end");
 			goto EndLoop; //break from loop
 
 		default:
@@ -277,6 +362,10 @@ int ObjExpReaderNext(ObjExpReader* expReader, uword_t* address, uword_t* value)
 
 	ESC_ASSERT_FATAL(postfixStackN_ == 1, "too many values on postfix stack");
 	*value = postfixStack_[0];
+
+#ifdef ESC_DEBUG
+	printf("ObjExpReaderNext(): *value=%d\n", *value);
+#endif
 
 	return 0;
 }

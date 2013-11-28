@@ -89,6 +89,19 @@ module ESC64AsmDesc
 		def get_c_name
 			"#{@uname.upcase}_INSTWORD"
 		end
+		
+		def reverse_bindings
+			#[arg_num -> offset]
+			rev_bind = []
+			for arg in @pattern.args
+				if arg.type == ARG_NAME_TO_ID["imm"]
+					rev_bind << 0xFF
+				else
+					rev_bind << (6 - @bindings[arg.name] * 3)
+				end
+			end
+			return rev_bind
+		end
 						
 		def to_s; inspect end
 	end
@@ -313,6 +326,48 @@ module ESC64AsmDesc
 				emit_gperf_keywords f
 				f.puts "%%"
 				emit_gperf_funcs f
+			end
+		end
+		
+		def c_decomp_inst f, inst, index
+			while index < inst.opcode	
+				f.write "\t{ 0 },\n"
+				index = index + 1
+			end
+			rev_bind = inst.reverse_bindings
+			
+			if rev_bind.count > 0
+				s = "{ #{rev_bind[0]}"
+				(1...rev_bind.count).each { |i| s << ", #{rev_bind[i]}" }
+				s << " }"
+				s = "(const byte_t[])#{s}"
+			else
+				s = "NULL"
+			end
+			
+			#debug
+			x = "\t{ \"#{inst.pattern.mnem}\", \"#{inst.uname}\", #{inst.wide ? 1 : 0}, #{rev_bind.count}, #{s} }"
+			#puts "c_decomp_inst: x=`#{x}'"
+			f.write x
+			
+			#f.write "\t{ #{inst.pattern.mnem}, #{inst.uname}, #{inst.wide}, #{rev_bind.count}, #{s} }\t//#{inst.opcode}"
+		end
+		
+		def emit_c_decomp filename
+			File.open(filename, "w") do |f|
+				f.write "#include <esc64asm/decomp.h>\n\n"
+				
+				sorted = @instructions.sort { |a, b| a.opcode <=> b.opcode }
+				f.write "static const DecompInfo DECOMP_INFO[] =\n{\n"
+				c_decomp_inst f, sorted[0], 0
+				n = sorted[0].opcode + 1
+				
+				for i in 1...sorted.count				
+					f.write ",\n"
+					c_decomp_inst f, sorted[i], n
+					n = sorted[i].opcode + 1
+				end
+				f.write "\n};"
 			end
 		end
 				
@@ -544,6 +599,7 @@ module ESC64AsmDesc
 		i.export_directives directives.flatten
 	
 		gperf_path = nil
+		decomp_c_path = nil
 		verbose = false
 		
 		OptionParser.new do |opts|
@@ -551,19 +607,26 @@ module ESC64AsmDesc
 				gperf_path = p
 			end
 			
+			opts.on("-d PATH", "--emit-decomp PATH", "decompilation C code path") do |p|
+				decomp_c_path = p
+			end
+			
 			opts.on("-v", "--verbose", "be verbose") do |v|
 				verbose = true
 			end
 		end.parse!
 	
-		puts "gperf_path=#{gperf_path}"
-	
 		if verbose
+			puts "gperf_path=#{gperf_path}"
 			i.dump_instructions
 		end
 		
 		if gperf_path != nil
 			i.emit_gperf_file gperf_path
+		end
+		
+		if decomp_c_path != nil
+			i.emit_c_decomp decomp_c_path
 		end
 	end
 end

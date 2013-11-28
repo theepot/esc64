@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <esc64asm/escerror.h>
 #include <esc64asm/objread.h>
 #include <esc64asm/opcodes.h>
 
@@ -11,6 +12,7 @@ static void PrintExpr(void);
 static void PrintData(size_t dataSize);
 static void PrintInstruction(uword_t instrWord);
 static const char* SectionTypeToString(byte_t type);
+static void PrintString(const char* str, size_t len);
 
 int main(int argc, char** argv)
 {
@@ -100,25 +102,54 @@ static void PrintSection(void)
 
 static void PrintExpr()
 {
-	//ObjExprIterator it;
-	ObjExpReader reader;
-	ObjExpReaderInit(&reader);
+//	//ObjExprIterator it;
+//	ObjExpReader reader;
+//	ObjExpReaderInit(&reader);
+//
+//	if(/*ObjExprIteratorInit(&it)*/ ObjExpReaderInit(&reader))
+//	{
+//		puts("\t\tnone");
+//		return;
+//	}
+//
+////	while(!ObjExprIteratorNext(&it))
+////	{
+////		char buf[it.curExpr.nameLen + 1];
+////		ObjExprIteratorReadName(&it, buf);
+////		buf[it.curExpr.nameLen] = 0;
+////		const Expression* expr = ObjExprIteratorGetExpr(&it);
+////		printf("\t\t`%s' = 0x%X(%u)\n", expr->name, expr->address, expr->address);
+////	}
+//	puts("\t\tExpression dump temporarily broken. Sorry :(");
 
-	if(/*ObjExprIteratorInit(&it)*/ ObjExpReaderInit(&reader))
+	XObjExpReader reader;
+
+	if(XObjExpReaderInit(&reader))
 	{
 		puts("\t\tnone");
 		return;
 	}
 
-//	while(!ObjExprIteratorNext(&it))
-//	{
-//		char buf[it.curExpr.nameLen + 1];
-//		ObjExprIteratorReadName(&it, buf);
-//		buf[it.curExpr.nameLen] = 0;
-//		const Expression* expr = ObjExprIteratorGetExpr(&it);
-//		printf("\t\t`%s' = 0x%X(%u)\n", expr->name, expr->address, expr->address);
-//	}
-	puts("\t\tExpression dump temporarily broken. Sorry :(");
+	while(!XObjExpReaderNextExp(&reader))
+	{
+		printf("\t\t0x%X =", reader.address);
+		while(!XObjExpReaderNextToken(&reader))
+		{
+			putchar(' ');
+			if(reader.tok.type == EXPR_T_SYMBOL)
+			{
+				char buf[reader.tok.strLen];
+				reader.tok.strVal = buf;
+				XObjExpReaderGetStr(&reader);
+				DumpExpToken(stdout, &reader.tok);
+			}
+			else
+			{
+				DumpExpToken(stdout, &reader.tok);
+			}
+		}
+		putchar('\n');
+	}
 }
 
 static void PrintData(size_t dataSize)
@@ -167,6 +198,15 @@ static const char* SectionTypeToString(byte_t type)
 		return "none";
 	default:
 		return "unknown!";
+	}
+}
+
+static void PrintString(const char* str, size_t len)
+{
+	const char* c;
+	for(c = str; c < str + len; ++c)
+	{
+		putchar(*c);
 	}
 }
 

@@ -48,7 +48,7 @@ static void FlushSection(void);
 static void UpdatePrevNext(void);
 static int WriteSymbol(RecordWriter* writer, FILE* stream, const Symbol* sym);
 static void FlushHeader(void);
-static void PreExprPut(void);
+//static void PreExprPut(void);
 
 int ObjectWriterInit(const char* path)
 {
@@ -309,68 +309,102 @@ int ObjWriteGlobalSym(const Symbol* sym)
 
 void ObjExprBegin(uword_t address)
 {
+	printf("ObjExprBegin(): address=%u\n", address);
 	exprAddress_ = address;
 	exprSize_ = 0;
 }
 
-int ObjExprEnd(void)
-{
-	if(exprSize_ > 0)
-	{
-		RecordWriteByte(&exprWriter_, stream_, EXPR_T_END);
-	}
-	return 0;
-}
+//int ObjExprEnd(void)
+//{
+//	if(exprSize_ > 0)
+//	{
+//		RecordWriteByte(&exprWriter_, stream_, EXPR_T_END);
+//	}
+//	return 0;
+//}
+//
+//int ObjExprPutNum(word_t num)
+//{
+//	PreExprPut();
+//	RecordWriteByte(&exprWriter_, stream_, EXPR_T_WORD);
+//	RecordWriteWord(&exprWriter_, stream_, num);
+//	return 0;
+//}
+//
+//int ObjExprPutSymbol(const PString* str)
+//{
+//	PreExprPut();
+//#ifdef ESC_DEBUG
+//	printf("ObjExprPutSymbol(): str[%d]=", str->size);
+//	const char* c;
+//	for(c = str->str; c < str->str + str->size; ++c)
+//	{
+//		putchar(*c);
+//	}
+//	putchar('\n');
+//#endif
+//	RecordWriteByte(&exprWriter_, stream_, EXPR_T_SYMBOL);
+//	RecordWriteWord(&exprWriter_, stream_, str->size);
+//	RecordWrite(&exprWriter_, stream_, str->str, str->size);
+//
+//	return 0;
+//}
+//
+//int ObjExprPutOperator(byte_t operator)
+//{
+//	PreExprPut();
+//#ifdef ESC_DEBUG
+//	const char* name;
+//	switch(operator)
+//	{
+//	case EXPR_T_OP_AND: name = "EXPR_T_OP_AND"; break;
+//	case EXPR_T_OP_PLUS: name = "EXPR_T_OP_PLUS"; break;
+//	case EXPR_T_OP_OR: name = "EXPR_T_OP_OR"; break;
+//	case EXPR_T_OP_NOT: name = "EXPR_T_OP_NOT"; break;
+//	case EXPR_T_OP_SUB: name = "EXPR_T_OP_SUB"; break;
+//	case EXPR_T_OP_NEG: name = "EXPR_T_OP_NEG"; break;
+//	case EXPR_T_OP_DIV: name = "EXPR_T_OP_DIV"; break;
+//	default:
+//		EscFatal("ObjExprPutOperator(): ERROR: got %d", operator);
+//		name = "UNKNOWN"; //prevent warning
+//		break;
+//	}
+//	printf("ObjExprPutOperator(): operator=%s\n", name);
+//#endif
+//	RecordWriteByte(&exprWriter_, stream_, operator);
+//
+//	return 0;
+//}
 
-int ObjExprPutNum(word_t num)
+int ObjExpPutToken(const ExpToken* exp)
 {
-	PreExprPut();
-	RecordWriteByte(&exprWriter_, stream_, EXPR_T_WORD);
-	RecordWriteWord(&exprWriter_, stream_, num);
-	return 0;
-}
-
-int ObjExprPutSymbol(const PString* str)
-{
-	PreExprPut();
 #ifdef ESC_DEBUG
-	printf("ObjExprPutSymbol(): str[%d]=", str->size);
-	const char* c;
-	for(c = str->str; c < str->str + str->size; ++c)
-	{
-		putchar(*c);
-	}
+	printf("ObjExpPutToken(): exprSize_=%u, exp=", exprSize_);
+	DumpExpToken(stdout, exp);
 	putchar('\n');
 #endif
-	RecordWriteByte(&exprWriter_, stream_, EXPR_T_SYMBOL);
-	RecordWriteWord(&exprWriter_, stream_, str->size);
-	RecordWrite(&exprWriter_, stream_, str->str, str->size);
 
-	return 0;
-}
-
-int ObjExprPutOperator(byte_t operator)
-{
-	PreExprPut();
-#ifdef ESC_DEBUG
-	const char* name;
-	switch(operator)
+	if(exprSize_ == 0)
 	{
-	case EXPR_T_OP_AND: name = "EXPR_T_OP_AND"; break;
-	case EXPR_T_OP_PLUS: name = "EXPR_T_OP_PLUS"; break;
-	case EXPR_T_OP_OR: name = "EXPR_T_OP_OR"; break;
-	case EXPR_T_OP_NOT: name = "EXPR_T_OP_NOT"; break;
-	case EXPR_T_OP_SUB: name = "EXPR_T_OP_SUB"; break;
-	case EXPR_T_OP_NEG: name = "EXPR_T_OP_NEG"; break;
-	case EXPR_T_OP_DIV: name = "EXPR_T_OP_DIV"; break;
-	default:
-		EscFatal("ObjExprPutOperator(): ERROR: got %d", operator);
-		name = "UNKNOWN"; //prevent warning
+		if(exp->type == EXPR_T_END) { return 0; }
+		RecordWriteWord(&exprWriter_, stream_, exprAddress_);
+	}
+	++exprSize_;
+
+	RecordWriteByte(&exprWriter_, stream_, exp->type);
+
+	switch(exp->type)
+	{
+	case EXPR_T_WORD:
+		RecordWriteWord(&exprWriter_, stream_, exp->wordVal);
+		break;
+	case EXPR_T_SYMBOL:
+		RecordWriteWord(&exprWriter_, stream_, exp->strLen);
+		RecordWrite(&exprWriter_, stream_, exp->strVal, exp->strLen);
+		break;
+	case EXPR_T_END:
 		break;
 	}
-	printf("ObjExprPutOperator(): operator=%s\n", name);
-#endif
-	RecordWriteByte(&exprWriter_, stream_, operator);
 
 	return 0;
 }
@@ -464,14 +498,14 @@ static void FlushHeader(void)
 	IOWriteWord(stream_, relocSectionCount_);
 }
 
-static void PreExprPut(void)
-{
-	if(exprSize_ == 0)
-	{
-		RecordWriteWord(&exprWriter_, stream_, exprAddress_);
-	}
-	++exprSize_;
-}
+//static void PreExprPut(void)
+//{
+//	if(exprSize_ == 0)
+//	{
+//		RecordWriteWord(&exprWriter_, stream_, exprAddress_);
+//	}
+//	++exprSize_;
+//}
 
 
 

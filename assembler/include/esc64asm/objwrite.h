@@ -44,10 +44,11 @@ int ObjWriteGlobalSym(const Symbol* sym);
  * @return			0 on success, otherwise see enum ObjWriteExpErrors_
  */
 void ObjExprBegin(uword_t address);
-int ObjExprEnd(void);
-int ObjExprPutNum(word_t num);
-int ObjExprPutSymbol(const PString* str);
-int ObjExprPutOperator(byte_t operator);
+//int ObjExprEnd(void);
+//int ObjExprPutNum(word_t num);
+//int ObjExprPutSymbol(const PString* str);
+//int ObjExprPutOperator(byte_t operator);
+int ObjExpPutToken(const ExpToken* exp);
 /**@}*/
 
 #endif

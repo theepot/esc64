@@ -3,6 +3,7 @@
 
 //TODO copy relevant pieces of code from objrecord to objread and objwrite
 #include <esc64asm/objrecord.h>
+#include <esc64asm/esctypes.h>
 
 #define SECTION_TYPE_DATA	0
 #define SECTION_TYPE_BSS	1
@@ -153,12 +154,52 @@ typedef struct Symbol_
 //	end
 //		type	: byte_t	= EXPR_T_END
 
+typedef struct ExpToken_
+{
+	byte_t type;
+	union
+	{
+		word_t wordVal;
+		struct
+		{
+			uword_t strLen;
+			char* strVal;
+		};
+	};
+} ExpToken;
+
 typedef struct Expression_
 {
 	uword_t address;	///< address of unlinked word
 	const char* name;	///< name of unlinked symbol
 	uword_t nameLen;
 } Expression;
+
+static inline void DumpExpToken(FILE* stream, const ExpToken* exp)
+{
+	switch(exp->type)
+	{
+	case EXPR_T_OP_AND:		fprintf(stream, "&"); break;
+	case EXPR_T_OP_PLUS:	fprintf(stream, "+"); break;
+	case EXPR_T_OP_OR:		fprintf(stream, "|"); break;
+	case EXPR_T_OP_NOT:		fprintf(stream, "~"); break;
+	case EXPR_T_OP_SUB:		fprintf(stream, "-"); break;
+	case EXPR_T_OP_NEG:		fprintf(stream, "U-"); break;
+	case EXPR_T_OP_DIV:		fprintf(stream, "/"); break;
+	case EXPR_T_WORD:		fprintf(stream, "%d", exp->wordVal); break;
+	case EXPR_T_SYMBOL:
+	{
+		fputc('`', stream);
+		char* c;
+		for(c = exp->strVal; c < exp->strVal + exp->strLen; ++c)
+		{
+			fputc(*c, stream);
+		}
+		fputc('\'', stream);
+	} break;
+	case EXPR_T_END:		fprintf(stream, "(end)"); break;
+	}
+}
 
 #define OBJ_PLACEMENT_RELOC	0
 #define OBJ_PLACEMENT_ABS	1
