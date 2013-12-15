@@ -1,3 +1,12 @@
+;	Equivalent C-program:
+;	
+;	int a = 3, b = 4, res = 0;
+;
+;	while(a != 0) {
+;		res += b;
+;		--a;
+;	}
+;
 .data
 .org 0
 
