@@ -33,6 +33,7 @@ public:
 	void start();
 	void pause();
 	void step();
+	void microStep();
 	ErrCode::type getErrCode();
 	void reset();
 	void getRegister(std::vector<int32_t> & _return, const int32_t offset, const int32_t size);
@@ -58,10 +59,12 @@ private:
 	ErrCode::type simError;
 	vpiHandle regHandles[REG_HANDLES_SIZE];
 	vpiHandle ramHandle;
+	vpiHandle microStepHandle;
 
 	void setState(SimState::type state);
 	void initModuleHandles();
 	void serverThreadProc();
+	void setMicroStep(bool enabled);
 };
 
 static void registerTasks();
@@ -144,6 +147,17 @@ void ServiceImpl::step()
 	}
 }
 
+void ServiceImpl::microStep()
+{
+	setState(SimState::MICRO_STEPPING);
+
+	boost::unique_lock<boost::mutex> lock(simStateMutex);
+	while(simState == SimState::STEPPING)
+	{
+		simStateCond.wait(lock);
+	}
+}
+
 ErrCode::type ServiceImpl::getErrCode()
 {
 	boost::lock_guard<boost::mutex> lock(simMutex);
@@ -154,6 +168,7 @@ void ServiceImpl::reset()
 {
 	boost::lock_guard<boost::mutex> lock(simMutex);
 	//TODO
+	std::cout << "reset() is not supported!\n";
 }
 
 void ServiceImpl::getRegister(std::vector<int32_t> & _return, const int32_t offset, const int32_t size)
@@ -222,6 +237,7 @@ void ServiceImpl::tickTask()
 		switch(s)
 		{
 		case SimState::RUNNING:
+			//TODO pause on error, halt or breakpoint
 			return;
 
 		case SimState::HALTED:
@@ -238,6 +254,12 @@ void ServiceImpl::tickTask()
 			break;
 
 		case SimState::STEPPING:
+			setMicroStep(false);
+			setState(SimState::PAUSED);
+			return;
+			
+		case SimState::MICRO_STEPPING:
+			setMicroStep(true);
 			setState(SimState::PAUSED);
 			return;
 
@@ -344,9 +366,10 @@ void ServiceImpl::initModuleHandles()
 	}
 
 	//memory
-	//TODO
-
 	ramHandle = findVerilogModule(top, "ram", "mem", NULL);
+	
+	microStepHandle = vpi_handle_by_name("micro_steps", top);
+	assert(microStepHandle);
 }
 
 void ServiceImpl::serverThreadProc()
@@ -357,6 +380,15 @@ void ServiceImpl::serverThreadProc()
 	TNonblockingServer server(processor, protocolFactory, PORT);
 
 	server.serve();
+}
+
+void ServiceImpl::setMicroStep(bool enabled)
+{
+	s_vpi_value val;
+	val.format = vpiIntVal;
+	val.value.integer = enabled ? 1 : 0;
+	
+	vpi_put_value(microStepHandle, &val, NULL, vpiNoDelay);
 }
 
 static void registerTasks()

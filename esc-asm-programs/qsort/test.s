@@ -1,5 +1,21 @@
-.section data
+.data
 #define LIST_LEN	20
+.word 0xC301
+.word 0xC302
+.word 0xC303
+.word 0xC304
+.word 0xC305
+.word 0xC306
+.word 0xC307
+.word 0xC308
+.word 0xC309
+.word 0xC30A
+.word 0xC30B
+.word 0xC30C
+.word 0xC30D
+.word 0xC30E
+.word 0xC30F
+
 list:
 .word 57
 .word 80
@@ -22,25 +38,37 @@ list:
 .word 51
 .word 15
 
-.section data, 0
+.word 0x0FC3
+.word 0x0EC3
+.word 0x0DC3
+.word 0x0CC3
+.word 0x0BC3
+.word 0x0AC3
+.word 0x09C3
+.word 0x08C3
+.word 0x07C3
+.word 0x06C3
+.word 0x05C3
+.word 0x04C3
+.word 0x03C3
+.word 0x02C3
+.word 0x01C3
+
+.data
+.org 0
 	mov		sp, 0x7FFF
 	mov		r0, list
 	mov		r1, LIST_LEN
 	call	qsort
+	halt
 	
-;	mov		r0, 512
-;loopie:
-;	dec		r0, r0
-;	movnz	pc, loopie
-	
-;	mov		r0, list
-;	mov		r1, LIST_LEN
-	
-;loopz:
-;	ldr		r3, r0
-;	inc 	r0, r0
-;	dec		r1, r1
-;	movnz	pc, loopz
-		
-	
+.word 0xFFFF
+.word 0xFFFF
+.word 0xFFFF
+.word 0xFFFF
+.word 0xFFFF
+.word 0xFFFF
+.word 0xFFFF
+.word 0xFFFF
+.word 0xFFFF
 .word 0xFFFF

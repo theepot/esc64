@@ -13,6 +13,8 @@ module computer();
 	wire memNotRead, memNotWrite;
 	cpu cpu(clock, notReset, address, data, memNotRead, memNotWrite);
 	
+	integer micro_steps;
+	
 	//ram
 	sram #(.MEMFILE("ram.lst")) ram({1'b0, address[14:0]}, data, memNotRead, memNotWrite, address[15]);
 	
@@ -24,6 +26,7 @@ module computer();
 		$start_thrift_server();
 		
 		//cpu.status.r.out = 0;
+		micro_steps = 1'b1;
 		tick_counter = 0;
 		notReset = 0;
 		clock = 0;
@@ -37,7 +40,9 @@ module computer();
 	end
 
 	always begin
-		$tick;
+		if(micro_steps || at_fetch) begin
+			$tick;
+		end
 	
 		if(cpu.irOpcode === 7'b1111111 && tick_counter != 0) begin
 			$display("halt @ tick %d", tick_counter);

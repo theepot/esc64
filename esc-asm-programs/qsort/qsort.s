@@ -16,7 +16,20 @@
 ;    quick_sort(l, a + n - l);
 ;}
 ;
-.section data
+.data
+.org 50
+
+.word 0xFFFE
+.word 0xFFFE
+.word 0xFFFE
+.word 0xFFFE
+.word 0xFFFE
+.word 0xFFFE
+.word 0xFFFE
+.word 0xFFFE
+.word 0xFFFE
+.word 0xFFFE
+
 ;sorts array of words from small to big
 ;takes:
 ;	r0	pointer to array
@@ -34,7 +47,7 @@
 	push	lr
 #define P	lr
 
-	shr		T, N, 1
+	shr		T, N
 	add		T, T, A
 	ldr		P, T
 	
@@ -53,7 +66,7 @@ loop:
 	
 	cmp		L, R
 	movle	pc, loop
-	jmp		end_loop
+	mov		pc, end_loop
 	
 check2:
 	ldr		T, R
@@ -63,7 +76,7 @@ check2:
 
 	cmp		L, R
 	movle	pc, loop
-	jmp		end_loop
+	mov		pc, end_loop
 	
 swap:
 	ldr		T2, L
@@ -95,3 +108,13 @@ end_loop:
 	
 	pop		pc
 
+.word 0xFFFE
+.word 0xFFFE
+.word 0xFFFE
+.word 0xFFFE
+.word 0xFFFE
+.word 0xFFFE
+.word 0xFFFE
+.word 0xFFFE
+.word 0xFFFE
+.word 0xFFFE

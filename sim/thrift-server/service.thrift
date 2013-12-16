@@ -6,7 +6,8 @@ enum SimState
 	HALTED,
 	PAUSED,
 	RUNNING,
-	STEPPING
+	STEPPING,
+	MICRO_STEPPING
 }
 
 enum ErrCode
@@ -21,6 +22,7 @@ service SimService
 	SimState getState(),
 	void start(),
 	void pause(),
+	void microStep(),
 	void step(),
 	ErrCode getErrCode(),
 	void reset(),
