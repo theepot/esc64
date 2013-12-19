@@ -11,16 +11,15 @@ extern "C"
 #include <vpi_user.h>
 }
 
-#define BIND_TASK(a, b)	static int a(PLI_BYTE8* p) { reinterpret_cast<ServiceImpl*>(p)->b(); return 0; }
+#define BIND_TASK(a, b)	extern "C" static int a(PLI_BYTE8* p) { reinterpret_cast<ServiceImpl*>(p)->b(); return 0; }
 
 using namespace ::apache::thrift;
 using namespace ::apache::thrift::protocol;
 using namespace ::apache::thrift::transport;
 using namespace ::apache::thrift::server;
+using namespace ::esc64simsrv;
 
 using boost::shared_ptr;
-
-using namespace ::esc64simsrv;
 
 class ServiceImpl : virtual public SimServiceIf
 {
@@ -67,6 +66,7 @@ private:
 	void setMicroStep(bool enabled);
 };
 
+///// verilog task bindings & startup routines /////
 static void registerTasks();
 
 struct VerilogTask

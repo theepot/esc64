@@ -15,7 +15,7 @@
 #include "crc.h"
 #include <argp.h>
 #include <esc64asm/link.h>
-#include <esc64asm/objcode.h>
+#include <esc64asm/objread.h>
 
 static serial_device global_serial_device;
 
