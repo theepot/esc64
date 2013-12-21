@@ -40,7 +40,11 @@ module computer();
 	end
 
 	always begin
-		if(micro_steps || at_fetch) begin
+		if(at_fetch) begin
+			micro_steps = 0;
+			$tick;
+		end
+		else if(micro_steps) begin
 			$tick;
 		end
 	

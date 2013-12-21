@@ -82,6 +82,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${LIB_DIR})
 include_directories(include)
 link_directories(${LIB_DIR})
 
+##### keywords #####
 add_custom_command(	OUTPUT ${KEYWORDS_INL}
 					COMMAND gperf --enum --omit-struct-type --language=C --lookup-function-name=FindKeyword_ --hash-function-name=Hash --slot-name=keyword -C -t --ignore-case ${KEYWORDS_GPERF} | sed -f comment_line_cmds.sed > ${KEYWORDS_INL}
 					DEPENDS ${KEYWORDS_GPERF}
@@ -92,17 +93,23 @@ add_custom_command(	OUTPUT ${KEYWORDS_GPERF}
 					DEPENDS ${KW_GEN_FILES}
 					COMMENT "Generating ${KEYWORDS_GPERF}")
 					
+add_custom_target(genkeywords DEPENDS ${KEYWORDS_INL})
+
+##### decompilation #####
 add_custom_command(	OUTPUT ${DECOMP_INL}
 					COMMAND ruby -I ${KW_GEN_PATH} ${KW_GEN_DESCS} -d ${DECOMP_INL}
 					DEPENDS ${KW_GEN_FILES}
 					COMMENT "Generating ${DECOMP_INL}")
 					
-add_custom_target(genkeywords DEPENDS ${KEYWORDS_INL})
 add_custom_target(gendecomp DEPENDS ${DECOMP_INL})
 
+##### common SO #####
 add_definitions(-DESC_TEST_FILE_BASE_PATH="${TESTFILES}")
 add_library(esc-asm-common SHARED ${COMMON_SOURCES})
+add_dependencies(esc-asm-common gendecomp)
+add_dependencies(esc-asm-common genkeywords)
 
+##### executables #####
 add_executable(esc-as ${AS_SOURCES})
 target_link_libraries(esc-as esc-asm-common)
 

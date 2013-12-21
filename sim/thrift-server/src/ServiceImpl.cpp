@@ -4,22 +4,23 @@
 #include <thrift/transport/TServerSocket.h>
 #include <thrift/transport/TBufferTransports.h>
 #include <boost/thread.hpp>
+#include <boost/program_options.hpp>
+#include <boost/array.hpp>
 #include <sstream>
+#include <VpiUtils.hpp>
 
-extern "C"
-{
-#include <vpi_user.h>
-}
-
-#define BIND_TASK(a, b)	extern "C" static int a(PLI_BYTE8* p) { reinterpret_cast<ServiceImpl*>(p)->b(); return 0; }
+#define BIND_TASK(a, b)	static int a(PLI_BYTE8* p) { reinterpret_cast<ServiceImpl*>(p)->b(); return 0; }
 
 using namespace ::apache::thrift;
 using namespace ::apache::thrift::protocol;
 using namespace ::apache::thrift::transport;
 using namespace ::apache::thrift::server;
 using namespace ::esc64simsrv;
+using namespace ::VpiUtils;
 
 using boost::shared_ptr;
+
+namespace po = boost::program_options;
 
 class ServiceImpl : virtual public SimServiceIf
 {
@@ -40,7 +41,7 @@ public:
 
 	//verilog tasks
 	void tickTask();
-	void printNumTask();
+	void printNumTask(); //still here for reference purposes
 	void startServerTask();
 	void haltTask();
 	void errorTask();
@@ -55,16 +56,21 @@ private:
 	boost::mutex simStateMutex;
 	boost::condition_variable simStateCond;
 	boost::mutex simMutex;
+
 	ErrCode::type simError;
+
 	vpiHandle regHandles[REG_HANDLES_SIZE];
 	vpiHandle ramHandle;
+
 	vpiHandle microStepHandle;
 
+	void parseOptions(int argc, char** argv);
 	void setState(SimState::type state);
 	void initModuleHandles();
 	void serverThreadProc();
-	void setMicroStep(bool enabled);
+	void setMicroStep();
 };
+
 
 ///// verilog task bindings & startup routines /////
 static void registerTasks();
@@ -91,33 +97,9 @@ static const VerilogTask VERILOG_TASKS[] =
 };
 
 static const size_t VERILOG_TASKS_SIZE = sizeof VERILOG_TASKS / sizeof (VerilogTask);
+
 void (*vlog_startup_routines[])() = { registerTasks, 0 };
 
-///// verilog utilities /////
-struct VpiIterator
-{
-	vpiHandle iterator;
-
-	VpiIterator(PLI_INT32 type, vpiHandle ref);
-	~VpiIterator();
-	vpiHandle Next();
-};
-
-/**
- * @param ...	NULL-terminated list of const char*
- */
-static vpiHandle findVerilogModule(vpiHandle handle, ...);
-
-struct ArgumentIterator
-{
-	struct t_vpi_value argValue;
-	vpiHandle argHandle;
-	VpiIterator* it;
-
-	ArgumentIterator(VpiIterator* it);
-	bool TryNext(PLI_INT32 format);
-	void Next(PLI_INT32 format);
-};
 
 ///// implementation /////
 SimState::type ServiceImpl::getState()
@@ -254,12 +236,11 @@ void ServiceImpl::tickTask()
 			break;
 
 		case SimState::STEPPING:
-			setMicroStep(false);
 			setState(SimState::PAUSED);
 			return;
 			
 		case SimState::MICRO_STEPPING:
-			setMicroStep(true);
+			setMicroStep();
 			setState(SimState::PAUSED);
 			return;
 
@@ -271,14 +252,10 @@ void ServiceImpl::tickTask()
 
 void ServiceImpl::printNumTask()
 {
-	vpiHandle systf = vpi_handle(vpiSysTfCall, NULL);
-	VpiIterator it(vpiArgument, systf);
-	ArgumentIterator argIt(&it);
+	ArgumentIterator it;
 
-	assert(argIt.TryNext(vpiIntVal));
-	PLI_INT32 a = argIt.argValue.value.integer;
-	assert(argIt.TryNext(vpiIntVal));
-	PLI_INT32 b = argIt.argValue.value.integer;
+	PLI_INT32 a = it.NextInt();
+	PLI_INT32 b = it.NextInt();
 
 	vpi_printf("a(%d) + b(%d) = %d\n", a, b, a + b);
 }
@@ -294,15 +271,8 @@ void ServiceImpl::startServerTask()
 	bool start_paused = false;
 	s_vpi_vlog_info vlog_info;
 	vpi_get_vlog_info(&vlog_info);
-	
-	int n;
-	for(n = 0; n < vlog_info.argc; ++n)
-	{
-		if(strcmp(vlog_info.argv[n], "--paused") == 0) {
-			start_paused = true;
-		}
-	}
-	
+	parseOptions(vlog_info.argc, vlog_info.argv);
+
 	//initialize simulation state / sync
 	if(start_paused)
 	{
@@ -327,17 +297,40 @@ void ServiceImpl::errorTask()
 {
 	setState(SimState::HALTED);
 
-	vpiHandle systf = vpi_handle(vpiSysTfCall, NULL);
-	VpiIterator it(vpiArgument, systf);
-	ArgumentIterator argIt(&it);
+//	vpiHandle systf = vpi_handle(vpiSysTfCall, NULL);
+//	VpiIterator it(vpiArgument, systf);
+//	ArgumentIterator argIt(&it);
 
-	if(!argIt.TryNext(vpiIntVal))
-	{
-		throw std::runtime_error("No error value passed");
-	}
+	ArgumentIterator it;
 
-	PLI_INT32 e = argIt.argValue.value.integer;
+	PLI_INT32 e = it.NextInt();
 	simError = static_cast<ErrCode::type>(e);
+}
+
+void ServiceImpl::parseOptions(int argc, char** argv)
+{
+	po::options_description desc("Allowed options");
+	desc.add_options()
+	    ("paused", "start the simulation paused")
+	    ("lst", po::value<std::string>(), "program lst file");
+
+	po::variables_map vm;
+	po::store(po::parse_command_line(argc, argv, desc), vm);
+	po::notify(vm);
+
+	simState = vm.count("paused") ? SimState::HALTED : SimState::RUNNING;
+
+	switch(vm.count("lst"))
+	{
+	case 0: break;
+	case 1:
+		std::cout << "--lst option not supported yet\n";
+		break;
+
+	default:
+		assert(0 && "too many lst options");
+		break;
+	}
 }
 
 void ServiceImpl::setState(SimState::type state)
@@ -382,12 +375,11 @@ void ServiceImpl::serverThreadProc()
 	server.serve();
 }
 
-void ServiceImpl::setMicroStep(bool enabled)
+void ServiceImpl::setMicroStep()
 {
 	s_vpi_value val;
 	val.format = vpiIntVal;
-	val.value.integer = enabled ? 1 : 0;
-	
+	val.value.integer = 1;
 	vpi_put_value(microStepHandle, &val, NULL, vpiNoDelay);
 }
 
@@ -404,75 +396,5 @@ static void registerTasks()
 		systf.tfname    = t->name;
 		systf.calltf    = t->calltf;
 		vpi_register_systf(&systf);
-	}
-}
-
-VpiIterator::VpiIterator(PLI_INT32 type, vpiHandle ref) :
-		iterator(NULL)
-{
-	iterator = vpi_iterate(type, ref);
-	assert(iterator);
-}
-
-VpiIterator::~VpiIterator()
-{
-	if(iterator != NULL)
-	{
-		vpi_free_object(iterator);
-	}
-}
-
-vpiHandle VpiIterator::Next()
-{
-	return vpi_scan(iterator);
-}
-
-static vpiHandle findVerilogModule(vpiHandle handle, ...)
-{
-	va_list vlist;
-	va_start(vlist, handle);
-
-	const char* arg;
-	while((arg = va_arg(vlist, const char *)))
-	{
-		handle = vpi_handle_by_name(arg, handle);
-		if(!handle)
-		{
-			va_end(vlist);
-			std::stringstream ss;
-			ss << "Unable to find `" << arg << "'\n";
-			throw std::runtime_error(ss.str());
-		}
-	}
-
-	va_end(vlist);
-	return handle;
-}
-
-ArgumentIterator::ArgumentIterator(VpiIterator* it) :
-		argValue(),
-		argHandle(NULL),
-		it(it)
-{
-}
-
-bool ArgumentIterator::TryNext(PLI_INT32 format)
-{
-	argValue.format = format;
-	argHandle = it->Next();
-	if(argHandle != NULL)
-	{
-		vpi_get_value(argHandle, &argValue);
-		return true;
-	}
-
-	return false;
-}
-
-void ArgumentIterator::Next(PLI_INT32 format)
-{
-	if(!TryNext(format))
-	{
-		throw std::runtime_error("Unable to get next argument");
 	}
 }
