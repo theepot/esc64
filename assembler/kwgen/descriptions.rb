@@ -96,12 +96,14 @@ module Descriptions
 	
 	directives =
 	[
-		Directive.new("word",	:other,			"ParseWord"),
 		Directive.new("data",	:section,		"ParseDataSection"),
 		Directive.new("bss",	:section,		"ParseBSSSection"),
 		Directive.new("org",	:section_opt,	"ParseOrg"),
+		Directive.new("align",	:section_opt,	"ParseAlign"),
+		Directive.new("pad",	:section_opt,	"ParsePad"),
 		Directive.new("resw",	:other,			"ParseResW"),
-		Directive.new("global",	:other,			"ParseGlobal")
+		Directive.new("global",	:other,			"ParseGlobal"),
+		Directive.new("word",	:other,			"ParseWord")
 	]
 	
 	ESC64AsmDesc.export instructions, aliass, directives

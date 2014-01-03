@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 #include <assert.h>
+#include <stddef.h>
 
 #include <esc64asm/ioutils.h>
 #include <esc64asm/objread.h>
@@ -242,12 +243,16 @@ static void LoadSections(ObjectLinkHandle* object, SectionLinkHandleList* sectio
 	size_t i;
 	for(i = 0; i < sectionList->count; ++i)
 	{
-		assert(!ObjReaderNextSection());
+		ObjSectionHeader secHeader;
+		assert(!ObjReaderNextSection(&secHeader));
 		SectionLinkHandle* section = &sectionList->sections[i];
 
+//		section->offset = ObjGetSectionOffset();
+//		section->address = ObjReadAddress();
+//		section->size = ObjReadSize();
 		section->offset = ObjGetSectionOffset();
-		section->address = ObjReadAddress();
-		section->size = ObjReadSize();
+		section->address = NTOH_WORD(secHeader.address);
+		section->size = NTOH_WORD(secHeader.size);
 	}
 }
 
@@ -294,7 +299,8 @@ static void LoadGlobalSymbols(void)
 	{
 		ObjectLinkHandle* object = &objects_[i];
 		ObjectReaderInit(object->path);
-		LoadSymbols(object, &globalSymTable_, OBJ_SECTION_GLOBAL_SYM_RECORD_OFFSET);
+		//LoadSymbols(object, &globalSymTable_, OBJ_SECTION_GLOBAL_SYM_RECORD_OFFSET);
+		LoadSymbols(object, &globalSymTable_, offsetof(ObjSectionHeader, globalSymbolRecordOffset));
 		ObjectReaderClose();
 	}
 }
@@ -308,8 +314,10 @@ static void LoadSymbols(ObjectLinkHandle* object, SymTable* symTable, objsize_t 
 	for(i = 0; i < sectionCount; ++i)
 	{
 		SectionLinkHandle* section = &object->sections[i];
-		ObjReadSection(section->offset);
-		if(ObjSymIteratorInit(&symIt, symRecordOffset))
+		ObjSectionHeader secHeader;
+
+		ObjReadSection(section->offset, &secHeader);
+		if(ObjSymIteratorInit(&symIt, NTOH_OBJSIZE(memberat(objsize_t, &secHeader, symRecordOffset))))
 		{
 			continue;
 		}
@@ -346,7 +354,8 @@ static void EmitAll(void)
 		byte_t localSymMem[localSymMemSize];
 		char localStrMem[header.localSymTotNameSize];
 		SymTableInit(&localSymTable_, localSymMem, localSymMemSize, localStrMem, header.localSymTotNameSize);
-		LoadSymbols(object, &localSymTable_, OBJ_SECTION_LOCAL_SYM_RECORD_OFFSET);
+		//LoadSymbols(object, &localSymTable_, OBJ_SECTION_LOCAL_SYM_RECORD_OFFSET);
+		LoadSymbols(object, &localSymTable_, offsetof(ObjSectionHeader, localSymbolRecordOffset));
 
 #ifdef ESC_DEBUG
 		puts("LOCAL SYMTABLE DUMP BEGIN");
@@ -411,8 +420,10 @@ static void LinkSection(SectionLinkHandle* section, uword_t* data)
 
 static void EmitSection(SectionLinkHandle* section)
 {
-	ObjReadSection(section->offset);
-	byte_t type = ObjReadType();
+	ObjSectionHeader secHeader;
+	ObjReadSection(section->offset, &secHeader);
+//	byte_t type = ObjReadType();
+	byte_t type = secHeader.type;
 
 	switch(type)
 	{

@@ -7,19 +7,19 @@
 void ObjectReaderInit(const char* path);
 void ObjReadHeader(ObjectHeader* header);
 void ObjectReaderStart(objsize_t firstOffset);
-void ObjReadSection(objsize_t offset);
+void ObjReadSection(objsize_t offset, ObjSectionHeader* sectionHeader);
 void ObjectReaderClose(void);
-int ObjReaderNextSection(void);
+int ObjReaderNextSection(ObjSectionHeader* sectionHeader);
 
-uword_t ObjReadAddress(void);
-uword_t ObjReadSize(void);
-byte_t ObjReadType(void);
+//uword_t ObjReadAddress(void);
+//uword_t ObjReadSize(void);
+//byte_t ObjReadType(void);
 //TODO determine which of these functions are needed for objdump and insert guard macro's accordingly
 
-byte_t ObjGetType(void);
+//byte_t ObjGetType(void);
 objsize_t ObjGetSectionOffset(void);
 objsize_t ObjGetSectionNext(void);
-objsize_t ObjGetDataOffset(void);
+//objsize_t ObjGetDataOffset(void);
 
 typedef enum ObjIteratorState_
 {

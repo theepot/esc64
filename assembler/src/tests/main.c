@@ -3,7 +3,6 @@
 #include <time.h>
 #include <unistd.h>
 
-#include <esc64asm/reswords.h>
 #include <esc64asm/parser.h>
 
 extern void TestScanner(const char* asmFile);

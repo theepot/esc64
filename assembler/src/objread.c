@@ -2,6 +2,8 @@
 
 #include <string.h>
 #include <errno.h>
+#include <stddef.h>
+
 #include <esc64asm/ioutils.h>
 #include <esc64asm/escerror.h>
 #include <esc64asm/link.h>
@@ -9,7 +11,7 @@
 #define POSTFIX_STACK_SIZE	32
 
 static FILE* objStream_;
-static byte_t secType_;			///< type of current section
+//static byte_t secType_;			///< type of current section
 static objsize_t secOffset_;	///< offset of current section
 static objsize_t secNext_;		///< offset of next section
 static word_t postfixStack_[POSTFIX_STACK_SIZE];
@@ -33,7 +35,6 @@ void ObjectReaderInit(const char* path)
 
 void ObjReadHeader(ObjectHeader* header)
 {
-	//TODO check if this is even necessary
 	objsize_t head = IOGetFilePos(objStream_);
 	IOSetFilePos(objStream_, 0);
 
@@ -46,7 +47,6 @@ void ObjReadHeader(ObjectHeader* header)
 	header->absSectionOffset = IOReadObjSize(objStream_);
 	header->relocSectionOffset = IOReadObjSize(objStream_);
 
-	//TODO and this
 	IOSetFilePos(objStream_, head);
 }
 
@@ -55,13 +55,12 @@ void ObjectReaderStart(objsize_t firstOffset)
 	secNext_ = firstOffset;
 }
 
-void ObjReadSection(objsize_t offset)
+void ObjReadSection(objsize_t offset, ObjSectionHeader* sectionHeader)
 {
-	IOSetFilePos(objStream_, offset);
-	secType_ = IOReadByte(objStream_);		//type
-	secNext_ = IOReadObjSize(objStream_);	//next
-
 	secOffset_ = offset;
+	IOSetFilePos(objStream_, secOffset_);
+	IORead(objStream_, sectionHeader, sizeof *sectionHeader);
+	secNext_ = NTOH_OBJSIZE(sectionHeader->next);
 }
 
 void ObjectReaderClose(void)
@@ -69,14 +68,14 @@ void ObjectReaderClose(void)
 	fclose(objStream_);
 }
 
-int ObjReaderNextSection(void)
+int ObjReaderNextSection(ObjSectionHeader* sectionHeader)
 {
 	if(secNext_ == OBJ_RECORD_ILLEGAL_OFFSET)
 	{
 		return -1;
 	}
 
-	ObjReadSection(secNext_);
+	ObjReadSection(secNext_, sectionHeader);
 	return 0;
 
 //	IOSetFilePos(stream_, offset_ + OBJ_SECTION_NEXT_OFFSET);
@@ -90,35 +89,35 @@ int ObjReaderNextSection(void)
 //	return 0;
 }
 
-uword_t ObjReadAddress(void)
-{
-	IOSetFilePos(
-			objStream_,
-			secOffset_ + OBJ_SECTION_ADDRESS_OFFSET);
-	return IOReadWord(objStream_);
-}
+//uword_t ObjReadAddress(void)
+//{
+//	IOSetFilePos(
+//			objStream_,
+//			secOffset_ + OBJ_SECTION_ADDRESS_OFFSET);
+//	return IOReadWord(objStream_);
+//}
+//
+//
+//uword_t ObjReadSize(void)
+//{
+//	IOSetFilePos(
+//				objStream_,
+//				secOffset_ + OBJ_SECTION_SIZE_OFFSET);
+//	return IOReadWord(objStream_);
+//}
+//
+//byte_t ObjReadType(void)
+//{
+//	IOSetFilePos(
+//			objStream_,
+//			secOffset_ + OBJ_SECTION_TYPE_OFFSET);
+//	return IOReadByte(objStream_);
+//}
 
-
-uword_t ObjReadSize(void)
-{
-	IOSetFilePos(
-				objStream_,
-				secOffset_ + OBJ_SECTION_SIZE_OFFSET);
-	return IOReadWord(objStream_);
-}
-
-byte_t ObjReadType(void)
-{
-	IOSetFilePos(
-			objStream_,
-			secOffset_ + OBJ_SECTION_TYPE_OFFSET);
-	return IOReadByte(objStream_);
-}
-
-byte_t ObjGetType(void)
-{
-	return secType_;
-}
+//byte_t ObjGetType(void)
+//{
+//	return secType_;
+//}
 
 objsize_t ObjGetSectionOffset(void)
 {
@@ -130,22 +129,26 @@ objsize_t ObjGetSectionNext(void)
 	return secNext_;
 }
 
-objsize_t ObjGetDataOffset(void)
-{
-	return secOffset_ + OBJ_SECTION_DATA_RECORD_OFFSET;
-}
+//objsize_t ObjGetDataOffset(void)
+//{
+//	return secOffset_ + OBJ_SECTION_DATA_RECORD_OFFSET;
+//}
 
+//TODO check all calls to ObjSimIteratorInit(), make sure offset now points to the offset of the record, NOT the offset of the offset of the record!
 int ObjSymIteratorInit(ObjSymIterator* it, objsize_t offset)
 {
 	it->stream = objStream_;
-	IOSetFilePos(it->stream, secOffset_ + offset);
-	objsize_t recordOffset = IOReadObjSize(it->stream);
-	if(recordOffset == OBJ_RECORD_ILLEGAL_OFFSET)
-	{
-		return -1;
-	}
+//	IOSetFilePos(it->stream, secOffset_ + offset);
+//	objsize_t recordOffset = IOReadObjSize(it->stream);
+//	if(recordOffset == OBJ_RECORD_ILLEGAL_OFFSET)
+//	{
+//		return -1;
+//	}
 
-	RecordReaderInit(&it->symReader, objStream_, recordOffset);
+	//FIXME quickfix, should probably check for offset == OBJ_RECORD_ILLEGAL_OFFSET at callsites
+	if(offset == OBJ_RECORD_ILLEGAL_OFFSET) { return -1; }
+
+	RecordReaderInit(&it->symReader, objStream_, offset);
 	it->state = OBJ_IT_STATE_START;
 
 	return 0;
@@ -192,8 +195,19 @@ const Symbol* ObjSymIteratorGetSym(ObjSymIterator* it)
 
 int XObjExpReaderInit(XObjExpReader* reader)
 {
-	IOSetFilePos(objStream_, secOffset_ + OBJ_SECTION_EXPR_RECORD_OFFSET);
+//	IOSetFilePos(objStream_, secOffset_ + OBJ_SECTION_EXPR_RECORD_OFFSET);
+	objsize_t exp = secOffset_ + sizeof (ObjSectionHeader) + offsetof(ObjDataSection, expRecordOffset);
+	IOSetFilePos(objStream_, exp);
+
 	objsize_t firstOffset = IOReadObjSize(objStream_);
+
+	//FIXME DEBUG BEGIN
+	if(firstOffset == 0xDEAD)
+	{
+		char* please = "break here";
+	}
+	//DEBUG END
+
 	if(firstOffset == OBJ_RECORD_ILLEGAL_OFFSET) { return -1; }
 
 	RecordReaderInit(&reader->reader, objStream_, firstOffset);
@@ -239,7 +253,10 @@ int XObjExpReaderGetStr(XObjExpReader* reader)
 
 int ObjExpReaderInit(ObjExpReader* expReader)
 {
-	IOSetFilePos(objStream_, secOffset_ + OBJ_SECTION_EXPR_RECORD_OFFSET);
+//	IOSetFilePos(objStream_, secOffset_ + OBJ_SECTION_EXPR_RECORD_OFFSET);
+	objsize_t exp = secOffset_ + sizeof (ObjSectionHeader) + offsetof(ObjDataSection, expRecordOffset);
+	IOSetFilePos(objStream_, exp);
+
 	objsize_t firstOffset = IOReadObjSize(objStream_);
 	if(firstOffset == OBJ_RECORD_ILLEGAL_OFFSET)
 	{
@@ -372,10 +389,13 @@ int ObjExpReaderNext(ObjExpReader* expReader, uword_t* address, uword_t* value)
 
 int ObjDataReaderInit(ObjDataReader* dataReader)
 {
-	assert(secType_ == SECTION_TYPE_DATA);
+//	assert(secType_ == SECTION_TYPE_DATA);
 
 	dataReader->stream = objStream_;
-	IOSetFilePos(dataReader->stream, secOffset_ + OBJ_SECTION_DATA_RECORD_OFFSET);
+//	IOSetFilePos(dataReader->stream, secOffset_ + OBJ_SECTION_DATA_RECORD_OFFSET);
+	objsize_t data = secOffset_ + sizeof (ObjSectionHeader) + offsetof(ObjDataSection, dataRecordOffset);
+	IOSetFilePos(objStream_, data);
+
 	objsize_t firstOffset = IOReadObjSize(dataReader->stream);
 	if(firstOffset == OBJ_RECORD_ILLEGAL_OFFSET)
 	{

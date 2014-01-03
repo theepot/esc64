@@ -8,7 +8,7 @@ all: ${SERVICE_TIMESTAMP}
 .PHONY: clean
 clean:
 	${RM} ${SERVICE_GEN_SRC}
-	rmdir --ignore-fail-on-non-empty ${SERVICE_GEN_DIR}
+	${RM} -r ${SERVICE_GEN_DIR}
 	${RM} ${SERVICE_TIMESTAMP}
 
 ${SERVICE_TIMESTAMP}: ${SERVICE}

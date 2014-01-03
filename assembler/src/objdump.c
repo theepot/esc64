@@ -6,7 +6,7 @@
 #include <esc64asm/opcodes.h>
 
 static void PrintHeader(const ObjectHeader* header);
-static void PrintSection(void);
+static void PrintSection(const ObjSectionHeader* secHeader);
 static void PrintSymbols(objsize_t offset);
 static void PrintExpr(void);
 static void PrintData(size_t dataSize);
@@ -18,7 +18,6 @@ int main(int argc, char** argv)
 {
 	assert(argc == 2);
 
-	//OpcodeTransInit();
 	OpcodeTableInit();
 	ObjectHeader header;
 	ObjectReaderInit(argv[1]);
@@ -26,16 +25,20 @@ int main(int argc, char** argv)
 	ObjReadHeader(&header);
 	PrintHeader(&header);
 
+	ObjSectionHeader secHeader;
+
+	puts("abs sections:");
 	ObjectReaderStart(header.absSectionOffset);
-	while(!ObjReaderNextSection())
+	while(!ObjReaderNextSection(&secHeader))
 	{
-		PrintSection();
+		PrintSection(&secHeader);
 	}
 
+	puts("reloc sections:");
 	ObjectReaderStart(header.relocSectionOffset);
-	while(!ObjReaderNextSection())
+	while(!ObjReaderNextSection(&secHeader))
 	{
-		PrintSection();
+		PrintSection(&secHeader);
 	}
 
 	return 0;
@@ -63,31 +66,35 @@ static void PrintHeader(const ObjectHeader* header)
 			header->relocSectionOffset);
 }
 
-static void PrintSection(void)
+static void PrintSection(const ObjSectionHeader* secHeader)
 {
-	uword_t address = ObjReadAddress();
-	uword_t size = ObjReadSize();
+	uword_t address = NTOH_WORD(secHeader->address);
+	uword_t size = NTOH_WORD(secHeader->size);
+	uword_t alignment = NTOH_WORD(secHeader->alignment);
+	byte_t type = secHeader->type;
 
-	printf(
-			"%s section address=0x%X(%u); size=0x%X(%u)\n",
-			SectionTypeToString(ObjGetType()),
+	printf(	"\t%s section address=0x%X(%u); size=0x%X(%u); alignment=0x%X(%u)\n",
+			SectionTypeToString(type),
 			address, address,
-			size, size);
+			size, size,
+			alignment, alignment);
 
-	puts("\tlocal symbols:");
-	PrintSymbols(OBJ_SECTION_LOCAL_SYM_RECORD_OFFSET);
+	puts("\t\tlocal symbols:");
+//	PrintSymbols(OBJ_SECTION_LOCAL_SYM_RECORD_OFFSET);
+	PrintSymbols(NTOH_OBJSIZE(secHeader->localSymbolRecordOffset));
 
-	puts("\tglobal symbols:");
-	PrintSymbols(OBJ_SECTION_GLOBAL_SYM_RECORD_OFFSET);
+	puts("\t\tglobal symbols:");
+//	PrintSymbols(OBJ_SECTION_GLOBAL_SYM_RECORD_OFFSET);
+	PrintSymbols(NTOH_OBJSIZE(secHeader->globalSymbolRecordOffset));
 
-	switch(ObjGetType())
+	switch(type)
 	{
 	case SECTION_TYPE_DATA:
 	{
-		puts("\tunlinked expressions:");
+		puts("\t\tunlinked expressions:");
 		PrintExpr();
 
-		puts("\tdata / instructions:");
+		puts("\t\tdata / instructions:");
 		PrintData(size);
 	} break;
 
@@ -95,7 +102,7 @@ static void PrintSection(void)
 		break;
 
 	default:
-		puts("ERROR: illegal section type");
+		puts("\t\tERROR: illegal section type");
 		break;
 	}
 }
@@ -126,13 +133,13 @@ static void PrintExpr()
 
 	if(XObjExpReaderInit(&reader))
 	{
-		puts("\t\tnone");
+		puts("\t\t\tnone");
 		return;
 	}
 
 	while(!XObjExpReaderNextExp(&reader))
 	{
-		printf("\t\t0x%X =", reader.address);
+		printf("\t\t\t0x%X =", reader.address);
 		while(!XObjExpReaderNextToken(&reader))
 		{
 			putchar(' ');
@@ -163,7 +170,7 @@ static void PrintData(size_t dataSize)
 	for(i = 0; i < dataSize; ++i)
 	{
 		uword_t word = NTOH_WORD(dataBuf[i]);
-		printf("\t\t@0x%04X:\t0x%04X", i, word);
+		printf("\t\t\t@0x%04X:\t0x%04X", i, word);
 		PrintInstruction(word);
 		putchar('\n');
 	}
@@ -215,7 +222,7 @@ static void PrintSymbols(objsize_t offset)
 	ObjSymIterator localSymIt;
 	if(ObjSymIteratorInit(&localSymIt, offset))
 	{
-		puts("\t\tnone");
+		puts("\t\t\tnone");
 		return;
 	}
 
@@ -226,7 +233,7 @@ static void PrintSymbols(objsize_t offset)
 		ObjSymIteratorReadName(&localSymIt, name);
 		const Symbol* sym = ObjSymIteratorGetSym(&localSymIt);
 
-		printf("\t\t`%s' = 0x%X(%u)\n", sym->name, sym->address, sym->address);
+		printf("\t\t\t`%s' = 0x%X(%u)\n", sym->name, sym->address, sym->address);
 	}
 }
 

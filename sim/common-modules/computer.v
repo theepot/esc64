@@ -12,9 +12,7 @@ module computer();
 	wire [15:0] address, data;
 	wire memNotRead, memNotWrite;
 	cpu cpu(clock, notReset, address, data, memNotRead, memNotWrite);
-	
-	integer micro_steps;
-	
+		
 	//ram
 	sram #(.MEMFILE("ram.lst")) ram({1'b0, address[14:0]}, data, memNotRead, memNotWrite, address[15]);
 	
@@ -26,7 +24,6 @@ module computer();
 		$start_thrift_server();
 		
 		//cpu.status.r.out = 0;
-		micro_steps = 1'b1;
 		tick_counter = 0;
 		notReset = 0;
 		clock = 0;
@@ -40,14 +37,9 @@ module computer();
 	end
 
 	always begin
-		if(at_fetch) begin
-			micro_steps = 0;
-			$tick;
-		end
-		else if(micro_steps) begin
-			$tick;
-		end
-	
+		at_fetch_int = at_fetch;
+		$tick(at_fetch_int);
+		
 		if(cpu.irOpcode === 7'b1111111 && tick_counter != 0) begin
 			$display("halt @ tick %d", tick_counter);
 			$display("dumping ram");
@@ -113,4 +105,5 @@ module computer();
 	wire [2:0] op2 = cpu.regselOp2;
 	
 	wire at_fetch = cpu._mSeq.roms_addr[12:0] === 12'd512 ? 1'b1 : 1'b0;
+	integer at_fetch_int;
 endmodule

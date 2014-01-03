@@ -1,8 +1,6 @@
 #ifndef SYMTABLE_INCLUDED
 #define SYMTABLE_INCLUDED
 
-//TODO move string pool to it's own file
-
 #include <stdlib.h>
 #include <stdio.h>
 

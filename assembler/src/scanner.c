@@ -6,7 +6,6 @@
 #include <string.h>
 
 #include <esc64asm/hashset.h>
-#include <esc64asm/reswords.h>
 #include <esc64asm/escerror.h>
 #include <esc64asm/registers.h>
 #include <esc64asm/keywords.h>

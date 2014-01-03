@@ -32,7 +32,6 @@ set(
 	${SOURCE_DIR}/objwrite.c
 	${SOURCE_DIR}/objrecord.c
 	${SOURCE_DIR}/parser.c
-	${SOURCE_DIR}/reswords.c
 	${SOURCE_DIR}/scanner.c
 	${SOURCE_DIR}/symtable.c
 	${SOURCE_DIR}/token.c
@@ -41,7 +40,6 @@ set(
 	${SOURCE_DIR}/opcodes.c
 	${SOURCE_DIR}/mempool.c
 	${SOURCE_DIR}/keywords.c
-	${SOURCE_DIR}/assembler.c
 	${SOURCE_DIR}/decomp.c)
 
 set(

@@ -2,7 +2,6 @@
 #include <esc64asm/scanner.h>
 #include <esc64asm/objwrite.h>
 #include <esc64asm/parser.h>
-#include <esc64asm/reswords.h>
 
 int main(int argc, char** argv)
 {

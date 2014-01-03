@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <esc64asm/esctypes.h>
 
+#define memberat(t, b, n)	(*(t*)((char*)(b) + (n)))
+
 objsize_t IOGetFilePos(FILE* stream);
 void IOSetFilePos(FILE* stream, objsize_t offset);
 void IOSeekEnd(FILE* stream);

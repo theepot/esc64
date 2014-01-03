@@ -1,8 +1,6 @@
 #ifndef PARSER_INCLUDED
 #define PARSER_INCLUDED
 
-//TODO separate parser and assembler code. right now both tasks fall to the parser
-
 #include <esc64asm/scanner.h>
 #include <esc64asm/objwrite.h>
 #include <esc64asm/token.h>

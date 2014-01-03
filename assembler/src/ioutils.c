@@ -53,6 +53,16 @@ objsize_t IOReadObjSize(FILE* stream)
 
 void IOWrite(FILE* stream, const void* data, size_t dataSize)
 {
+	//FIXME DEBUG BEGIN
+	objsize_t offset = IOGetFilePos(stream);
+	const objsize_t check = 0x27;
+	if(check >= offset && check < offset + dataSize)
+	{
+		unsigned n = check - offset;
+		char* p = data + n;
+	}
+	//DEBUG END
+
 	assert(fwrite(data, dataSize, 1, stream) == 1);
 #ifdef ESC_DEBUG
 	fflush(stream);

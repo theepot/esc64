@@ -1,5 +1,3 @@
-//TODO rename this file to token.h
-
 #ifndef TOKENDESCR_INCLUDED
 #define TOKENDESCR_INCLUDED
 

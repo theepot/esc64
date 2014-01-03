@@ -14,7 +14,7 @@ int ObjectWriterInit(const char* path);
  */
 int ObjectWriterClose(void);
 
-objsize_t ObjGetLocation(void);
+uword_t ObjGetLocation(void);
 
 //TODO make one ObjWriteSection() procedure
 
@@ -29,7 +29,7 @@ int ObjWriteSection(const ObjSectionInfo* sectionInfo);
  */
 int ObjWriteData(const void* data, size_t dataSize);
 void ObjWriteInst(int isWide, uword_t instWord, uword_t extWord);
-int ObjResData(size_t size);
+int ObjResData(uword_t size);
 
 //TODO make one ObjWriteSym(visibility, sym) procedure
 

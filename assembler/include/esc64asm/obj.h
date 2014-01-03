@@ -44,47 +44,50 @@ typedef struct ObjectHeader_
 	objsize_t relocSectionOffset;
 } ObjectHeader;
 
-//	section structure
+//TODO don't use this anymore, use the packed struct below (ObjSectionHeader)
+//	section structure *see struct ObjSectionInfo_*
 //		- type							: byte_t
 //		- next							: objsize_t
 //		- address						: uword_t
 //		- size							: uword_t
 //		- local symbol record offset	: objsize_t
 //		- global symbol record offset	: objsize_t
-//		<<if type = data>>
+//		<<if type = data>> *see struct ObjDataSection_*
 //		- unlinked exp record offset	: objsize_t
 //		- data record offset			: objsize_t
 //		<<end type = data>>
-#define OBJ_SECTION_TYPE_OFFSET					0
-#define OBJ_SECTION_NEXT_OFFSET					(OBJ_SECTION_TYPE_OFFSET + sizeof (byte_t))
-#define OBJ_SECTION_ADDRESS_OFFSET				(OBJ_SECTION_NEXT_OFFSET + sizeof (objsize_t))
-#define OBJ_SECTION_SIZE_OFFSET					(OBJ_SECTION_ADDRESS_OFFSET + sizeof (uword_t))
-#define OBJ_SECTION_LOCAL_SYM_RECORD_OFFSET		(OBJ_SECTION_SIZE_OFFSET + sizeof (uword_t))
-#define OBJ_SECTION_GLOBAL_SYM_RECORD_OFFSET	(OBJ_SECTION_LOCAL_SYM_RECORD_OFFSET + sizeof (objsize_t))
-//data section specific
-#define OBJ_SECTION_EXPR_RECORD_OFFSET			(OBJ_SECTION_GLOBAL_SYM_RECORD_OFFSET + sizeof (objsize_t))
-#define OBJ_SECTION_DATA_RECORD_OFFSET			(OBJ_SECTION_EXPR_RECORD_OFFSET + sizeof (objsize_t))
+//#define OBJ_SECTION_TYPE_OFFSET					0
+//#define OBJ_SECTION_NEXT_OFFSET					(OBJ_SECTION_TYPE_OFFSET + sizeof (byte_t))
+//#define OBJ_SECTION_ADDRESS_OFFSET				(OBJ_SECTION_NEXT_OFFSET + sizeof (objsize_t))
+//#define OBJ_SECTION_SIZE_OFFSET					(OBJ_SECTION_ADDRESS_OFFSET + sizeof (uword_t))
+//#define OBJ_SECTION_LOCAL_SYM_RECORD_OFFSET		(OBJ_SECTION_SIZE_OFFSET + sizeof (uword_t))
+//#define OBJ_SECTION_GLOBAL_SYM_RECORD_OFFSET	(OBJ_SECTION_LOCAL_SYM_RECORD_OFFSET + sizeof (objsize_t))
+////data section specific
+//#define OBJ_SECTION_EXPR_RECORD_OFFSET			(OBJ_SECTION_GLOBAL_SYM_RECORD_OFFSET + sizeof (objsize_t))
+//#define OBJ_SECTION_DATA_RECORD_OFFSET			(OBJ_SECTION_EXPR_RECORD_OFFSET + sizeof (objsize_t))
 
 typedef struct ObjSectionInfo_
 {
 	byte_t type;
 	byte_t placement;
 	uword_t address;
+	uword_t alignment;
 } ObjSectionInfo;
 
 typedef struct PACKED ObjSectionHeader_
 {
 	byte_t type;
 	objsize_t next;
+	uword_t alignment;
 	uword_t address;
 	uword_t size;
 	objsize_t localSymbolRecordOffset;
 	objsize_t globalSymbolRecordOffset;
-	objsize_t expRecordOffset;
 } ObjSectionHeader;
 
 typedef struct PACKED ObjDataSection_
 {
+	objsize_t expRecordOffset;
 	objsize_t dataRecordOffset;
 } ObjDataSection;
 

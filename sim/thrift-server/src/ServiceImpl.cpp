@@ -62,13 +62,10 @@ private:
 	vpiHandle regHandles[REG_HANDLES_SIZE];
 	vpiHandle ramHandle;
 
-	vpiHandle microStepHandle;
-
 	void parseOptions(int argc, char** argv);
 	void setState(SimState::type state);
 	void initModuleHandles();
 	void serverThreadProc();
-	void setMicroStep();
 };
 
 
@@ -134,7 +131,7 @@ void ServiceImpl::microStep()
 	setState(SimState::MICRO_STEPPING);
 
 	boost::unique_lock<boost::mutex> lock(simStateMutex);
-	while(simState == SimState::STEPPING)
+	while(simState == SimState::MICRO_STEPPING)
 	{
 		simStateCond.wait(lock);
 	}
@@ -213,6 +210,7 @@ void ServiceImpl::tickTask()
 				prevSimState = simState;
 			}
 			s = simState;
+			/*FIXME debug*/ std::cout << "tickTask(): state=" << _SimState_VALUES_TO_NAMES.at(s) << std::endl;
 		}
 		simStateCond.notify_all();
 
@@ -236,11 +234,17 @@ void ServiceImpl::tickTask()
 			break;
 
 		case SimState::STEPPING:
-			setState(SimState::PAUSED);
-			return;
+		{
+			ArgumentIterator args;
+			PLI_INT32 fetch = args.NextInt();
+			if(fetch)
+			{
+				setState(SimState::PAUSED);
+				break;
+			}
+		} return;
 			
 		case SimState::MICRO_STEPPING:
-			setMicroStep();
 			setState(SimState::PAUSED);
 			return;
 
@@ -273,15 +277,6 @@ void ServiceImpl::startServerTask()
 	vpi_get_vlog_info(&vlog_info);
 	parseOptions(vlog_info.argc, vlog_info.argv);
 
-	//initialize simulation state / sync
-	if(start_paused)
-	{
-		prevSimState = simState = SimState::HALTED;
-	}
-	else 
-	{
-		prevSimState = simState = SimState::RUNNING;
-	}
 	simMutex.lock();
 
 	//start server thread
@@ -318,7 +313,8 @@ void ServiceImpl::parseOptions(int argc, char** argv)
 	po::store(po::parse_command_line(argc, argv, desc), vm);
 	po::notify(vm);
 
-	simState = vm.count("paused") ? SimState::HALTED : SimState::RUNNING;
+	prevSimState = simState = (vm.count("paused") ? SimState::HALTED : SimState::RUNNING);
+	std::cout << "Starting simulation in " << _SimState_VALUES_TO_NAMES.at(simState) << " state\n";
 
 	switch(vm.count("lst"))
 	{
@@ -360,9 +356,6 @@ void ServiceImpl::initModuleHandles()
 
 	//memory
 	ramHandle = findVerilogModule(top, "ram", "mem", NULL);
-	
-	microStepHandle = vpi_handle_by_name("micro_steps", top);
-	assert(microStepHandle);
 }
 
 void ServiceImpl::serverThreadProc()
@@ -373,14 +366,6 @@ void ServiceImpl::serverThreadProc()
 	TNonblockingServer server(processor, protocolFactory, PORT);
 
 	server.serve();
-}
-
-void ServiceImpl::setMicroStep()
-{
-	s_vpi_value val;
-	val.format = vpiIntVal;
-	val.value.integer = 1;
-	vpi_put_value(microStepHandle, &val, NULL, vpiNoDelay);
 }
 
 static void registerTasks()

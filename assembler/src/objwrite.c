@@ -83,7 +83,7 @@ int ObjectWriterClose(void)
 	return fclose(stream_);
 }
 
-objsize_t ObjGetLocation(void)
+uword_t ObjGetLocation(void)
 {
 #ifdef ESC_DEBUG
 	ESC_ASSERT_FATAL(type_ != SECTION_TYPE_NONE, "ObjGetLocation() called while type_ == SECTION_TYPE_NONE");
@@ -129,35 +129,38 @@ int ObjWriteSection(const ObjSectionInfo* sectionInfo)
 	location_ = 0;
 
 	//write header
-	ObjSectionHeader sectionHeader =
-	{
-		type_,
-		HTON_OBJSIZE(OBJ_RECORD_ILLEGAL_OFFSET),
-		HTON_WORD(sectionInfo->address),
-		HTON_WORD(0xDEAD),
-		HTON_OBJSIZE(OBJ_RECORD_ILLEGAL_OFFSET),
-		HTON_OBJSIZE(OBJ_RECORD_ILLEGAL_OFFSET),
-		HTON_OBJSIZE(OBJ_RECORD_ILLEGAL_OFFSET)
-	};
+	objsize_t sectionHeaderOffset = IOGetFilePos(stream_);
+	ObjSectionHeader sectionHeader;
+	sectionHeader.type = type_;
+	sectionHeader.next = HTON_OBJSIZE(OBJ_RECORD_ILLEGAL_OFFSET),
+	sectionHeader.alignment = HTON_WORD(sectionInfo->alignment);
+	sectionHeader.address = HTON_WORD(sectionInfo->address);
+	sectionHeader.size = HTON_WORD(0xDEAD);
+	sectionHeader.localSymbolRecordOffset = HTON_OBJSIZE(OBJ_RECORD_ILLEGAL_OFFSET);
+	sectionHeader.globalSymbolRecordOffset = HTON_OBJSIZE(OBJ_RECORD_ILLEGAL_OFFSET);
 
 	IOWrite(stream_, &sectionHeader, sizeof sectionHeader);
 
 	//init symbol writers
-	objsize_t filePos = IOGetFilePos(stream_);
-	objsize_t local = filePos - sizeof sectionHeader + offsetof(ObjSectionHeader, localSymbolRecordOffset);
-	objsize_t global = filePos - sizeof sectionHeader + offsetof(ObjSectionHeader, globalSymbolRecordOffset);
-	objsize_t exp = filePos - sizeof sectionHeader + offsetof(ObjSectionHeader, expRecordOffset);
-
+	objsize_t local = sectionHeaderOffset + offsetof(ObjSectionHeader, localSymbolRecordOffset);
+	objsize_t global = sectionHeaderOffset + offsetof(ObjSectionHeader, globalSymbolRecordOffset);
 	RecordWriterInit(&localSymWriter_, localSymWriterBuf_, LOCAL_SYM_WRITER_BUF_SIZE, local);
 	RecordWriterInit(&globalSymWriter_, globalSymWriterBuf_, GLOBAL_SYM_WRITER_BUF_SIZE, global);
-	RecordWriterInit(&exprWriter_, exprWriterBuf_, EXPR_WRITER_BUF_SIZE, exp);
 
-	//init data writer for data section
+	//init data- & unlinked-expression writer for data section
 	if(type_ == SECTION_TYPE_DATA)
 	{
-		objsize_t illegal = HTON_OBJSIZE(OBJ_RECORD_ILLEGAL_OFFSET);
-		IOWrite(stream_, &illegal, sizeof illegal);
-		RecordWriterInit(&dataWriter_, dataWriterBuf_, DATA_WRITER_BUF_SIZE, filePos);
+		objsize_t dataSecOffset = IOGetFilePos(stream_);
+		ObjDataSection dataSec;
+		dataSec.expRecordOffset = HTON_OBJSIZE(OBJ_RECORD_ILLEGAL_OFFSET);
+		dataSec.dataRecordOffset = HTON_OBJSIZE(OBJ_RECORD_ILLEGAL_OFFSET);
+
+		IOWrite(stream_, &dataSec, sizeof dataSec);
+
+		objsize_t exp = dataSecOffset + offsetof(ObjDataSection, expRecordOffset);
+		objsize_t data = dataSecOffset + offsetof(ObjDataSection, dataRecordOffset);
+		RecordWriterInit(&exprWriter_, exprWriterBuf_, EXPR_WRITER_BUF_SIZE, exp);
+		RecordWriterInit(&dataWriter_, dataWriterBuf_, DATA_WRITER_BUF_SIZE, data);
 	}
 
 	//increment section count
@@ -198,14 +201,14 @@ void ObjWriteInst(int isWide, uword_t instWord, uword_t extWord)
 }
 
 
-int ObjResData(size_t size)
+int ObjResData(uword_t size)
 {
 	switch(type_)
 	{
 	case SECTION_TYPE_DATA:
 	{
 		EscWarning("Reserved space in data section will be filled with zeroes");
-		size_t i;
+		uword_t i;
 		for(i = 0; i < size; ++i)
 		{
 			RecordWriteByte(&dataWriter_, stream_, 0);
@@ -423,7 +426,8 @@ static void FlushSection(void)
 	}
 
 	//fixup size
-	IOSetFilePos(stream_, offset_ + OBJ_SECTION_SIZE_OFFSET);
+//	IOSetFilePos(stream_, offset_ + OBJ_SECTION_SIZE_OFFSET);
+	IOSetFilePos(stream_, offset_ + offsetof(ObjSectionHeader, size));
 	IOWriteWord(stream_, location_);
 
 	UpdatePrevNext();
@@ -447,7 +451,8 @@ static void UpdatePrevNext(void)
 
 	IOSetFilePos(stream_, *prevNext);
 	IOWriteObjSize(stream_, offset_);
-	*prevNext = offset_ + OBJ_SECTION_NEXT_OFFSET;
+//	*prevNext = offset_ + OBJ_SECTION_NEXT_OFFSET;
+	*prevNext = offsetof(ObjSectionHeader, next);
 }
 
 static int WriteSymbol(RecordWriter* writer, FILE* stream, const Symbol* sym)
@@ -465,23 +470,6 @@ static int WriteSymbol(RecordWriter* writer, FILE* stream, const Symbol* sym)
 	buf.nameLen = HTON_WORD(sym->nameLen);
 
 	memcpy(buf.name, sym->name, sym->nameLen);
-
-//TODO remove, deprecated
-//	const size_t bufSize = sizeof sym->nameLen + sym->nameLen + sizeof sym->address;
-//	byte_t buf[bufSize];
-//	void* p = buf;
-//
-//	uword_t value = HTON_WORD(sym->address);
-//	memcpy(p, &value, sizeof value);			//value
-//	p += sizeof sym->address;
-//
-//	uword_t nameLen = HTON_WORD(sym->nameLen);
-//	memcpy(p, &nameLen, sizeof nameLen);		//nameLen
-//	p += sizeof sym->nameLen;
-//
-//	memcpy(p, sym->name, sym->nameLen);			//name
-//
-//	RecordWrite(writer, stream, buf, bufSize);
 
 	RecordWrite(writer, stream_, &buf, sizeof buf);
 	return 0;

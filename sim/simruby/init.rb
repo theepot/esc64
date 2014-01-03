@@ -51,7 +51,7 @@ module Sim
 		def p_membin offset, amount
 			mem = @client.getMemory offset, amount
 			for i in offset...(offset + amount)
-				s = mem[i].to_s 2
+				s = mem[i].to_s(2)
 				puts "\t#{sprintf '0x%04X', i} : 0b#{'0' * (16 - s.size)}#{s}"
 			end
 		end

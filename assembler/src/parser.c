@@ -14,7 +14,6 @@
 #include <esc64asm/escerror.h>
 #include <esc64asm/mempool.h>
 #include <esc64asm/registers.h>
-#include <esc64asm/assembler.h>
 
 #define SY_OUT_STACK_SIZE	32
 #define SY_OP_STACK_SIZE	32
@@ -33,6 +32,8 @@
 #define PARSE_ARG_END	(1 << 4)
 
 #define GET_TOKEN_OP_DESCR(t)	(GET_ID_OP_DESCR((t)->descrId))
+
+#define IS_POWER_OF_TWO(x)	(((x) != 0) && !((x) & ((x) - 1)))
 
 ///// operators /////
 enum OperatorAssoc_
@@ -80,7 +81,7 @@ static const OperatorDesc OPERATOR_DESC_TABLE[OPERATOR_DESC_COUNT] =
 	},
 	{ .isAmbiguous=0,	.assoc=OPERATOR_ASSOC_LEFT,		.prec=5,	.nAry=2,	.type=EXPR_T_OP_DIV }
 };
-//TODO see below:
+//TODO more operators, see below:
 //const OperatorDescr OPERATOR_DESCR_MUL	= { 5 };
 //const OperatorDescr OPERATOR_DESCR_MOD	= { 5 };
 //const OperatorDescr OPERATOR_DESCR_XOR	= { 1 };
@@ -138,6 +139,11 @@ static int ParseCommand(void);
 static ArgType FirstArgument(void);
 static ArgType NextArgument(void);
 static int IsExpressionStart(TokenID id, TokenClass cls);
+
+static uword_t Align(uword_t val, uword_t align);
+
+//TODO !!!PRIORITY!!! add alignment property to sections, check if .align and .pad work
+//!!! added alignment property. linker should ignore it for now. need to update objdump. check if objread & -write still work
 
 /**
  * @brief	Based on Edsger Dijkstra's Shunting-yard algorithm
@@ -389,7 +395,6 @@ static ConstInstNodePtr FindInstNode(ConstInstNodePtr base, ConstInstNodePtr nex
 	return NULL;
 }
 
-//TODO directive parsing routines and instruction parsing routines don't need separate cases here i think, should think about 'merging' them
 static int ParseCommand(void)
 {
 	const Token* t = GetToken();
@@ -437,6 +442,27 @@ void ParseOrg(void)
 	ParseExpression(1, 0, &loc);
 	sectionInfo.placement = OBJ_PLACEMENT_ABS;
 	sectionInfo.address = loc;
+}
+
+void ParseAlign(void)
+{
+	if(FirstArgument() != ARG_T_EXPR) { UnexpectedToken(); }
+	word_t val = 0;
+	ParseExpression(1, 0, &val);
+	uword_t align = (uword_t)val;
+	ESC_ASSERT_ERROR(IS_POWER_OF_TWO(align), "Alignment must be a power of two");
+	//TODO set alignment of section to `align'
+}
+
+void ParsePad(void)
+{
+	if(FirstArgument() != ARG_T_EXPR) { UnexpectedToken(); }
+	word_t val = 0;
+	ParseExpression(1, 0, &val);
+	uword_t align = (uword_t)val;
+	uword_t loc = ObjGetLocation() * 2; //FIXME x2 to get byte address. remove when we have byte addressing
+	uword_t nwloc = Align(loc, align);
+	ObjResData((nwloc - loc) / 2); //FIXME /2 to get word address. remove when we have byte addressing
 }
 
 void ParseResW(void)
@@ -520,6 +546,16 @@ static int IsExpressionStart(TokenID id, TokenClass cls)
 	}
 }
 
+static uword_t Align(uword_t val, uword_t align)
+{
+	uword_t mask;
+	for(mask = 1; !(align & mask); mask <<= 1) continue;
+	ESC_ASSERT_ERROR(!(align & ~mask), "Alignment must be a power of two");
+	mask = ~(mask - 1);
+
+	return (val + align) & mask;
+}
+
 //FIXME debug
 void TestParseExpression(const char* asmPath, const char* objPath)
 {
@@ -558,6 +594,10 @@ static void ParseSection(void)
 	//parse section directive
 	if(ParseDirOfType(DIR_SUBT_SECTION)) { UnexpectedToken(); }
 	ParseEOL();
+
+	sectionInfo.address = 0xDEAD;
+	sectionInfo.alignment = 1;
+	sectionInfo.placement = OBJ_PLACEMENT_RELOC;
 
 	//parse any number of section option directives
 	while(!ParseDirOfType(DIR_SUBT_SECTION_OPT)) { ParseEOL(); }

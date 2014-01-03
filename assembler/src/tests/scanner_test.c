@@ -1,4 +1,4 @@
-//TODO rewrite
+//TODO rewrite scanner test
 //#include <assert.h>
 //#include <stdio.h>
 //#include <string.h>
