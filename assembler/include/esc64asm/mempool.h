@@ -5,9 +5,9 @@
 
 typedef struct MemPool_
 {
-	void* begin;
-	void* end;
-	void* head;
+	char* begin;
+	char* end;
+	char* head;
 } MemPool;
 
 #define MEMPOOL_STATIC_INIT(mem, sz)	{ (mem), (mem) + (sz), (mem) }

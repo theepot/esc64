@@ -25,6 +25,7 @@ get_filename_component(EXECUTABLE_OUTPUT_PATH "bin" ABSOLUTE)
 
 set(
 	COMMON_SOURCES
+	${SOURCE_DIR}/align.c
 	${SOURCE_DIR}/hashset.c
 	${SOURCE_DIR}/ioutils.c
 	${SOURCE_DIR}/link.c

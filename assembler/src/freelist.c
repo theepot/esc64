@@ -1,4 +1,5 @@
 #include <esc64asm/freelist.h>
+#include <esc64asm/align.h>
 
 #include <assert.h>
 
@@ -7,7 +8,7 @@ static void Split(FreeList* freeList, FreeListNode* node, uword_t address, udwor
 static FreeListNode* AllocNode(FreeList* freeList);
 static FreeListNode* FindNode(FreeList* freeList, uword_t address, udword_t size);
 static void UpdateLastNode(FreeList* freeList);
-static FreeListNode* FindSmallestNode(FreeList* freeList, udword_t size);
+static FreeListNode* FindSmallestNode(FreeList* freeList, udword_t size, uword_t alignment);
 
 void FreeListInit(FreeList* freeList, FreeListNode* nodes, size_t nodeCount, udword_t resMemSize)
 {
@@ -19,37 +20,18 @@ void FreeListInit(FreeList* freeList, FreeListNode* nodes, size_t nodeCount, udw
 	freeList->lastNode.size = resMemSize;
 }
 
-int FreeListAllocDynamic(FreeList* freeList, udword_t size, uword_t* address)
+int FreeListAllocDynamic(FreeList* freeList, udword_t size, uword_t alignment, uword_t* address)
 {
-	FreeListNode* smallest = FindSmallestNode(freeList, size);
+	FreeListNode* node = FindSmallestNode(freeList, size, alignment);
+	if(node == NULL) { node = &freeList->lastNode; }
 
-	//if no node was found, try the last node
-	if(smallest == NULL)
-	{
-		if(freeList->lastNode.size == size)
-		{
-			//perfect fit, find new last node
-			*address = freeList->lastNode.address;
-			UpdateLastNode(freeList);
-			return 0;
-		}
+	uword_t addr = Align(node->address, alignment);
+	udword_t sz = node->size - (addr - node->address);
 
-		if(freeList->lastNode.size > size)
-		{
-			smallest = &freeList->lastNode;
-		}
-		else
-		{
-			return -1;
-		}
-	}
+	if(sz < size) { return -1; }
 
-	//remove allocated space from start of node
-//	*address = smallest->address + smallest->size - size;
-//	smallest->size -= size;
-	*address = smallest->address;
-	smallest->address += size;
-	smallest->size -= size;
+	Split(freeList, node, addr, sz);
+	*address = addr;
 
 	return 0;
 }
@@ -100,16 +82,18 @@ static void Split(FreeList* freeList, FreeListNode* node, uword_t address, udwor
 	{
 		if(node->size == size && node == &freeList->lastNode)
 		{
+			node->size = 0;
 			UpdateLastNode(freeList);
+			return;
 		}
 
-		//shave off start of node
+		//allocate off start of node
 		node->address += size;
 		node->size -= size;
 	}
 	else if(node->address + node->size == address + size)
 	{
-		//shave off end of node
+		//allocate off end of node
 		node->size -= size;
 	}
 	else
@@ -195,28 +179,31 @@ static void UpdateLastNode(FreeList* freeList)
 	}
 }
 
-static FreeListNode* FindSmallestNode(FreeList* freeList, size_t size)
+static FreeListNode* FindSmallestNode(FreeList* freeList, udword_t size, uword_t alignment)
 {
 	FreeListNode* smallest = NULL;
-	udword_t smallestRemainder = 0xFFFF;
+	udword_t smallestRemainder = UDWORD_MAX;
 
 	size_t i;
 	for(i = 0; i < freeList->nodeIndex; ++i)
 	{
 		FreeListNode* cur = &freeList->nodes[i];
-		if(cur->size >= size)
-		{
-			udword_t curRemainder = cur->size - size;
-			if(curRemainder == 0)	//perfect fit
-			{
-				return cur;
-			}
+		uword_t addr = Align(cur->address, alignment);
+		udword_t sz = cur->size - (addr - cur->address);
 
-			if(curRemainder < smallestRemainder)
-			{
-				smallest = cur;
-				smallestRemainder = curRemainder;
-			}
+		if(sz < size) { continue; }
+
+		if(addr == cur->address && sz == size)
+		{
+			//perfect fit
+			return cur;
+		}
+
+		udword_t curRemainder = cur->size - size; //space lost due to alignment also counts!
+		if(curRemainder < smallestRemainder)
+		{
+			smallest = cur;
+			smallestRemainder = curRemainder;
 		}
 	}
 

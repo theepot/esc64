@@ -17,6 +17,8 @@ typedef uint16_t	uword_t;
 typedef uint32_t	udword_t;
 typedef int32_t		dword_t;
 
+#define UDWORD_MAX	UINT32_MAX
+
 #define NTOH_WORD(x)	ntohs((x))
 #define HTON_WORD(x)	htons((x))
 

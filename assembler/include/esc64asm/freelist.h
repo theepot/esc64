@@ -30,12 +30,13 @@ typedef struct FreeList_
 void FreeListInit(FreeList* freeList, FreeListNode* nodes, size_t nodeCount, udword_t resMemSize);
 
 /**
- * @brief			Dynamicaly allocate `size' space
+ * @brief			Dynamicaly allocate `size' space aligned on `aligned' bytes
  * @param size		Requested size
+ * @param alignment	alignment in bytes. has to be a power of two
  * @param address	Address where space is allocated
  * @return			0 on success
  */
-int FreeListAllocDynamic(FreeList* freeList, udword_t size, uword_t* address);
+int FreeListAllocDynamic(FreeList* freeList, udword_t size, uword_t alignment, uword_t* address);
 
 /**
  * @brief			Allocate space at a specific address in the freelist

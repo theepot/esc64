@@ -200,14 +200,12 @@ void ObjWriteInst(int isWide, uword_t instWord, uword_t extWord)
 	}
 }
 
-
 int ObjResData(uword_t size)
 {
 	switch(type_)
 	{
 	case SECTION_TYPE_DATA:
 	{
-		EscWarning("Reserved space in data section will be filled with zeroes");
 		uword_t i;
 		for(i = 0; i < size; ++i)
 		{

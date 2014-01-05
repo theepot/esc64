@@ -253,11 +253,16 @@ static void LoadSections(ObjectLinkHandle* object, SectionLinkHandleList* sectio
 		section->offset = ObjGetSectionOffset();
 		section->address = NTOH_WORD(secHeader.address);
 		section->size = NTOH_WORD(secHeader.size);
+		section->alignment = NTOH_WORD(secHeader.alignment);
+		section->next = NULL;
 	}
 }
 
 static void PlaceSections(void)
 {
+	//TODO !!!PRIORITY!!! rewrite this. FreeList will become obsolete, allocation will be done with the linked SectionLinkHandles.
+	//should afterwards check the .align and .pad directives
+
 	FreeList freeList;
 	size_t freeListNodeCount = sectionCount_; //TODO need to experiment with this number
 	FreeListNode freeListNodes[freeListNodeCount];
@@ -283,7 +288,7 @@ static void PlaceSections(void)
 		for(j = 0; j < object->relocSectionList.count; ++j)
 		{
 			SectionLinkHandle* section = &object->relocSectionList.sections[j];
-			assert(!FreeListAllocDynamic(&freeList, section->size, &section->address));
+			assert(!FreeListAllocDynamic(&freeList, section->size, 1, &section->address)); //FIXME :ALIGN: change dummy alignment of 1 to something meaningfull
 		}
 	}
 
