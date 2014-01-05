@@ -141,9 +141,6 @@ static ArgType FirstArgument(void);
 static ArgType NextArgument(void);
 static int IsExpressionStart(TokenID id, TokenClass cls);
 
-//TODO !!!PRIORITY!!! add alignment property to sections, check if .align and .pad work
-//!!! added alignment property. linker should ignore it for now. need to update objdump. check if objread & -write still work
-
 /**
  * @brief	Based on Edsger Dijkstra's Shunting-yard algorithm
  * @return	Non-zero if expression was constant, zero otherwise
