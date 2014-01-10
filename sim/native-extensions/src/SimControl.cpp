@@ -1,4 +1,5 @@
 #include "service/SimService.h"
+#include "SimControl.hpp"
 #include <thrift/protocol/TBinaryProtocol.h>
 #include <thrift/server/TNonblockingServer.h>
 #include <thrift/transport/TServerSocket.h>
@@ -6,10 +7,10 @@
 #include <boost/thread.hpp>
 #include <boost/program_options.hpp>
 #include <boost/array.hpp>
+#include <boost/function.hpp>
 #include <sstream>
 #include <VpiUtils.hpp>
-
-#define BIND_TASK(a, b)	static int a(PLI_BYTE8* p) { reinterpret_cast<ServiceImpl*>(p)->b(); return 0; }
+#include <stdint.h>
 
 using namespace ::apache::thrift;
 using namespace ::apache::thrift::protocol;
@@ -68,35 +69,22 @@ private:
 	void serverThreadProc();
 };
 
-
-///// verilog task bindings & startup routines /////
-static void registerTasks();
-
 struct VerilogTask
 {
 	const char* name;
-	PLI_INT32 (*calltf)(PLI_BYTE8*);
+	void (ServiceImpl::*func)();
 };
-
-BIND_TASK(tickTask_, tickTask)
-BIND_TASK(printNumTask_, printNumTask)
-BIND_TASK(startServerTask_, startServerTask)
-BIND_TASK(haltTask_, haltTask)
-BIND_TASK(errorTask_, errorTask)
 
 static const VerilogTask VERILOG_TASKS[] =
 {
-	{ "$tick", tickTask_ },
-	{ "$print_add", printNumTask_ },
-	{ "$start_thrift_server", startServerTask_ },
-	{ "$halt", haltTask_ },
-	{ "$error", errorTask_ }
+	{ "$tick", &ServiceImpl::tickTask, },
+	{ "$print_add", &ServiceImpl::printNumTask },
+	{ "$start_thrift_server", &ServiceImpl::startServerTask },
+	{ "$halt", &ServiceImpl::haltTask },
+	{ "$error", &ServiceImpl::errorTask }
 };
 
 static const size_t VERILOG_TASKS_SIZE = sizeof VERILOG_TASKS / sizeof (VerilogTask);
-
-void (*vlog_startup_routines[])() = { registerTasks, 0 };
-
 
 ///// implementation /////
 SimState::type ServiceImpl::getState()
@@ -117,10 +105,10 @@ void ServiceImpl::pause()
 
 void ServiceImpl::step()
 {
-	setState(SimState::STEPPING);
+	setState(SimState::STARTING_STEP);
 
 	boost::unique_lock<boost::mutex> lock(simStateMutex);
-	while(simState == SimState::STEPPING)
+	while(simState != SimState::PAUSED)
 	{
 		simStateCond.wait(lock);
 	}
@@ -174,30 +162,31 @@ void ServiceImpl::getRegister(std::vector<int32_t> & _return, const int32_t offs
 
 void ServiceImpl::getMemory(std::vector<int32_t> & _return, const int32_t offset, const int32_t size)
 {
-	unsigned off = offset;
-	unsigned sz = size;
-
-	if(off > 0xFFFF || off + sz > 0x10000)
-	{
-		return;
-	}
-
-	boost::lock_guard<boost::mutex> lock(simMutex);
-
-	s_vpi_value val;
-	val.format = vpiIntVal;
-
-	for(unsigned i = off; i < off + sz; ++i)
-	{
-		vpiHandle h = vpi_handle_by_index(ramHandle, i);
-		assert(h);
-		vpi_get_value(h, &val);
-		_return.push_back(val.value.integer);
-	}
+//	unsigned off = offset;
+//	unsigned sz = size;
+//
+//	if(off > 0xFFFF || off + sz > 0x10000)
+//	{
+//		return;
+//	}
+//
+//	boost::lock_guard<boost::mutex> lock(simMutex);
+//
+//	s_vpi_value val;
+//	val.format = vpiIntVal;
+//
+//	for(unsigned i = off; i < off + sz; ++i)
+//	{
+//		vpiHandle h = vpi_handle_by_index(ramHandle, i);
+//		assert(h);
+//		vpi_get_value(h, &val);
+//		_return.push_back(val.value.integer);
+//	}
 }
 
 void ServiceImpl::tickTask()
 {
+	printf("TIIICK\n");
 	SimState::type s;
 
 	for(;;)
@@ -232,6 +221,10 @@ void ServiceImpl::tickTask()
 				simMutex.lock();
 			}
 			break;
+
+		case SimState::STARTING_STEP:
+			setState(SimState::STEPPING);
+			return;
 
 		case SimState::STEPPING:
 		{
@@ -353,9 +346,6 @@ void ServiceImpl::initModuleHandles()
 		regHandles[i] = vpi_handle_by_name(ss.str().c_str(), top);
 		assert(regHandles[i]);
 	}
-
-	//memory
-	ramHandle = findVerilogModule(top, "ram", "mem", NULL);
 }
 
 void ServiceImpl::serverThreadProc()
@@ -368,18 +358,12 @@ void ServiceImpl::serverThreadProc()
 	server.serve();
 }
 
-static void registerTasks()
+void SimControl_entry(void)
 {
-	s_vpi_systf_data systf;
-	systf.type = vpiSysTask;
-	systf.compiletf = NULL;
-	systf.sizetf    = NULL;
-	systf.user_data = reinterpret_cast<PLI_BYTE8*>(new ServiceImpl());
+	ServiceImpl* s = new ServiceImpl();
 
 	for(const VerilogTask* t = VERILOG_TASKS; t < VERILOG_TASKS + VERILOG_TASKS_SIZE; ++t)
 	{
-		systf.tfname    = t->name;
-		systf.calltf    = t->calltf;
-		vpi_register_systf(&systf);
+		registerSysTF(t->name, boost::bind(t->func, s), vpiSysTask);
 	}
 }

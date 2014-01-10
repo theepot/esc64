@@ -5,19 +5,21 @@
 `include "Quad2To1Mux_74157.v"
 `include "rom_2Kx8.v"
 
+`define ROM_CHIPS 6
+
 module mSeq(clock, notReset, opcode, carry, zero, control);
 	parameter ROM_FILENAME="urom.lst";
 	
 	input clock, notReset, carry, zero;
 	input [6:0] opcode;
-	output [37:0] control;
+	output [(8*`ROM_CHIPS)-14-1:0] control;
 
 	wire [15:0] roms_addr;
-	wire [(8*6)-1:0] roms_data;
+	wire [(8*`ROM_CHIPS)-1:0] roms_data;
 
 	wire rom_next_sel = roms_data[0];
 	wire [12:0] rom_next_addr = roms_data[13:1];
-	assign control = roms_data[14+31:14];
+	assign control = roms_data[(8*`ROM_CHIPS)-1:14];
 	
 	rom_2Kx8 rom0(roms_addr[12:0], roms_data[7:0], 0, 0); //LSBs
 	rom_2Kx8 rom1(roms_addr[12:0], roms_data[15:8], 0, 0);

@@ -7,14 +7,12 @@
 `include "regFile.v"
 `include "io_interface.v"
 
-module cpu(clock, notReset, address, data, memNotRead, memNotWrite);
+module cpu(clock, notReset, address, data, memNotRead, memNotWrite, csh_n, csl_n, select_dev);
 	input clock, notReset;
-	output memNotRead, memNotWrite;
-	inout [15:0] address, data;
+	output memNotRead, memNotWrite, csh_n, csl_n, select_dev;
+	inout [15:0] data;
+	inout [14:0] address;
 		
-	wire clock, notReset, memNotRead, memNotWrite;
-	wire [15:0] address, data;
-	
 	//busses
 	wire [15:0] aBus;
 	wire [15:0] yBus;
@@ -64,20 +62,22 @@ module cpu(clock, notReset, address, data, memNotRead, memNotWrite);
 	instructionRegister ir(clock, irNotLoad, yBus, irOpcode, regselOp0, regselOp1, regselOp2);
 		
 	//micro sequencer
-	wire [37:0] control;
+	wire [33:0] control;
 	mSeq #(.ROM_FILENAME("urom.lst")) _mSeq(clock, notReset, irOpcode, statusCOut, statusZOut, control);
 	
 	//error signals
 	wire [1:0] error;
 	
 	//io interface
-	wire memRead, memWrite, data_dir_in, data_dir_out, address_reg_ld_n, data_reg_ld_n;
-	io_interface _io_interface(clock, notReset, aBus, yBus, memRead, memWrite, data_dir_in, data_dir_out, address_reg_ld_n, data_reg_ld_n, address, data, memNotRead, memNotWrite);
+	wire memRead, memWrite, io_select_dev, io_idle_n, io_word, io_dir_out, io_address_reg_ld_n, io_data_reg_ld_n;
+	io_interface _io_interface(clock, notReset, aBus, yBus, memRead, memWrite, io_select_dev, io_idle_n, io_word, io_dir_out, io_address_reg_ld_n, io_data_reg_ld_n, address, data, memNotRead, memNotWrite, csl_n, csh_n, select_dev);
 		
-	assign data_reg_ld_n = control[31];//1, L
-	assign address_reg_ld_n = control[30];//1, L
-	assign data_dir_out = control[29];//1, H
-	assign data_dir_in = control[28];//1, H
+	assign io_data_reg_ld_n = control[33];//1, L
+	assign io_address_reg_ld_n = control[32];//1, L
+	assign io_select_dev = control[31];//1, H
+	assign io_dir_out = control[30];//1, H
+	assign io_word = control[29];//1, H
+	assign io_idle_n = control[28];//1, L
 	assign error = control[27:26]; //2, H
 	assign statusNotLoad = control[25]; //1,L
 	assign regselOE = control[24]; //1,H

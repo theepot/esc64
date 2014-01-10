@@ -11,8 +11,10 @@ bin_table_collumn_description field_descrps[] = {
 	{.name = "padding", .width = -1, .active_high = H}, //most significant bits
 	{.name = "data_reg_ld_n", .width = 1, .active_high = L},
 	{.name = "address_reg_ld_n", .width = 1, .active_high = L},
-	{.name = "data_dir_out", .width = 1, .active_high = H},
-	{.name = "data_dir_in", .width = 1, .active_high = H},
+	{.name = "io_select_dev", .width = 1, .active_high = H},
+	{.name = "io_dir_out", .width = 1, .active_high = H},
+	{.name = "io_word", .width = 1, .active_high = H},
+	{.name = "io_idle_n", .width = 1, .active_high = H}, //this is an active low control signal, but it's default state should be active, so here it is active high
 	{.name = "error", .width = 2, .active_high = H},
 	{.name = "statusNotLoad", .width = 1, .active_high = L},
 	{.name = "regselOE", .width = 1, .active_high = H},
@@ -172,10 +174,15 @@ void pc_inc(void)
 	assert_signal(u, "pcInc");
 }
 
-void mem_read(reg_ld_sel reg_dest, gpreg_oe_sel reg_with_address, bool increase_pc, int length)
+void io_read(reg_ld_sel reg_dest, gpreg_oe_sel reg_with_address, bool select_device, bool word, int length)
 {
 	length--;
-	assert_signal(u, "data_dir_in");
+	//assert_signal(u, "io_dir_out");
+	assert_signal(u, "io_idle_n");
+	if(select_device)
+		assert_signal(u, "io_select_dev");
+	if(word)
+		assert_signal(u, "io_word");
 	gpreg_oe(reg_with_address);
 	assert_signal(u, "address_reg_ld_n");
 	
@@ -183,20 +190,28 @@ void mem_read(reg_ld_sel reg_dest, gpreg_oe_sel reg_with_address, bool increase_
 	{
 		set_next(next_sel_next_free);
 		goto_next_free();
-		assert_signal(u, "data_dir_in");
+		//assert_signal(u, "data_dir_in");
+		assert_signal(u, "io_idle_n");
+		if(select_device)
+			assert_signal(u, "io_select_dev");
+		if(word)
+			assert_signal(u, "io_word");
 		assert_signal(u, "memRead");
 	}
 	
 	set_next(next_sel_next_free);
 	goto_next_free();
-	assert_signal(u, "data_dir_in");
+	//assert_signal(u, "data_dir_in");
+	assert_signal(u, "io_idle_n");
+	if(select_device)
+		assert_signal(u, "io_select_dev");
+	if(word)
+		assert_signal(u, "io_word");
 	assert_signal(u, "memRead");
 	reg_ld(reg_dest);
-	if(increase_pc)
-		pc_inc();
 }
 
-void mem_write(gpreg_oe_sel reg_dest_addr, gpreg_oe_sel reg_src, int length)
+void io_write(gpreg_oe_sel reg_dest_addr, gpreg_oe_sel reg_src, bool select_device, bool word, int length)
 {
 	
 	gpreg_oe(reg_src);
@@ -208,34 +223,62 @@ void mem_write(gpreg_oe_sel reg_dest_addr, gpreg_oe_sel reg_src, int length)
 	
 	gpreg_oe(reg_dest_addr);
 	assert_signal(u, "address_reg_ld_n");
-	assert_signal(u, "data_dir_out");
+	assert_signal(u, "io_idle_n");
+	assert_signal(u, "io_dir_out");
+	if(select_device)
+		assert_signal(u, "io_select_dev");
+	if(word)
+		assert_signal(u, "io_word");
+
 	
 	for(; length > 0; --length)
 	{
 		set_next(next_sel_next_free);
 		goto_next_free();
 	
-		assert_signal(u, "data_dir_out");
+		assert_signal(u, "io_idle_n");
+		assert_signal(u, "io_dir_out");
+		if(select_device)
+			assert_signal(u, "io_select_dev");
+		if(word)
+			assert_signal(u, "io_word");
+
 		assert_signal(u, "memWrite");
 	}
 	
 	set_next(next_sel_next_free);
 	goto_next_free();
 	
-	assert_signal(u, "data_dir_out");
+	assert_signal(u, "io_idle_n");
+	assert_signal(u, "io_dir_out");
+	if(select_device)
+		assert_signal(u, "io_select_dev");
+	if(word)
+		assert_signal(u, "io_word");
+
 	gpreg_oe(reg_dest_addr);
-	
 }
 
-void io_read(reg_ld_sel reg_dest, gpreg_oe_sel reg_with_address)
+void dev_read(reg_ld_sel reg_dest, gpreg_oe_sel reg_with_address, bool word)
 {
-	mem_read(reg_dest, reg_with_address, false, IO_READ_LENGTH);
+	io_read(reg_dest, reg_with_address, true, word, DEV_READ_LENGTH);
 }
 
-void io_write(gpreg_oe_sel reg_dest_addr, gpreg_oe_sel reg_src)
+void dev_write(gpreg_oe_sel reg_dest_addr, gpreg_oe_sel reg_src, bool word)
 {
-	mem_write(reg_dest_addr, reg_src, IO_WRITE_LENGTH);
+	io_write(reg_dest_addr, reg_src, true, word, DEV_WRITE_LENGTH);
 }
+
+void mem_read(reg_ld_sel reg_dest, gpreg_oe_sel reg_with_address, bool word)
+{
+	io_read(reg_dest, reg_with_address, false, word, MEM_READ_LENGTH);
+}
+
+void mem_write(gpreg_oe_sel reg_dest_addr, gpreg_oe_sel reg_src, bool word)
+{
+	io_write(reg_dest_addr, reg_src, false, word, MEM_WRITE_LENGTH);
+}
+
 
 void error(int error_code)
 {
@@ -263,7 +306,6 @@ void create_nop_instruction(opcode op, int condition)
 	set_next(next_sel_fetch);
 }
 
-
 void create_conditional_mov_instruction(opcode op, int condition)
 {
 	create_nop_instruction(op, ~condition);
@@ -281,7 +323,8 @@ void create_conditional_mov_literal_instruction(opcode op, int condition)
 	set_next(next_sel_fetch);
 
 	goto_op_entry(op, condition);
-	mem_read(reg_ld_sel_op0, gpreg_oe_sel_pc, true, RAM_READ_LENGTH);
+	mem_read(reg_ld_sel_op0, gpreg_oe_sel_pc, true);
+	pc_inc();
 	set_next(next_sel_fetch);
 }
 
@@ -374,7 +417,8 @@ int main(int argc, char** argv)
 
 	//fetch
 	goto_fetch();
-	mem_read(reg_ld_sel_ir, gpreg_oe_sel_pc, true, RAM_READ_LENGTH);
+	mem_read(reg_ld_sel_ir, gpreg_oe_sel_pc, true);
+	pc_inc();
 	set_next(next_sel_next_free);
 	goto_next_free();
 	set_next(next_sel_op_entry);
@@ -535,22 +579,22 @@ int main(int argc, char** argv)
 
 	//load
 	goto_op_entry(op_load, ALWAYS);
-	mem_read(reg_ld_sel_op0, gpreg_oe_sel_op1, false, RAM_READ_LENGTH);
+	mem_read(reg_ld_sel_op0, gpreg_oe_sel_op1, true);
 	set_next(next_sel_fetch);
 
 	//store
 	goto_op_entry(op_store, ALWAYS);
-	mem_write(gpreg_oe_sel_op1, gpreg_oe_sel_op2, RAM_WRITE_LENGTH);
+	mem_write(gpreg_oe_sel_op1, gpreg_oe_sel_op2, true);
 	set_next(next_sel_fetch);
 
 	//in
 	goto_op_entry(op_in, ALWAYS);
-	io_read(reg_ld_sel_op0, gpreg_oe_sel_op1);
+	dev_read(reg_ld_sel_op0, gpreg_oe_sel_op1, true);
 	set_next(next_sel_fetch);
 	
 	//out
 	goto_op_entry(op_out, ALWAYS);
-	io_write(gpreg_oe_sel_op1, gpreg_oe_sel_op2);
+	dev_write(gpreg_oe_sel_op1, gpreg_oe_sel_op2, true);
 	set_next(next_sel_fetch);
 
 	//call
@@ -573,13 +617,13 @@ int main(int argc, char** argv)
 		reg_ld(reg_ld_sel_lr);
 	set_next(next_sel_next_free);
 	goto_next_free();
-		mem_read(reg_ld_sel_pc, gpreg_oe_sel_pc, false, RAM_READ_LENGTH);
+		mem_read(reg_ld_sel_pc, gpreg_oe_sel_pc, true);
 	set_next(next_sel_fetch);
 
 	//push
 	//TODO: might be optimizable
 	goto_op_entry(op_push, ALWAYS);
-	mem_write(gpreg_oe_sel_sp, gpreg_oe_sel_op1, RAM_WRITE_LENGTH);
+	mem_write(gpreg_oe_sel_sp, gpreg_oe_sel_op1, true);
 	set_next(next_sel_next_free);
 	goto_next_free();
 		gpreg_oe(gpreg_oe_sel_sp);
@@ -596,10 +640,11 @@ int main(int argc, char** argv)
 		reg_ld(reg_ld_sel_sp);
 	set_next(next_sel_next_free);
 	goto_next_free();
-		mem_read(reg_ld_sel_op0, gpreg_oe_sel_sp, false, RAM_READ_LENGTH);
+		mem_read(reg_ld_sel_op0, gpreg_oe_sel_sp, true);
 	set_next(next_sel_fetch);
-
-
+	
+	
+	
 	//halt
 	goto_op_entry(op_halt, ALWAYS);
 	set_next(next_sel_current);

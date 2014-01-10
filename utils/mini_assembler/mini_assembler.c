@@ -193,7 +193,7 @@ void lbl(const char* const name)
 	int id = get_label(name);
 	if(globals.labels[id].value == -1)
 	{
-		set_label(id, globals.new_instruction);
+		set_label(id, globals.new_instruction * 2);
 	}
 	else
 	{

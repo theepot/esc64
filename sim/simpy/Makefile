@@ -1,5 +1,5 @@
 SERVICE_GEN_DIR		=gen-py
-SERVICE				=../thrift-server/service.thrift
+SERVICE				=../service.thrift
 SERVICE_TIMESTAMP	=service_timestamp
 
 .PHONY: all

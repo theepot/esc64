@@ -10,8 +10,8 @@ done
 HERE="$( cd -P "$( dirname "$HERE" )" && pwd )"
 
 ### start simulation back-end ###
-vvp -M$HERE/thrift-server -mthriftserver $HERE/computer.vvp $@
-#for your convenience: gdb -args vvp -M`pwd`/thrift-server -mthriftserver `pwd`/computer.vvp
+vvp -M$HERE/native-extensions -mnative-extensions $HERE/computer.vvp $@
+#for your convenience: gdb -args vvp -M`pwd`/native-extensions -mnative-extensions `pwd`/computer.vvp
 
 ### start simulation front-end ###
 #TODO

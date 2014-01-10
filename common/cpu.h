@@ -43,10 +43,10 @@
 #define	ERROR_WIRE_ILLEGAL_OPCODE		1
 #define ERROR_WIRE_ILLEGAL_STATE		2
 
-#define IO_READ_LENGTH			50
-#define IO_WRITE_LENGTH			50
-#define RAM_READ_LENGTH			1
-#define RAM_WRITE_LENGTH		1
+#define DEV_READ_LENGTH			50
+#define DEV_WRITE_LENGTH		50
+#define MEM_READ_LENGTH			1
+#define MEM_WRITE_LENGTH		1
 
 
 typedef enum opcode {

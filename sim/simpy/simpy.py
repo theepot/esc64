@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/python2 -i
 import sys
 
 sys.path.append('./gen-py')

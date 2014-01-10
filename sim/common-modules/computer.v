@@ -1,5 +1,5 @@
-`include "abstract-modules/sram.v" //TODO: fix this
 `include "cpu.v"
+`include "virtual_io.v"
 
 `define CLOCK_PERIOD		1600
 //`define MAX_CLOCK_CYCLES	1000000
@@ -9,12 +9,13 @@ module computer();
 	reg clock, notReset;
 	
 	//cpu
-	wire [15:0] address, data;
-	wire memNotRead, memNotWrite;
-	cpu cpu(clock, notReset, address, data, memNotRead, memNotWrite);
-		
-	//ram
-	sram #(.MEMFILE("ram.lst")) ram({1'b0, address[14:0]}, data, memNotRead, memNotWrite, address[15]);
+	wire [14:0] address;
+	wire [15:0] data;
+	wire rd_n, wr_n, csh_n, csl_n, select_dev;
+	cpu cpu(clock, notReset, address, data, rd_n, wr_n, csh_n, csl_n, select_dev);
+	
+	//virtual-io
+	virtual_io virtual_io(address, data, rd_n, wr_n, csh_n, csl_n, select_dev);
 	
 	initial begin
 		$dumpfile("computer.vcd");
@@ -37,19 +38,19 @@ module computer();
 	end
 
 	always begin
-		at_fetch_int = at_fetch;
+		at_fetch_int = at_fetch === 1;
 		$tick(at_fetch_int);
 		
 		if(cpu.irOpcode === 7'b1111111 && tick_counter != 0) begin
 			$display("halt @ tick %d", tick_counter);
 			$display("dumping ram");
-			#5 $writememb("ram_out.lst", ram.mem, 0, (1<<15)-1);
+			//#5 $writememb("ram_out.lst", ram.mem, 0, (1<<15)-1);
 			$halt;
 			//$finish;
 		end
 		else if(cpu.error !== 2'b00 && tick_counter != 0) begin
 			$display("error %d @ tick %d", cpu.error, tick_counter);
-			//$finish;
+			$finish;
 			$error(cpu.error);
 		end
 		else begin
@@ -80,10 +81,6 @@ module computer();
 			$finish;
 		end
 	end*/
-	
-	always @ (posedge clock) begin
-		ram.test_state();
-	end
 	
 	//ISA monitor wires
 	wire [15:0] reg0 = cpu.registers.r[0].content;

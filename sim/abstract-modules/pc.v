@@ -10,19 +10,12 @@ module program_counter(clock, notReset, notLoad, notOE, inc, in, out);
 	input notOE;
 	input inc;
 	input [DATA_WIDTH-1:0] in;
-	wire clock;
-	wire notReset;
-	wire notLoad;
-	wire notOE;
-	wire inc;
-	wire [DATA_WIDTH-1:0] in;
 	
 	output [DATA_WIDTH-1:0] out;
-	wire [DATA_WIDTH-1:0] out;
 	
 	reg [DATA_WIDTH-1:0] data;
 
-	assign out = ~notOE ? data : 32'bzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz;
+	assign out = ~notOE ? $unsigned(data) << 1 : 32'bZ;
 	
 	always @ (posedge clock) begin
 		if(inc) begin
@@ -30,14 +23,14 @@ module program_counter(clock, notReset, notLoad, notOE, inc, in, out);
 		end
 		
 		if(!notReset && !notLoad) begin
-			data = 32'bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx;
+			data = 32'bX;
 		end
 		else begin
 			if(!notReset) begin
 				data = 0;
 			end
 			else if(!notLoad) begin
-				data = in;
+				data = {in[0], in[15:1]};
 			end
 		end
 	end

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <boost/function.hpp>
+
 extern "C"
 {
 #include <vpi_user.h>
@@ -40,8 +42,14 @@ public:
 	const s_vpi_value& Next(PLI_INT32 format);
 	const s_vpi_value& GetValue() const;
 
-	p_vpi_vecval NextVec()	{ return Next(vpiVectorVal).value.vector; }
+	s_vpi_vecval* NextVec()	{ return Next(vpiVectorVal).value.vector; }
 	PLI_INT32 NextInt()		{ return Next(vpiIntVal).value.integer; }
+
 };
+
+void registerSysTF(const std::string& name, const boost::function<void ()>& func, PLI_INT32 type, PLI_INT32 return_type = 0, PLI_INT32 size = 1);
+void setFunctionReturnValue(s_vpi_value val);
+
+std::ostream& operator << (std::ostream &s, const s_vpi_vecval& rhs);
 
 } //namespace VpiUtils

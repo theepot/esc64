@@ -2,10 +2,14 @@
 
 #include <cassert>
 #include <cstdlib>
+#include <cstdio>
 #include <cstdarg>
 #include <sstream>
 #include <iostream>
 #include <stdexcept>
+
+#include <SimControl.hpp>
+#include <VirtualIO.hpp>
 
 namespace VpiUtils
 {
@@ -86,4 +90,53 @@ const s_vpi_value& ArgumentIterator::GetValue() const
 	return argValue;
 }
 
+struct function_thingy {
+	function_thingy(boost::function<void ()> func, PLI_INT32 return_size) : func(func), return_size(return_size) {}
+
+	boost::function<void ()> func;
+	PLI_INT32 return_size;
+};
+
+static PLI_INT32 tfCallback(PLI_BYTE8* p)
+{
+	((function_thingy*)p)->func();
+	return 0;
+}
+
+static PLI_INT32 tfSize(PLI_BYTE8* p)
+{
+	return ((function_thingy*)p)->return_size;
+}
+
+void registerSysTF(const std::string& name, const boost::function<void ()>& func, PLI_INT32 type, PLI_INT32 return_type, PLI_INT32 size)
+{
+	s_vpi_systf_data systf;
+	systf.type = type;
+	systf.sysfunctype = return_type;
+	systf.compiletf = NULL;
+	systf.sizetf    = tfSize;
+	systf.user_data = reinterpret_cast<PLI_BYTE8*>(new function_thingy(func, size));
+	systf.tfname    = name.c_str();
+	systf.calltf    = tfCallback;
+	vpi_register_systf(&systf);
+}
+
+void setFunctionReturnValue(s_vpi_value val)
+{
+	vpiHandle vpisystfcall = vpi_handle(vpiSysTfCall, NULL);
+
+	vpi_put_value(vpisystfcall, &val, NULL, vpiNoDelay);
+}
+
+std::ostream& operator << (std::ostream &s, const s_vpi_vecval& rhs) {
+	for(int i = 15; i >= 0; --i) {
+		s << "0z1x"[((((rhs.aval >> i & 0x1) << 1) | ((rhs.bval >> i) & 0x1)))];
+	}
+	return s;
+}
+
 } //namespace VpiUtils
+
+extern "C" {
+	void (*vlog_startup_routines[])() = { virtual_io::VirtualIO_entry, SimControl_entry, 0 };
+}

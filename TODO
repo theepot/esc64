@@ -1,19 +1,14 @@
 List of TODO things:
 	-rename control lines from the microsequencer. Some of them have really ugly names
 	-rename ALU's signal fcin to s(tatus)r(register)cin. worked on it, but not sure if it is done.
-	-change the Makefile's of all the simulations so that source directories get included by -I<path>, and get rid of including relative paths
 	
 	-In schematics: All active low in/outputs should either have a not in it's name, or a graphical bar above it
-	
-	-create big diagnostics program that tests every instruction, and stores results in RAM so results can be verified
 	
 	-schematic bootstrapper/circuit tester
 	-schematic ALU: use unconnected net's with a netname for the multiple connections of the A B and Y signals.
 	-schematic CPU: error signals
 	
 	-create verilog simulation of usart_device
-	
-	-find out bottleneck frequency
 	
 	-urom: reset instruction also resets program counter.
 	
