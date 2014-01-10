@@ -31,7 +31,7 @@ int main(int argc, char** argv)
 //	TestRecords(ESC_TEST_FILE_BASE_PATH"/records.bin");
 //	TestObjCode(ESC_TEST_FILE_BASE_PATH"/test.o");
 //	TestExecWriteRead(ESC_TEST_FILE_BASE_PATH"/assembler_exec_test");
-	TestFreelist();
+//	TestFreelist();
 
 //	TestParseExpression("/home/lukas/exp.txt", "/home/lukas/exp.o");
 

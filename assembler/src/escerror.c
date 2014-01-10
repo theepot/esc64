@@ -38,7 +38,6 @@ void FORMATPRINTF(1, 2) EscWarning(const char* fmt, ...)
 	vfprintf (stderr, fmt, args);
 	fputc('\n', stderr);
 	va_end (args);
-	Shutdown();
 }
 
 static void NORETURN Shutdown(void)

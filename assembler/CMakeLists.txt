@@ -36,7 +36,6 @@ set(
 	${SOURCE_DIR}/scanner.c
 	${SOURCE_DIR}/symtable.c
 	${SOURCE_DIR}/token.c
-	${SOURCE_DIR}/freelist.c
 	${SOURCE_DIR}/escerror.c
 	${SOURCE_DIR}/opcodes.c
 	${SOURCE_DIR}/mempool.c
@@ -64,8 +63,7 @@ set(
 	${TEST_DIR}/record_test.c
 	${TEST_DIR}/reswords_test.c
 	${TEST_DIR}/scanner_test.c
-	${TEST_DIR}/symtable_test.c
-	${TEST_DIR}/freelist_test.c)
+	${TEST_DIR}/symtable_test.c)
 
 set(
 	EXEDUMP_SOURCES

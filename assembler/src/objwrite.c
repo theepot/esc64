@@ -209,7 +209,7 @@ int ObjResData(uword_t size)
 		uword_t i;
 		for(i = 0; i < size; ++i)
 		{
-			RecordWriteByte(&dataWriter_, stream_, 0);
+			RecordWriteWord(&dataWriter_, stream_, 0);
 		}
 	} break;
 
@@ -450,7 +450,7 @@ static void UpdatePrevNext(void)
 	IOSetFilePos(stream_, *prevNext);
 	IOWriteObjSize(stream_, offset_);
 //	*prevNext = offset_ + OBJ_SECTION_NEXT_OFFSET;
-	*prevNext = offsetof(ObjSectionHeader, next);
+	*prevNext = offset_ + offsetof(ObjSectionHeader, next);
 }
 
 static int WriteSymbol(RecordWriter* writer, FILE* stream, const Symbol* sym)
