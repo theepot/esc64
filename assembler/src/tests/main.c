@@ -33,7 +33,7 @@ int main(int argc, char** argv)
 //	TestExecWriteRead(ESC_TEST_FILE_BASE_PATH"/assembler_exec_test");
 //	TestFreelist();
 
-	TestParseExpression("/home/lukas/exp.txt", "/home/lukas/exp.o");
+//	TestParseExpression("/home/lukas/exp.txt", "/home/lukas/exp.o");
 
 	clock_t stop = clock();
 	clock_t ms = (stop - start) / 1000;

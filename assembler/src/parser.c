@@ -14,6 +14,7 @@
 #include <esc64asm/escerror.h>
 #include <esc64asm/mempool.h>
 #include <esc64asm/registers.h>
+#include <esc64asm/align.h>
 
 #define SY_OUT_STACK_SIZE	32
 #define SY_OP_STACK_SIZE	32
@@ -139,11 +140,6 @@ static int ParseCommand(void);
 static ArgType FirstArgument(void);
 static ArgType NextArgument(void);
 static int IsExpressionStart(TokenID id, TokenClass cls);
-
-static uword_t Align(uword_t val, uword_t align);
-
-//TODO !!!PRIORITY!!! add alignment property to sections, check if .align and .pad work
-//!!! added alignment property. linker should ignore it for now. need to update objdump. check if objread & -write still work
 
 /**
  * @brief	Based on Edsger Dijkstra's Shunting-yard algorithm
@@ -451,7 +447,7 @@ void ParseAlign(void)
 	ParseExpression(1, 0, &val);
 	uword_t align = (uword_t)val;
 	ESC_ASSERT_ERROR(IS_POWER_OF_TWO(align), "Alignment must be a power of two");
-	//TODO set alignment of section to `align'
+	sectionInfo.alignment = align;
 }
 
 void ParsePad(void)
@@ -460,9 +456,9 @@ void ParsePad(void)
 	word_t val = 0;
 	ParseExpression(1, 0, &val);
 	uword_t align = (uword_t)val;
-	uword_t loc = ObjGetLocation() * 2; //FIXME x2 to get byte address. remove when we have byte addressing
+	uword_t loc = ObjGetLocation();
 	uword_t nwloc = Align(loc, align);
-	ObjResData((nwloc - loc) / 2); //FIXME /2 to get word address. remove when we have byte addressing
+	ObjResData(nwloc - loc);
 }
 
 void ParseResW(void)
@@ -470,7 +466,8 @@ void ParseResW(void)
 	if(FirstArgument() != ARG_T_EXPR) { UnexpectedToken(); }
 	word_t n = 0;
 	ParseExpression(1, 0, &n);
-	ObjResData(n); //FIXME will later be size in bytes (words now)
+	ESC_ASSERT_WARNING(sectionInfo.type != SECTION_TYPE_DATA, "Reserved space in data section will be filled with zeroes");
+	ObjResData(n); //FIXME in words
 }
 
 void ParseGlobal(void)
@@ -544,16 +541,6 @@ static int IsExpressionStart(TokenID id, TokenClass cls)
 	default:
 		return 0;
 	}
-}
-
-static uword_t Align(uword_t val, uword_t align)
-{
-	uword_t mask;
-	for(mask = 1; !(align & mask); mask <<= 1) continue;
-	ESC_ASSERT_ERROR(!(align & ~mask), "Alignment must be a power of two");
-	mask = ~(mask - 1);
-
-	return (val + align) & mask;
 }
 
 //FIXME debug

@@ -10,11 +10,15 @@
 #include <esc64asm/objread.h>
 #include <esc64asm/symtable.h>
 #include <esc64asm/freelist.h>
+#include <esc64asm/escerror.h>
+#include <esc64asm/align.h>
 
 static void LinkInit(ExeWriter* exeWriter, const char** objFiles, size_t objFileCount, ObjectLinkHandle* objects);
 static void LoadObjects(SectionLinkHandle* sections);
 static void LoadSections(ObjectLinkHandle* object, SectionLinkHandleList* sectionList, objsize_t offset);
 static void PlaceSections(void);
+static void AllocateAbsSection(SectionLinkHandle* sec);
+static void AllocateRelocSection(SectionLinkHandle* sec);
 static void LoadGlobalSymbols(void);
 static void LoadSymbols(ObjectLinkHandle* object, SymTable* symTable, objsize_t symRecordOffset);
 //static int FindSymbol(SymTable* localTable, const char* name, size_t nameLength, uword_t* address);
@@ -23,9 +27,13 @@ static void EmitAll(void);
 static void EmitSection(SectionLinkHandle* section);
 static void DumpObjects(void);
 static void DumpSections(SectionLinkHandle* sections, size_t sectionCount);
+static void DumpSectionList(void);
 
 static size_t objectCount_;
-static size_t sectionCount_;
+//static size_t sectionCount_;
+static size_t absSectionCount_;
+static size_t relocSectionCount_;
+static SectionLinkHandle secListRoot_ = { 0, 0, 0, OBJ_RECORD_ILLEGAL_OFFSET, NULL };
 static size_t globalSymCount_;
 static size_t globalSymNameSize_;
 static ExeWriter* exeWriter_;
@@ -128,7 +136,7 @@ void Link(ExeWriter* exeWriter, const char** objFiles, size_t objFileCount)
 {
 	ObjectLinkHandle objects[objFileCount];
 	LinkInit(exeWriter, objFiles, objFileCount, objects);
-	SectionLinkHandle sections[sectionCount_];
+	SectionLinkHandle sections[absSectionCount_ + relocSectionCount_];
 
 	LoadObjects(sections);
 
@@ -179,7 +187,9 @@ static void LinkInit(ExeWriter* exeWriter, const char** objFiles, size_t objFile
 	exeWriter_ = exeWriter;
 	objects_ = objects;
 	objectCount_ = objFileCount;
-	sectionCount_ = 0;
+//	sectionCount_ = 0;
+	absSectionCount_ = 0;
+	relocSectionCount_ = 0;
 	globalSymCount_ = 0;
 	globalSymNameSize_ = 0;
 
@@ -189,7 +199,9 @@ static void LinkInit(ExeWriter* exeWriter, const char** objFiles, size_t objFile
 		ObjReadHeader(&header);
 		ObjectReaderClose();
 
-		sectionCount_ += header.absSectionCount + header.relocSectionCount;
+//		sectionCount_ += header.absSectionCount + header.relocSectionCount;
+		absSectionCount_ += header.absSectionCount;
+		relocSectionCount_ += header.relocSectionCount;
 		globalSymCount_ += header.globalSymCount;
 		globalSymNameSize_ += header.globalSymTotNameSize;
 
@@ -253,43 +265,205 @@ static void LoadSections(ObjectLinkHandle* object, SectionLinkHandleList* sectio
 		section->offset = ObjGetSectionOffset();
 		section->address = NTOH_WORD(secHeader.address);
 		section->size = NTOH_WORD(secHeader.size);
+		section->alignment = NTOH_WORD(secHeader.alignment);
+		section->next = NULL;
 	}
 }
 
 static void PlaceSections(void)
 {
-	FreeList freeList;
-	size_t freeListNodeCount = sectionCount_; //TODO need to experiment with this number
-	FreeListNode freeListNodes[freeListNodeCount];
-	FreeListInit(&freeList, freeListNodes, freeListNodeCount, 0xFFFF + 1);
+	ObjectLinkHandle* obj;
+	SectionLinkHandle* sec;
 
-	size_t i, j;
-
-	//place abs sections
-	for(i = 0; i < objectCount_; ++i)
+	if(absSectionCount_ > 0)
 	{
-		ObjectLinkHandle* object = &objects_[i];
-		for(j = 0; j < object->absSectionList.count; ++j)
+		for(obj = objects_; obj < objects_ + objectCount_; ++obj)
 		{
-			SectionLinkHandle* section = &object->absSectionList.sections[j];
-			assert(!FreeListAllocStatic(&freeList, section->address, section->size));
+			for(sec = obj->absSectionList.sections;
+				sec < obj->absSectionList.sections + obj->absSectionList.count;
+				++sec)
+			{
+				AllocateAbsSection(sec);
+			}
 		}
 	}
 
-	//place reloc sections
-	for(i = 0; i < objectCount_; ++i)
+	puts("SECTION DUMP AFTER ALLOCATING ABS SECTIONS");
+	DumpSectionList();
+
+	if(relocSectionCount_ > 0)
 	{
-		ObjectLinkHandle* object = &objects_[i];
-		for(j = 0; j < object->relocSectionList.count; ++j)
+		for(obj = objects_; obj < objects_ + objectCount_; ++obj)
 		{
-			SectionLinkHandle* section = &object->relocSectionList.sections[j];
-			assert(!FreeListAllocDynamic(&freeList, section->size, &section->address));
+			for(sec = obj->relocSectionList.sections;
+				sec < obj->relocSectionList.sections + obj->relocSectionList.count;
+				++sec)
+			{
+				AllocateRelocSection(sec);
+			}
 		}
 	}
 
-#ifdef ESC_DEBUG
-	FreeListDump(&freeList, stdout);
-#endif
+	puts("\nSECTION DUMP AFTER ALLOCATING RELOC SECTIONS");
+	DumpSectionList();
+
+	//TODO remove stuff below, old
+
+
+//	FreeList freeList;
+//	size_t freeListNodeCount = sectionCount_; //TODO need to experiment with this number
+//	FreeListNode freeListNodes[freeListNodeCount];
+//	FreeListInit(&freeList, freeListNodes, freeListNodeCount, 0xFFFF + 1);
+//
+//	size_t i, j;
+//
+//	//place abs sections
+//	for(i = 0; i < objectCount_; ++i)
+//	{
+//		ObjectLinkHandle* object = &objects_[i];
+//		for(j = 0; j < object->absSectionList.count; ++j)
+//		{
+//			SectionLinkHandle* section = &object->absSectionList.sections[j];
+//			assert(!FreeListAllocStatic(&freeList, section->address, section->size));
+//		}
+//	}
+//
+//	//place reloc sections
+//	for(i = 0; i < objectCount_; ++i)
+//	{
+//		ObjectLinkHandle* object = &objects_[i];
+//		for(j = 0; j < object->relocSectionList.count; ++j)
+//		{
+//			SectionLinkHandle* section = &object->relocSectionList.sections[j];
+//			assert(!FreeListAllocDynamic(&freeList, section->size, 1, &section->address)); //FIXME :ALIGN: change dummy alignment of 1 to something meaningfull
+//		}
+//	}
+
+//#ifdef ESC_DEBUG
+//	FreeListDump(&freeList, stdout);
+//#endif
+}
+
+//TODO need prototype
+static void TestOverlap(const SectionLinkHandle* a, const SectionLinkHandle* b)
+{
+	if(a->address + a->size > b->address)
+	{
+		EscError("sections [0x%X , 0x%X) and [0x%X , 0x%X) overlap",
+			a->address, a->address + a->size,
+			b->address, b->address + b->size);
+	}
+}
+
+static void AllocateAbsSection(SectionLinkHandle* sec)
+{
+#define ERR_FMT	"sections [0x%X , 0x%X) and [0x%X , 0x%X) overlap"
+
+//	ESC_ASSERT_ERROR((udword_t)sec->address + (udword_t)sec->size <= WORD_MAX,
+//		"section [0x%X, 0x%X) exceeds addressing range",
+//		sec->address, sec->size);
+//
+//	if(!secListRoot_.next)
+//	{
+//		secListRoot_.next = sec;
+//	}
+//	else if(sec->address < secListRoot_->address)
+//	{
+//		ESC_ASSERT_ERROR(sec->address + sec->size <= secListRoot_->address,
+//			ERR_FMT,
+//			sec->address, sec->size, secListRoot_.address, secListRoot_.size);
+//
+//		sec.next = secListRoot_;
+//		secListRoot_ = sec;
+//	}
+//	else
+//	{
+
+	SectionLinkHandle* prev = &secListRoot_;
+	SectionLinkHandle* i = secListRoot_.next;
+
+	while(i)
+	{
+		if(sec->address < i->address)
+		{
+//			ESC_ASSERT_ERROR(prev->address + prev->size <= sec->address,
+//				ERR_FMT,
+//				prev->address, prev->size, sec->address, sec->size);
+//
+//			ESC_ASSERT_ERROR(sec->address + sec->size <= i->address,
+//				ERR_FMT,
+//				sec->address, sec->size, i->address, i->size);
+
+			TestOverlap(prev, sec);
+			TestOverlap(sec, i);
+
+			prev->next = sec;
+			sec->next = i;
+			return;
+		}
+
+		prev = i;
+		i = i->next;
+	}
+
+//	ESC_ASSERT_ERROR(prev->address + prev->size <= sec->address,
+//		ERR_FMT,
+//		prev->address, prev->size, sec->address, sec->size);
+
+	TestOverlap(prev, sec);
+
+	prev->next = sec;
+
+//	}
+#undef ERR_FMT
+}
+
+static void AllocateRelocSection(SectionLinkHandle* sec)
+{
+	SectionLinkHandle* prev = &secListRoot_;
+	SectionLinkHandle* i = prev->next;
+
+	SectionLinkHandle* smallestNode = NULL;
+	udword_t smallestSize = UDWORD_MAX;
+
+	udword_t addr;
+	udword_t size;
+
+	if(i)
+	{
+		while(i->next)
+		{
+			addr = Align(prev->address + prev->size, sec->alignment);
+			size = i->address - addr;
+
+			if(sec->size == size)
+			{
+				smallestNode = prev;
+				break;
+			}
+
+			if(sec->size < size && size < smallestSize)
+			{
+				smallestSize = size;
+				smallestNode = prev;
+			}
+
+			prev = i;
+			i = i->next;
+		}
+	}
+
+	if(!smallestNode) { smallestNode = i; }
+
+	addr = Align(smallestNode->address + smallestNode->size, sec->alignment);
+	udword_t end = smallestNode->next ? smallestNode->next->address : UWORD_MAX + 1;
+	size = end - addr;
+
+	ESC_ASSERT_ERROR(sec->size <= size, "Not enough space for reloc-section");
+
+	sec->address = addr;
+	sec->next = smallestNode->next;
+	smallestNode->next = sec;
 }
 
 static void LoadGlobalSymbols(void)
@@ -487,7 +661,33 @@ static void DumpSections(SectionLinkHandle* sections, size_t sectionCount)
 	}
 }
 
+static void DumpSectionList(void)
+{
+	puts("DumpSectionList(): BEGIN");
+	SectionLinkHandle* prev = &secListRoot_;
+	SectionLinkHandle* i = prev->next;
+	while(i)
+	{
+		uword_t from = i->address;
+		uword_t to = from + i->size - 1;
+		uword_t freeFrom = prev->address + prev->size;
+		uword_t freeTo = from - 1;
 
+		if(from > freeFrom && freeTo > freeFrom)
+		{
+			uword_t size = freeTo + 1 - freeFrom;
+			printf("DumpSectionList():    FREE: [0x%04X(%05u), 0x%04X(%05u)] sz=0x%04X(%05u)\n",
+				freeFrom, freeFrom, freeTo, freeTo, size, size);
+		}
+
+		printf("DumpSectionList():    SECT: [0x%04X(%05u), 0x%04X(%05u)] sz=0x%04X(%05u) algn=0x%04X(%05u)\n",
+			from, from, to, to, i->size, i->size, i->alignment, i->alignment);
+
+		prev = i;
+		i = i->next;
+	}
+	puts("DumpSectionList(): END");
+}
 
 
 

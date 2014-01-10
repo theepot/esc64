@@ -68,13 +68,17 @@ static void PrintHeader(const ObjectHeader* header)
 
 static void PrintSection(const ObjSectionHeader* secHeader)
 {
+	objsize_t offset = ObjGetSectionOffset();
+	objsize_t next = ObjGetSectionNext();
 	uword_t address = NTOH_WORD(secHeader->address);
 	uword_t size = NTOH_WORD(secHeader->size);
 	uword_t alignment = NTOH_WORD(secHeader->alignment);
 	byte_t type = secHeader->type;
 
-	printf(	"\t%s section address=0x%X(%u); size=0x%X(%u); alignment=0x%X(%u)\n",
+	printf(	"\t%s section offset=0x%X(%u); next=0x%X(%u); address=0x%X(%u); size=0x%X(%u); alignment=0x%X(%u)\n",
 			SectionTypeToString(type),
+			offset, offset,
+			next, next,
 			address, address,
 			size, size,
 			alignment, alignment);

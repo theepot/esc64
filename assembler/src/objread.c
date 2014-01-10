@@ -201,13 +201,6 @@ int XObjExpReaderInit(XObjExpReader* reader)
 
 	objsize_t firstOffset = IOReadObjSize(objStream_);
 
-	//FIXME DEBUG BEGIN
-	if(firstOffset == 0xDEAD)
-	{
-		char* please = "break here";
-	}
-	//DEBUG END
-
 	if(firstOffset == OBJ_RECORD_ILLEGAL_OFFSET) { return -1; }
 
 	RecordReaderInit(&reader->reader, objStream_, firstOffset);

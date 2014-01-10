@@ -121,7 +121,12 @@ typedef struct SectionLinkHandle_
 {
 	uword_t address;
 	uword_t size;
+	uword_t alignment;
 	objsize_t offset;
+	struct SectionLinkHandle_* next;
+	//TODO SectionLinkHandle* next; to implement a linked list that will help with allocating sections to memory
+	//freelist will become obsolete, free spaces can be detected by looking at the linked list of sections. (as long as it is sorted)
+	//absolute sections will be allocated first (as before) relocatable ones later
 } SectionLinkHandle;
 
 typedef struct SectionLinkHandleList_

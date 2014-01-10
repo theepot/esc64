@@ -38,7 +38,7 @@ static void DynAlloc(udword_t size)
 {
 	printf("dynamic allocation: sz=0x%04X(%05u)\n", size, size);
 	uword_t address;
-	assert(!FreeListAllocDynamic(&freeList, size, &address));
+	assert(!FreeListAllocDynamic(&freeList, size, 1, &address));
 	printf("returned address:   0x%04X(%05u)\n", address, address);
 	FreeListDump(&freeList, stdout);
 	putchar('\n');
