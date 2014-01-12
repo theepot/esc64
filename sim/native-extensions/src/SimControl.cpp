@@ -357,13 +357,16 @@ void ServiceImpl::serverThreadProc()
 
 	server.serve();
 }
-
+extern "C" {
 void SimControl_entry(void)
 {
+	printf("asd");
+	fflush(stdout);
 	ServiceImpl* s = new ServiceImpl();
 
 	for(const VerilogTask* t = VERILOG_TASKS; t < VERILOG_TASKS + VERILOG_TASKS_SIZE; ++t)
 	{
 		registerSysTF(t->name, boost::bind(t->func, s), vpiSysTask);
 	}
+}
 }

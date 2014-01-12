@@ -69,5 +69,4 @@ extern int verilogmemlex();
 }
 #endif
 
-
 #endif

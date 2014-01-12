@@ -157,7 +157,7 @@ static int check_word_width(const char* text, int char_width, int (*func_charval
 
 static void allocate_last_value(verilogmem_process_state_t* ps) {
 	assert(process_state->word_width > 0);
-	process_state->last_value = calloc(process_state->word_width, sizeof(verilogmem_bit_t));
+	process_state->last_value = (verilogmem_bit_t*)calloc(process_state->word_width, sizeof(verilogmem_bit_t));
 	assert(process_state->last_value != NULL);
 }
 

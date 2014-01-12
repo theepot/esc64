@@ -4,7 +4,7 @@ find_package(FLEX)
 
 set(SOURCE_DIR src)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -fPIC -g3")
 
 FLEX_TARGET(VerilogMemScanner ${SOURCE_DIR}/verilogmem.lex ${SOURCE_DIR}/verilogmem.lex.c COMPILE_FLAGS -L)
 
@@ -20,4 +20,4 @@ include_directories(include)
 set(LIBRARY_OUTPUT_PATH lib)
 
 add_library(Memory STATIC ${LIB_SOURCES})
-add_executable(verilogMemoryTest ${TEST_SOURCES}) 
+add_executable(verilogMemoryTest ${TEST_SOURCES})
