@@ -1,6 +1,5 @@
 #include <cstdio>
 #include <cassert>
-#include <Memory.h>
 
 #include <verilogmem.lex.h>
 

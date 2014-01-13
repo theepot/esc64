@@ -9,7 +9,11 @@
 #include <stdexcept>
 
 #include <SimControl.hpp>
-#include <VirtualIO.hpp>
+
+extern "C" {
+//TODO put this in a header
+void VirtualIO_entry(void);
+}
 
 namespace VpiUtils
 {
@@ -128,15 +132,8 @@ void setFunctionReturnValue(s_vpi_value val)
 	vpi_put_value(vpisystfcall, &val, NULL, vpiNoDelay);
 }
 
-std::ostream& operator << (std::ostream &s, const s_vpi_vecval& rhs) {
-	for(int i = 15; i >= 0; --i) {
-		s << "0z1x"[((((rhs.aval >> i & 0x1) << 1) | ((rhs.bval >> i) & 0x1)))];
-	}
-	return s;
-}
-
 } //namespace VpiUtils
 
 extern "C" {
-	void (*vlog_startup_routines[])() = { virtual_io::VirtualIO_entry, SimControl_entry, 0 };
+	void (*vlog_startup_routines[])() = { VirtualIO_entry, SimControl_entry, 0 };
 }
