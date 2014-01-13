@@ -353,11 +353,27 @@ module ESC64AsmDesc
 			#f.write "\t{ #{inst.pattern.mnem}, #{inst.uname}, #{inst.wide}, #{rev_bind.count}, #{s} }\t//#{inst.opcode}"
 		end
 		
+		def emit_c_opcodes filename
+			File.open(filename, "w") do |f|
+				f.write "#ifndef OPCODES_INCLUDED\n"
+				f.write "#define OPCODES_INCLUDED\n\n"
+				
+				sorted = @instructions.sort { |a, b| a.opcode <=> b.opcode }
+				
+				for inst in sorted
+					f.write "#define OPCODE_#{inst.uname.upcase}\t\t#{sprintf("0x%02X", inst.opcode)}\n"
+				end
+				
+				f.write "\n#endif OPCODES_INCLUDED\n"
+			end
+		end
+		
 		def emit_c_decomp filename
 			File.open(filename, "w") do |f|
 				f.write "#include <esc64asm/decomp.h>\n\n"
 				
 				sorted = @instructions.sort { |a, b| a.opcode <=> b.opcode }
+				
 				f.write "static const DecompInfo DECOMP_INFO[] =\n{\n"
 				c_decomp_inst f, sorted[0], 0
 				n = sorted[0].opcode + 1
@@ -600,6 +616,7 @@ module ESC64AsmDesc
 	
 		gperf_path = nil
 		decomp_c_path = nil
+		opcodes_c_path = nil
 		verbose = false
 		
 		OptionParser.new do |opts|
@@ -609,6 +626,10 @@ module ESC64AsmDesc
 			
 			opts.on("-d PATH", "--emit-decomp PATH", "decompilation C code path") do |p|
 				decomp_c_path = p
+			end
+			
+			opts.on("-p PATH", "--emit-opcodes PATH", "C opcode defines") do |p|
+				opcodes_c_path = p
 			end
 			
 			opts.on("-v", "--verbose", "be verbose") do |v|
@@ -627,6 +648,10 @@ module ESC64AsmDesc
 		
 		if decomp_c_path != nil
 			i.emit_c_decomp decomp_c_path
+		end
+		
+		if opcodes_c_path != nil
+			i.emit_c_opcodes opcodes_c_path
 		end
 	end
 end
