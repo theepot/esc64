@@ -5,6 +5,8 @@
 #include <cstdio>
 #include <VirtualIO.hpp>
 #include <RAM.hpp>
+#include <string>
+#include <stdexcept>
 
 extern "C"
 {
@@ -69,21 +71,32 @@ void VirtualIOExtension::read_task() {
 extern "C" {
 
 void VirtualIO_entry(void) {
-	printf("as2d");
-	fflush(stdout);
 	VirtualIOManager* viom = new VirtualIOManager();
-
+	
 	RAM* ram = new RAM(false, 0, 1<<15);
-	FILE* f = fopen("ram.lst", "r");
-	if(f == NULL) {
-		printf("lalala");
-		return;
+	
+	s_vpi_vlog_info vlog_info;
+	vpi_get_vlog_info(&vlog_info);
+
+	for(int i = 1; i < vlog_info.argc; ++i) {
+		if(std::string(vlog_info.argv[i]) == "-r") {
+			if(i + 1 >= vlog_info.argc) {
+				fprintf(stderr, "-r needs an argument\n");
+			} else {
+				FILE* f = fopen(vlog_info.argv[i + 1], "r");
+				if(f != NULL) {
+					ram->load_from_verilog_file(f);
+					fclose(f);
+				} else {
+					fprintf(stderr, "could not open file %s for reading\n", vlog_info.argv[i + 1]);
+				}
+			}
+			break;
+		}
 	}
-	ram->load_from_verilog_file(f);
-	//fclose(f);
-	
+
 	viom->add_device(ram);
-	
+
 	VirtualIOExtension* vioe = new VirtualIOExtension(viom);
 	
 	registerSysTF("$virtio_read", boost::bind(&VirtualIOExtension::read_task, vioe), vpiSysFunc, vpiVectorVal, 16);

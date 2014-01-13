@@ -12,4 +12,6 @@ List of TODO things:
 	
 	-urom: reset instruction also resets program counter.
 	
+	-fix the mixing of printf and <<
+	
 	verilog sram module. there is almost no difference between abstract and discrete version. resolve this weirdness

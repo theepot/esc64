@@ -29,8 +29,10 @@ public:
 	BitVector16 read(int addr, bool csh, bool csl, bool select_dev);
 	void write(int addr, BitVector16 data, bool csh, bool csl, bool select_dev);
 	void add_device(VirtualIO* vio);
+	bool print_io_activity;
 private:
 	std::vector<VirtualIO*> devices;
+
 };
 
 std::ostream& operator << (std::ostream &s, const BitVector16& rhs);

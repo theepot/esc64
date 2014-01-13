@@ -10,7 +10,8 @@ namespace virtual_io {
 BitVector16 VirtualIOManager::read(int addr, bool csh, bool csl, bool select_dev) {
 	assert(csh || csl);
 
-	printf("virtual-io: INFO: read at %X. csh: %d csl: %d dev: %d\n", addr, csh, csl, select_dev);
+	if(print_io_activity)
+		printf("virtual-io: INFO: read at %X. csh: %d csl: %d dev: %d\n", addr, csh, csl, select_dev);
 
 	//init result at Z
 	BitVector16 result;
@@ -20,8 +21,10 @@ BitVector16 VirtualIOManager::read(int addr, bool csh, bool csl, bool select_dev
 	int n = 0;
 	for(std::vector<VirtualIO*>::iterator i = devices.begin(); i != devices.end(); ++i, ++n) {
 		if((*i)->read(addr, csh, csl, select_dev, &result)) {
-			printf("virtual-io: INFO: device %d responded. Result: ", n);
-			std::cout << result << std::endl;
+			if(print_io_activity) {
+				printf("virtual-io: INFO: device %d responded. Result: ", n);
+				std::cout << result << std::endl;
+			}
 			if(responding_device != -1) {
 				fprintf(stderr, "virtual-io: ERROR: at least two devices responded to a read. Devices %d and %d at %X\n", responding_device, n, addr);
 				result.a = -1;
@@ -39,11 +42,19 @@ BitVector16 VirtualIOManager::read(int addr, bool csh, bool csl, bool select_dev
 void VirtualIOManager::write(int addr, BitVector16 data, bool csh, bool csl, bool select_dev) {
 	assert(csh || csl);
 
+	if(print_io_activity) {
+		printf("virtual-io: INFO: write at %X of data ", addr);
+		std::cout << data;
+		printf(" csh: %d csl: %d dev: %d\n", csh, csl, select_dev);
+	}
+
 	int responding_device = -1;
 	int n = 0;
 
 	for(std::vector<VirtualIO*>::iterator i = devices.begin(); i != devices.end(); ++i, ++n) {
 		if((*i)->write(addr, data, csh, csl, select_dev)) {
+			if(print_io_activity)
+				printf("virtual-io: INFO: device %d listened\n", n);
 			if(responding_device != -1) {
 				fprintf(stderr, "virtual-io: WARNING: at least two devices responded to a write. Devices %d and %d at %X\n", responding_device, n, addr);
 			} else {
@@ -62,7 +73,7 @@ std::ostream& operator << (std::ostream &s, const BitVector16& rhs) {
 }
 
 VirtualIOManager::VirtualIOManager() {
-
+	print_io_activity = false;
 }
 
 VirtualIOManager::~VirtualIOManager() {
