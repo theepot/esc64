@@ -56,7 +56,7 @@ void VirtualIOManager::write(int addr, BitVector16 data, bool csh, bool csl, boo
 			if(print_io_activity)
 				printf("virtual-io: INFO: device %d listened\n", n);
 			if(responding_device != -1) {
-				fprintf(stderr, "virtual-io: WARNING: at least two devices responded to a write. Devices %d and %d at %X\n", responding_device, n, addr);
+				fprintf(stderr, "virtual-io: WARNING: at least two devices listened to a write. Devices %d and %d at %X\n", responding_device, n, addr);
 			} else {
 				responding_device = n;
 			}
@@ -83,8 +83,6 @@ VirtualIOManager::~VirtualIOManager() {
 void VirtualIOManager::add_device(VirtualIO* vio) {
 	devices.push_back(vio);
 }
-
-
 
 
 } //namespace

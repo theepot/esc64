@@ -5,6 +5,7 @@
 #include <math.h>
 #include <string.h>
 #include <cpu.h>
+#include <instr_info.h>
 
 struct globals_struct globals;
 
@@ -108,7 +109,7 @@ void print_memory()
 }
 
 
-void add_instruction(const int opcode, const int op0, const int op1, const int op2, const char* const comment)
+void add_instruction(const opcode_t opcode, const int op0, const int op1, const int op2, const char* const comment)
 {
 	if(globals.new_instruction >= globals.mem_size)
 	{
@@ -214,217 +215,217 @@ void mov(const int dst, const int src)
 
 void mov_on_notcarry_and_notzero(const int dst, const int src)
 {
-	add_instruction(op_mov_on_notcarry_and_notzero, dst, src, 0, "mov_on_notcarry_and_notzero");
+	add_instruction(op_movncnz, dst, src, 0, "mov_on_notcarry_and_notzero");
 }
 
 void mov_on_notcarry_and_zero(const int dst, const int src)
 {
-	add_instruction(op_mov_on_notcarry_and_zero, dst, src, 0, "mov_on_notcarry_and_zero");
+	add_instruction(op_movncz, dst, src, 0, "mov_on_notcarry_and_zero");
 }
 
 void mov_on_notcarry(const int dst, const int src)
 {
-	add_instruction(op_mov_on_notcarry, dst, src, 0, "mov_on_notcarry");
+	add_instruction(op_movnc, dst, src, 0, "mov_on_notcarry");
 }
 
 void mov_on_carry_and_notzero(const int dst, const int src)
 {
-	add_instruction(op_mov_on_carry_and_notzero, dst, src, 0, "mov_on_carry_and_notzero");
+	add_instruction(op_movcnz, dst, src, 0, "mov_on_carry_and_notzero");
 }
 
 void mov_on_notzero(const int dst, const int src)
 {
-	add_instruction(op_mov_on_notzero, dst, src, 0, "mov_on_notzero");
+	add_instruction(op_movnz, dst, src, 0, "mov_on_notzero");
 }
 
 void mov_on_notcarry_or_notzero(const int dst, const int src)
 {
-	add_instruction(op_mov_on_notcarry_or_notzero, dst, src, 0, "mov_on_notcarry_or_notzero");
+	add_instruction(op_movncnz, dst, src, 0, "mov_on_notcarry_or_notzero");
 }
 
 void mov_on_carry_and_zero(const int dst, const int src)
 {
-	add_instruction(op_mov_on_carry_and_zero, dst, src, 0, "mov_on_carry_and_zero");
+	add_instruction(op_movcz, dst, src, 0, "mov_on_carry_and_zero");
 }
 
 void mov_on_zero(const int dst, const int src)
 {
-	add_instruction(op_mov_on_zero, dst, src, 0, "mov_on_zero");
+	add_instruction(op_movz, dst, src, 0, "mov_on_zero");
 }
 
 void mov_on_notcarry_or_zero(const int dst, const int src)
 {
-	add_instruction(op_mov_on_notcarry_or_zero, dst, src, 0, "mov_on_notcarry_or_zero");
+	add_instruction(op_movncoz, dst, src, 0, "mov_on_notcarry_or_zero");
 }
 
 void mov_on_carry(const int dst, const int src)
 {
-	add_instruction(op_mov_on_carry, dst, src, 0, "mov_on_carry");
+	add_instruction(op_movc, dst, src, 0, "mov_on_carry");
 }
 
 void mov_on_carry_or_notzero(const int dst, const int src)
 {
-	add_instruction(op_mov_on_carry_or_notzero, dst, src, 0, "mov_on_carry_or_notzero");
+	add_instruction(op_movconz, dst, src, 0, "mov_on_carry_or_notzero");
 }
 
 void mov_on_carry_or_zero(const int dst, const int src)
 {
-	add_instruction(op_mov_on_carry_or_zero, dst, src, 0, "mov_on_carry_or_zero");
+	add_instruction(op_movcoz, dst, src, 0, "mov_on_carry_or_zero");
 }
 
 void mov_literal(const int dst, const int literal)
 {
-	add_instruction(op_mov_literal, dst, 0, 0, "move_literal");
+	add_instruction(op_mov_imm, dst, 0, 0, "move_literal");
 	add_literal(literal, 0);
 }
 
 void mov_literal_on_notcarry_and_notzero(const int dst, const int literal)
 {
-	add_instruction(op_mov_literal_on_notcarry_and_notzero, dst, 0, 0, "mov_literal_on_notcarry_and_notzero");
+	add_instruction(op_movncnz_imm, dst, 0, 0, "mov_literal_on_notcarry_and_notzero");
 	add_literal(literal, 0);
 }
 
 void mov_literal_on_notcarry_and_zero(const int dst, const int literal)
 {
-	add_instruction(op_mov_literal_on_notcarry_and_zero, dst, 0, 0, "mov_literal_on_notcarry_and_zero");
+	add_instruction(op_movncz_imm, dst, 0, 0, "mov_literal_on_notcarry_and_zero");
 	add_literal(literal, 0);
 }
 
 void mov_literal_on_notcarry(const int dst, const int literal)
 {
-	add_instruction(op_mov_literal_on_notcarry, dst, 0, 0, "mov_literal_on_notcarry");
+	add_instruction(op_movnc_imm, dst, 0, 0, "mov_literal_on_notcarry");
 	add_literal(literal, 0);
 }
 
 void mov_literal_on_carry_and_notzero(const int dst, const int literal)
 {
-	add_instruction(op_mov_literal_on_carry_and_notzero, dst, 0, 0, "mov_literal_on_carry_and_notzero");
+	add_instruction(op_movcnz_imm, dst, 0, 0, "mov_literal_on_carry_and_notzero");
 	add_literal(literal, 0);
 }
 
 void mov_literal_on_notzero(const int dst, const int literal)
 {
-	add_instruction(op_mov_literal_on_notzero, dst, 0, 0, "mov_literal_on_notzero");
+	add_instruction(op_movnz_imm, dst, 0, 0, "mov_literal_on_notzero");
 	add_literal(literal, 0);
 }
 
 void mov_literal_on_notcarry_or_notzero(const int dst, const int literal)
 {
-	add_instruction(op_mov_literal_on_notcarry_or_notzero, dst, 0, 0, "mov_literal_on_notcarry_or_notzero");
+	add_instruction(op_movnconz_imm, dst, 0, 0, "mov_literal_on_notcarry_or_notzero");
 	add_literal(literal, 0);
 }
 
 void mov_literal_on_carry_and_zero(const int dst, const int literal)
 {
-	add_instruction(op_mov_literal_on_carry_and_zero, dst, 0, 0, "mov_literal_on_carry_and_zero");
+	add_instruction(op_movcz_imm, dst, 0, 0, "mov_literal_on_carry_and_zero");
 	add_literal(literal, 0);
 }
 
 void mov_literal_on_zero(const int dst, const int literal)
 {
-	add_instruction(op_mov_literal_on_zero, dst, 0, 0, "mov_literal_on_zero");
+	add_instruction(op_movz_imm, dst, 0, 0, "mov_literal_on_zero");
 	add_literal(literal, 0);
 }
 
 void mov_literal_on_notcarry_or_zero(const int dst, const int literal)
 {
-	add_instruction(op_mov_literal_on_notcarry_or_zero, dst, 0, 0, "mov_literal_on_notcarry_or_zero");
+	add_instruction(op_movncoz_imm, dst, 0, 0, "mov_literal_on_notcarry_or_zero");
 	add_literal(literal, 0);
 }
 
 void mov_literal_on_carry(const int dst, const int literal)
 {
-	add_instruction(op_mov_literal_on_carry, dst, 0, 0, "mov_literal_on_carry");
+	add_instruction(op_movc, dst, 0, 0, "mov_literal_on_carry");
 	add_literal(literal, 0);
 }
 
 void mov_literal_on_carry_or_notzero(const int dst, const int literal)
 {
-	add_instruction(op_mov_literal_on_carry_or_notzero, dst, 0, 0, "mov_literal_on_carry_or_notzero");
+	add_instruction(op_movconz_imm, dst, 0, 0, "mov_literal_on_carry_or_notzero");
 	add_literal(literal, 0);
 }
 
 void mov_literal_on_carry_or_zero(const int dst, const int literal)
 {
-	add_instruction(op_mov_literal_on_carry_or_zero, dst, 0, 0, "mov_literal_on_carry_or_zero");
+	add_instruction(op_movcoz_imm, dst, 0, 0, "mov_literal_on_carry_or_zero");
 	add_literal(literal, 0);
 }
 
 void mov_literal_labeled(const int dst, const char* const name)
 {
-	add_instruction(op_mov_literal, dst, 0, 0, "move_literal labeled");
+	add_instruction(op_mov_imm, dst, 0, 0, "move_literal labeled");
 	add_literal_labeled(name, name);
 }
 
 void mov_literal_on_notcarry_and_notzero_labeled(const int dst, const char* const name)
 {
-	add_instruction(op_mov_literal_on_notcarry_and_notzero, dst, 0, 0, "mov_literal_on_notcarry_and_notzero labeled");
+	add_instruction(op_movncnz_imm, dst, 0, 0, "mov_literal_on_notcarry_and_notzero labeled");
 	add_literal_labeled(name, name);
 }
 
 void mov_literal_on_notcarry_and_zero_labeled(const int dst, const char* const name)
 {
-	add_instruction(op_mov_literal_on_notcarry_and_zero, dst, 0, 0, "mov_literal_on_notcarry_and_zero labeled");
+	add_instruction(op_movncz_imm, dst, 0, 0, "mov_literal_on_notcarry_and_zero labeled");
 	add_literal_labeled(name, name);
 }
 
 void mov_literal_on_notcarry_labeled(const int dst, const char* const name)
 {
-	add_instruction(op_mov_literal_on_notcarry, dst, 0, 0, "mov_literal_on_notcarry labeled");
+	add_instruction(op_movnc_imm, dst, 0, 0, "mov_literal_on_notcarry labeled");
 	add_literal_labeled(name, name);
 }
 
 void mov_literal_on_carry_and_notzero_labeled(const int dst, const char* const name)
 {
-	add_instruction(op_mov_literal_on_carry_and_notzero, dst, 0, 0, "mov_literal_on_carry_and_notzero labeled");
+	add_instruction(op_movcnz_imm, dst, 0, 0, "mov_literal_on_carry_and_notzero labeled");
 	add_literal_labeled(name, name);
 }
 
 void mov_literal_on_notzero_labeled(const int dst, const char* const name)
 {
-	add_instruction(op_mov_literal_on_notzero, dst, 0, 0, "mov_literal_on_notzero labeled");
+	add_instruction(op_movnz_imm, dst, 0, 0, "mov_literal_on_notzero labeled");
 	add_literal_labeled(name, name);
 }
 
 void mov_literal_on_notcarry_or_notzero_labeled(const int dst, const char* const name)
 {
-	add_instruction(op_mov_literal_on_notcarry_or_notzero, dst, 0, 0, "mov_literal_on_notcarry_or_notzero labeled");
+	add_instruction(op_movnconz_imm, dst, 0, 0, "mov_literal_on_notcarry_or_notzero labeled");
 	add_literal_labeled(name, name);
 }
 
 void mov_literal_on_carry_and_zero_labeled(const int dst, const char* const name)
 {
-	add_instruction(op_mov_literal_on_carry_and_zero, dst, 0, 0, "mov_literal_on_carry_and_zero labeled");
+	add_instruction(op_movcz_imm, dst, 0, 0, "mov_literal_on_carry_and_zero labeled");
 	add_literal_labeled(name, name);
 }
 
 void mov_literal_on_zero_labeled(const int dst, const char* const name)
 {
-	add_instruction(op_mov_literal_on_zero, dst, 0, 0, "mov_literal_on_zero labeled");
+	add_instruction(op_movz_imm, dst, 0, 0, "mov_literal_on_zero labeled");
 	add_literal_labeled(name, name);
 }
 
 void mov_literal_on_notcarry_or_zero_labeled(const int dst, const char* const name)
 {
-	add_instruction(op_mov_literal_on_notcarry_or_zero, dst, 0, 0, "mov_literal_on_notcarry_or_zero labeled");
+	add_instruction(op_movncoz_imm, dst, 0, 0, "mov_literal_on_notcarry_or_zero labeled");
 	add_literal_labeled(name, name);
 }
 
 void mov_literal_on_carry_labeled(const int dst, const char* const name)
 {
-	add_instruction(op_mov_literal_on_carry, dst, 0, 0, "mov_literal_on_carry labeled");
+	add_instruction(op_movc_imm, dst, 0, 0, "mov_literal_on_carry labeled");
 	add_literal_labeled(name, name);
 }
 
 void mov_literal_on_carry_or_notzero_labeled(const int dst, const char* const name)
 {
-	add_instruction(op_mov_literal_on_carry_or_notzero, dst, 0, 0, "mov_literal_on_carry_or_notzero labeled");
+	add_instruction(op_movconz_imm, dst, 0, 0, "mov_literal_on_carry_or_notzero labeled");
 	add_literal_labeled(name, name);
 }
 
 void mov_literal_on_carry_or_zero_labeled(const int dst, const char* const name)
 {
-	add_instruction(op_mov_literal_on_carry_or_zero, dst, 0, 0, "mov_literal_on_carry_or_zero labeled");
+	add_instruction(op_movcoz_imm, dst, 0, 0, "mov_literal_on_carry_or_zero labeled");
 	add_literal_labeled(name, name);
 }
 
@@ -435,7 +436,7 @@ void add(const int dst, const int a, const int b)
 
 void add_with_carry(const int dst, const int a, const int b)
 {
-	add_instruction(op_add_with_carry, dst, a, b, "add with carry");
+	add_instruction(op_adc, dst, a, b, "add with carry");
 }
 
 void sub(const int dst, const int a, const int b)
@@ -445,7 +446,7 @@ void sub(const int dst, const int a, const int b)
 
 void sub_with_carry(const int dst, const int a, const int b)
 {
-	add_instruction(op_sub_with_carry, dst, a, b, "sub with carry");
+	add_instruction(op_sbc, dst, a, b, "sub with carry");
 }
 
 void and(const int dst, const int a, const int b)
@@ -480,22 +481,22 @@ void dec(const int dst, const int a)
 
 void shiftl(const int dst, const int src)
 {
-	add_instruction(op_shift_left_1, dst, src, 0, "shiftl");
+	add_instruction(op_shl, dst, src, 0, "shiftl");
 }
 
 void shiftr(const int dst, const int src)
 {
-	add_instruction(op_shift_right_1, dst, src, 0, "shiftr");
+	add_instruction(op_shr, dst, src, 0, "shiftr");
 }
 
 void load(const int dst, const int src)
 {
-	add_instruction(op_load, dst, src, 0, "load");
+	add_instruction(op_ldr, dst, src, 0, "load");
 }
 
 void store(const int dst, const int src)
 {
-	add_instruction(op_store, 0, dst, src, "store");
+	add_instruction(op_str, 0, dst, src, "store");
 }
 
 void call(const int addr_reg)
@@ -505,12 +506,12 @@ void call(const int addr_reg)
 
 void call_literal(const int addr)
 {
-	add_instruction(op_call_literal, 0, 0, 0, "call_literal");
+	add_instruction(op_call_imm, 0, 0, 0, "call_literal");
 	add_literal(addr, 0);
 }
 void call_literal_labeled(const char* const name)
 {
-	add_instruction(op_call_literal, 0, 0, 0, "call_literal");
+	add_instruction(op_call_imm, 0, 0, 0, "call_literal");
 	add_literal_labeled(name, name);
 }
 
@@ -537,15 +538,11 @@ void halt()
 void push(int a)
 {
 	add_instruction(op_push, 0, a, 0, "push");
-	//store(SP, r);
-	//dec(SP, SP);
 }
 
 void pop(int a)
 {
 	add_instruction(op_pop, a, 0, 0, "pop");
-	//inc(SP, SP);
-	//load(r, SP);
 }
 
 //pseudo operations

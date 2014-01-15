@@ -2,11 +2,12 @@
 #define MINI_ASSEMBLER_INCLUDED
 
 #include <cpu.h>
+#include <instr_info.h>
 
 #define MEM_SIZE (1 << 15)
 #define LABELS_MAX (256)
 
-#define GP0	RGS_GP0
+#define GP0	(RGS_GP0)
 #define GP1	RGS_GP1
 #define GP2	RGS_GP2
 #define GP3 RGS_GP3
@@ -18,7 +19,7 @@
 #define SP	RGS_SP
 
 typedef struct {
-	int opcode;
+	opcode_t opcode;
 	int op0, op1, op2;
 	int valid;
 	const char* comment;

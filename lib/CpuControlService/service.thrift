@@ -11,11 +11,12 @@ enum SimState
 	MICRO_STEPPING
 }
 
-enum ErrCode
+enum BreakReason
 {
 	NONE,
 	ILLEGAL_OPCODE,
-	ILLEGAL_STATE
+	ILLEGAL_HW_STATE,
+	HALT
 }
 
 service SimService
@@ -25,7 +26,6 @@ service SimService
 	void pause(),
 	void microStep(),
 	void step(),
-	ErrCode getErrCode(),
 	void reset(),
 	list<i32> getRegister(1: i32 offset, 2: i32 size),
 	list<i32> getMemory(1: i32 offset, 2: i32 size)

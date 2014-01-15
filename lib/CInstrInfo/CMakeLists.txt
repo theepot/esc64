@@ -1,0 +1,23 @@
+cmake_minimum_required(VERSION 2.6)
+
+set(SOURCE_DIR src)
+set(INFO_GEN_SCRIPT ../../infogen/descriptions.rb)
+set(INFO_GEN_EXTRA_DEPS ../../infogen/interpreter.rb)
+get_filename_component(INFO_GEN_SCRIPT_DIR ${INFO_GEN_SCRIPT} PATH)
+set(INFO_GEN_BASENAME instr_info)
+set(GEN_SOURCES ${SOURCE_DIR}/${INFO_GEN_BASENAME}.h ${SOURCE_DIR}/${INFO_GEN_BASENAME}.c)
+
+add_custom_command(	OUTPUT ${GEN_SOURCES}
+					COMMAND mkdir -p ${SOURCE_DIR}
+					COMMAND ruby -I ${INFO_GEN_SCRIPT_DIR} ${INFO_GEN_SCRIPT} --emit-c-instr-info ${INFO_GEN_BASENAME}
+					COMMAND mv ${INFO_GEN_BASENAME}.h ${SOURCE_DIR}
+					COMMAND mv ${INFO_GEN_BASENAME}.c ${SOURCE_DIR}
+					DEPENDS ${INFO_GEN_SCRIPT}
+					DEPENDS ${INFO_GEN_EXTRA_DEPS}
+					COMMENT "Generating ${GEN_SOURCES} from ${INFO_GEN_SCRIPT}"
+					)
+
+add_custom_target(CInstrInfo ALL DEPENDS ${GEN_SOURCES} SOURCES ${INFO_GEN_SCRIPT} ${INFO_GEN_EXTRA_DEPS})
+set_property(DIRECTORY "${CMAKE_BINARY_DIR}" APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES ${GEN_SOURCES})
+
+

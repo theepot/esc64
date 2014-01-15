@@ -330,7 +330,7 @@ module ESC64AsmDesc
 		end
 		
 		def c_decomp_inst f, inst, index
-			while index < inst.opcode	
+			while index < inst.opcode
 				f.write "\t{ 0 },\n"
 				index = index + 1
 			end
@@ -353,19 +353,76 @@ module ESC64AsmDesc
 			#f.write "\t{ #{inst.pattern.mnem}, #{inst.uname}, #{inst.wide}, #{rev_bind.count}, #{s} }\t//#{inst.opcode}"
 		end
 		
-		def emit_c_opcodes filename
-			File.open(filename, "w") do |f|
-				f.write "#ifndef OPCODES_INCLUDED\n"
-				f.write "#define OPCODES_INCLUDED\n\n"
+		def emit_c_instr_info filename
+			sorted = @instructions.sort { |a, b| a.opcode <=> b.opcode }
+			
+			File.open(filename + ".h", "w") do |f|
+				f.write "/*GENERATED OUT OF descriptions.rb*/\n"
+				f.write "#ifndef INSTR_INFO_INCLUDED\n"
+				f.write "#define INSTR_INFO_INCLUDED\n\n"
+				f.write "#ifndef __cplusplus\n"
+				f.write "#include <stdbool.h>\n"
+				f.write "#endif\n\n"
 				
-				sorted = @instructions.sort { |a, b| a.opcode <=> b.opcode }
+				f.write "#ifdef __cplusplus\nextern \"C\" {\n#endif\n\n"
 				
+				f.write "typedef enum opcode_t {\n"
 				for inst in sorted
-					f.write "#define OPCODE_#{inst.uname.upcase}\t\t#{sprintf("0x%02X", inst.opcode)}\n"
+					f.write "\top_#{inst.uname.downcase}\t\t=#{sprintf("0x%02X", inst.opcode)},\n"
+				end
+				f.write "} opcode_t;\n"
+				
+				f.write "\n"
+				
+				f.write "typedef struct instr_info_t {\n"
+				f.write "\topcode_t opcode; /*zero when operation does not exist*/\n"
+				f.write "\tbool wide;\n"
+				f.write "\tconst char* name; /*zero when operation does not exist*/\n"
+				f.write "} instr_info_t;\n"
+				
+				f.write "\n"
+				
+				f.write "extern const instr_info_t instr_info[];\n"
+				
+				f.write "\n"
+				
+				f.write "#ifdef __cplusplus\n}\n#endif\n"
+				f.write "\n#endif\n"
+			end
+			
+			File.open(filename + ".c", "w") do |f|
+				f.write "/*GENERATED OUT OF descriptions.rb*/\n"
+				f.write "#ifndef __cplusplus\n"
+				f.write "#include <stdbool.h>\n"
+				f.write "#endif\n\n"
+				
+				f.write "#include <#{filename}.h>\n\n"
+				
+				f.write "const instr_info_t instr_info[] = {\n"
+
+				def print_info_initializer f, inst, index
+					while index < inst.opcode
+						f.write "\t{.opcode = 0, .name = 0},\n"
+						index = index + 1
+					end
+					
+					f.write "\t{.opcode = op_#{inst.uname.downcase}, .wide=#{inst.wide}, .name = \"#{inst.uname}\"},\n"
+					
 				end
 				
-				f.write "\n#endif OPCODES_INCLUDED\n"
+				print_info_initializer f, sorted[0], 0
+				n = sorted[0].opcode + 1
+				
+				for i in 1...sorted.count
+					print_info_initializer f, sorted[i], n
+					n = sorted[i].opcode + 1
+				end
+
+				
+				f.write "};\n"
+				
 			end
+			
 		end
 		
 		def emit_c_decomp filename
@@ -378,7 +435,7 @@ module ESC64AsmDesc
 				c_decomp_inst f, sorted[0], 0
 				n = sorted[0].opcode + 1
 				
-				for i in 1...sorted.count				
+				for i in 1...sorted.count
 					f.write ",\n"
 					c_decomp_inst f, sorted[i], n
 					n = sorted[i].opcode + 1
@@ -616,7 +673,7 @@ module ESC64AsmDesc
 	
 		gperf_path = nil
 		decomp_c_path = nil
-		opcodes_c_path = nil
+		c_instr_info_path = nil
 		verbose = false
 		
 		OptionParser.new do |opts|
@@ -628,8 +685,8 @@ module ESC64AsmDesc
 				decomp_c_path = p
 			end
 			
-			opts.on("-p PATH", "--emit-opcodes PATH", "C opcode defines") do |p|
-				opcodes_c_path = p
+			opts.on("-p PATH", "--emit-c-instr-info PATH", "C opcode defines") do |p|
+				c_instr_info_path = p
 			end
 			
 			opts.on("-v", "--verbose", "be verbose") do |v|
@@ -650,20 +707,8 @@ module ESC64AsmDesc
 			i.emit_c_decomp decomp_c_path
 		end
 		
-		if opcodes_c_path != nil
-			i.emit_c_opcodes opcodes_c_path
+		if c_instr_info_path != nil
+			i.emit_c_instr_info c_instr_info_path
 		end
 	end
 end
-
-
-
-
-
-
-
-
-
-
-
-
