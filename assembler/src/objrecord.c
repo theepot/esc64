@@ -51,9 +51,9 @@ void RecordWriteByte(RecordWriter* writer, FILE* stream, byte_t val)
 	RecordWrite(writer, stream, &val, sizeof val);
 }
 
-void RecordWriteWord(RecordWriter* writer, FILE* stream, uword_t val)
+void RecordWriteWordBE(RecordWriter* writer, FILE* stream, uword_t val)
 {
-	val = HTON_WORD(val);
+	val = htobe_word(val);
 	RecordWrite(writer, stream, &val, sizeof val);
 }
 
@@ -79,7 +79,7 @@ size_t RecordRead(RecordReader* reader, FILE* stream, void* buf, size_t amount)
 	return i;
 }
 
-int RecordReadWord(RecordReader* reader, FILE* stream, uword_t* val)
+int RecordReadWordBE(RecordReader* reader, FILE* stream, uword_t* val)
 {
 	uword_t x;
 
@@ -88,7 +88,7 @@ int RecordReadWord(RecordReader* reader, FILE* stream, uword_t* val)
 		return -1;
 	}
 
-	*val = NTOH_WORD(x);
+	*val = betoh_word(x);
 	return 0;
 }
 
@@ -117,8 +117,8 @@ static int LoadRecord(RecordReader* reader, FILE* stream)
 	IOSetFilePos(stream, reader->nextOffset);
 
 	reader->dataOffset = reader->nextOffset + OBJ_RECORD_DATA_OFFSET;
-	reader->dataSize = IOReadWord(stream);		//size
-	reader->nextOffset = IOReadObjSize(stream);	//next
+	reader->dataSize = IOReadWordBE(stream);		//size
+	reader->nextOffset = IOReadObjSizeBE(stream);	//next
 	reader->dataIndex = 0;
 
 	return 0;
@@ -141,8 +141,8 @@ static void FlushRecordData(RecordWriter* writer, FILE* stream, const void* extr
 	objsize_t recordStart = IOGetFilePos(stream);
 
 	//write record
-	IOWriteWord(stream, writer->bufIndex + extraSize);	//size
-	IOWriteObjSize(stream, OBJ_RECORD_ILLEGAL_OFFSET);	//next (uninitialized)
+	IOWriteWordBE(stream, writer->bufIndex + extraSize);	//size
+	IOWriteObjSizeBE(stream, OBJ_RECORD_ILLEGAL_OFFSET);	//next (uninitialized)
 	if(writer->bufIndex > 0)
 	{
 		IOWrite(stream, writer->buf, writer->bufIndex);	//data
@@ -155,7 +155,7 @@ static void FlushRecordData(RecordWriter* writer, FILE* stream, const void* extr
 	//update previous next-field
 	objsize_t head = IOGetFilePos(stream);
 	IOSetFilePos(stream, writer->prevNextOffset);
-	IOWriteObjSize(stream, recordStart);
+	IOWriteObjSizeBE(stream, recordStart);
 	IOSetFilePos(stream, head); //TODO remove, not needed (it's not..?)
 
 	//reset writer

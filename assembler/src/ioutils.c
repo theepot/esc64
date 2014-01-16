@@ -1,7 +1,7 @@
 #include <esc64asm/ioutils.h>
 
 #include <assert.h>
-#include <arpa/inet.h>
+//#include <arpa/inet.h>
 
 objsize_t IOGetFilePos(FILE* stream)
 {
@@ -25,30 +25,30 @@ void IOSeekForward(FILE* stream, objsize_t offset)
 	assert(!fseek(stream, offset, SEEK_CUR));
 }
 
-void IOWriteWord(FILE* stream, uword_t word)
+void IOWriteWordBE(FILE* stream, uword_t word)
 {
-	uword_t x = HTON_WORD(word);
+	uword_t x = htobe_word(word);
 	IOWrite(stream, &x, sizeof x);
 }
 
-uword_t IOReadWord(FILE* stream)
+uword_t IOReadWordBE(FILE* stream)
 {
 	uword_t x;
 	IORead(stream, &x, sizeof x);
-	return NTOH_WORD(x);
+	return betoh_word(x);
 }
 
-void IOWriteObjSize(FILE* stream, objsize_t objSize)
+void IOWriteObjSizeBE(FILE* stream, objsize_t objSize)
 {
-	objsize_t x = HTON_OBJSIZE(objSize);
+	objsize_t x = htobe_objsize(objSize);
 	IOWrite(stream, &x, sizeof x);
 }
 
-objsize_t IOReadObjSize(FILE* stream)
+objsize_t IOReadObjSizeBE(FILE* stream)
 {
 	objsize_t x;
 	IORead(stream, &x, sizeof x);
-	return NTOH_OBJSIZE(x);
+	return betoh_objsize(x);
 }
 
 void IOWrite(FILE* stream, const void* data, size_t dataSize)

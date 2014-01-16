@@ -48,7 +48,7 @@ void TestRecords(const char* filePath)
 	size_t i;
 	for(i = 0; i < testerCount; ++i)
 	{
-		assert(fwrite(&(objsize_t){ HTON_OBJSIZE(OBJ_RECORD_ILLEGAL_OFFSET) }, sizeof (objsize_t), 1, file) == 1);
+		assert(fwrite(&(objsize_t){ htobe_objsize(OBJ_RECORD_ILLEGAL_OFFSET) }, sizeof (objsize_t), 1, file) == 1);
 	}
 
 	InitWrite();
@@ -120,7 +120,7 @@ static void InitRead(void)
 		fseek(file, sizeof (objsize_t) * i, SEEK_SET);
 		objsize_t offset;
 		assert(fread(&offset, sizeof offset, 1, file) == 1);
-		RecordReaderInit(&t->reader, file, NTOH_OBJSIZE(offset));
+		RecordReaderInit(&t->reader, file, betoh_objsize(offset));
 	}
 }
 

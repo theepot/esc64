@@ -133,6 +133,7 @@ static int ParseLabelDecl(Symbol* sym);
 static void ParseInst(void);
 static ConstInstNodePtr FindInstNode(ConstInstNodePtr base, ConstInstNodePtr nexts, size_t nextN, byte_t type, int findLeaf);
 static int ParseCommand(void);
+static void WarnAlignment(uword_t offset, uword_t align);
 
 #define FIND_INST_BRANCH(base, nexts, nextN, type)	((const InstNodeBranch*)FindInstNode((base), (nexts), (nextN), (type), 0))
 #define FIND_INST_LEAF(base, nexts, nextN)			((const InstNodeLeaf*)FindInstNode((base), (nexts), (nextN), ARG_T_OTHER, 1))
@@ -338,7 +339,7 @@ static void ParseInst(void)
 
 			if(argType == ARG_T_EXPR)
 			{
-				ParseExpression(0, ObjGetLocation() + 1, &extWord); //FIXME address will be in bytes in the future
+				ParseExpression(0, ObjGetLocation() + 2, &extWord);
 			}
 			else
 			{
@@ -366,6 +367,8 @@ static void ParseInst(void)
 		unsigned n = leaf->bindings[i];
 		instWord |= argBuf[i] << n;
 	}
+
+	WarnAlignment(ObjGetLocation(), 2);
 	ObjWriteInst(leaf->isWide, instWord, extWord);
 }
 
@@ -408,6 +411,27 @@ static int ParseCommand(void)
 	}
 }
 
+static void WarnAlignment(uword_t offset, uword_t align)
+{
+	if(sectionInfo.placement == OBJ_PLACEMENT_ABS)
+	{
+		uword_t address = sectionInfo.address + offset;
+		if(!IsAligned(address, align))
+		{
+			EscWarning("address 0x%X is not aligned to 0x%X", address, align);
+		}
+	}
+	else
+	{
+		ESC_ASSERT_FATAL(IS_POWER_OF_TWO(align), "WarnAlignment(): align is not a power of two");
+		if(sectionInfo.alignment < align || !IsAligned(offset, align))
+		{
+			EscWarning("offset 0x%X in relocatable section might not be aligned to 0x%X", offset, align);
+		}
+	}
+}
+
+///// directive parsing routines /////
 void ParseWord(void)
 {
 	ArgType t = FirstArgument();
@@ -416,11 +440,12 @@ void ParseWord(void)
 	word_t result = 0xDEAD;
 	ParseExpression(0, ObjGetLocation(), &result);
 
-	result = HTON_WORD(result);
-	ObjWriteData(&result, 1); //FIXME will later be size in bytes (now words)
+	WarnAlignment(ObjGetLocation(), 2);
+
+	result = htole_word(result);
+	ObjWriteData(&result, 2);
 }
 
-///// directive parsing routines /////
 void ParseDataSection(void)
 {
 	sectionInfo.type = SECTION_TYPE_DATA;
@@ -467,7 +492,7 @@ void ParseResW(void)
 	word_t n = 0;
 	ParseExpression(1, 0, &n);
 	ESC_ASSERT_WARNING(sectionInfo.type != SECTION_TYPE_DATA, "Reserved space in data section will be filled with zeroes");
-	ObjResData(n); //FIXME in words
+	ObjResData(n);
 }
 
 void ParseGlobal(void)

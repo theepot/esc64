@@ -9,10 +9,10 @@ typedef struct ExeSection_
 	byte_t type;
 	uword_t addr;
 	uword_t size;
-	uword_t* data;
+	byte_t* data;
 } ExeSection;
 
-static void PrintWordBin(FILE* stream, uword_t word);
+static void PrintByteBin(FILE* stream, byte_t val);
 static void Translate(FILE* lstFile, ExeReader* exeReader);
 static size_t Load(ExeSection* sections, size_t sectionCount, ExeReader* exeReader);
 static int CmpExeSec(const void* a_, const void* b_);
@@ -36,13 +36,13 @@ int main(int argc, char** argv)
 	return 0;
 }
 
-static void PrintWordBin(FILE* stream, uword_t word)
+static void PrintByteBin(FILE* stream, byte_t val)
 {
 	size_t i;
-	uword_t mask = 1 << 15;
-	for(i = 0; i < sizeof(uword_t) * 8; ++i, mask >>= 1)
+	uword_t mask = 1 << 7;
+	for(i = 0; i < 8; ++i, mask >>= 1)
 	{
-		putc(word & mask ? '1' : '0', stream);
+		putc(val & mask ? '1' : '0', stream);
 	}
 	putc('\n', stream);
 }
@@ -93,7 +93,7 @@ static size_t Load(ExeSection* sections, size_t sectionCount, ExeReader* exeRead
 
 		if(exeReader->type == SECTION_TYPE_DATA)
 		{
-			uword_t* data = malloc(sec->size * sizeof (uword_t));
+			byte_t* data = malloc(sec->size);
 			ExeReadData(exeReader, data);
 			sec->data = data;
 		}
@@ -117,7 +117,7 @@ static void Pad(FILE* lstFile, size_t padding)
 	size_t i;
 	for(i = 0; i < padding; ++i)
 	{
-		fprintf(lstFile, "0000000000000000\n");
+		fprintf(lstFile, "00000000\n");
 	}
 }
 
@@ -126,7 +126,7 @@ static void WriteData(FILE* lstFile, ExeSection* sec)
 	size_t i;
 	for(i = 0; i < sec->size; ++i)
 	{
-		PrintWordBin(lstFile, HTON_WORD(sec->data[i]));
+		PrintByteBin(lstFile, sec->data[i]);
 	}
 }
 

@@ -16,20 +16,14 @@ int ObjectWriterClose(void);
 
 uword_t ObjGetLocation(void);
 
-//TODO make one ObjWriteSection() procedure
-
 /**
  * @return			0 on success
  */
 int ObjWriteSection(const ObjSectionInfo* sectionInfo);
 
-/**
- * @param dataSize	Size in words
- * @return			0 on success, otherwise see enum ObjWriteDataErrors_
- */
-int ObjWriteData(const void* data, size_t dataSize);
-void ObjWriteInst(int isWide, uword_t instWord, uword_t extWord);
-int ObjResData(uword_t size);
+int ObjWriteData(const void* data, size_t dataSize); //fixed :)
+void ObjWriteInst(int isWide, uword_t instWord, uword_t extWord); //fixed :)
+int ObjResData(uword_t size); //fixed :)
 
 //TODO make one ObjWriteSym(visibility, sym) procedure
 

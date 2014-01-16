@@ -10,5 +10,6 @@
  * @return aligned value
  */
 uword_t Align(uword_t val, uword_t align);
+int IsAligned(uword_t val, uword_t align);
 
 #endif

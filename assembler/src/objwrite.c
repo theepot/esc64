@@ -65,13 +65,13 @@ int ObjectWriterInit(const char* path)
 	absSectionCount_ = 0;
 	relocSectionCount_ = 0;
 
-	absPrevNextOffset_ = OBJ_HEADER_ABS_SECTION_OFFSET_OFFSET;
-	relocPrevNextOffset_ = OBJ_HEADER_RELOC_SECTION_OFFSET_OFFSET;
+	absPrevNextOffset_ = offsetof(ObjHeader, absSectionOffset); //OBJ_HEADER_ABS_SECTION_OFFSET_OFFSET;
+	relocPrevNextOffset_ = offsetof(ObjHeader, relocSectionOffset); //OBJ_HEADER_RELOC_SECTION_OFFSET_OFFSET;
 
 	type_ = SECTION_TYPE_NONE;
 
 	//write empty header
-	IOWriteRepeated(stream_, OBJ_HEADER_SIZE, 0xFF);
+	IOWriteRepeated(stream_, sizeof (ObjHeader), 0xFF);
 
 	return 0;
 }
@@ -91,32 +91,6 @@ uword_t ObjGetLocation(void)
 	return location_;
 }
 
-//void ObjWriteDataSection(byte_t placement, uword_t address)
-//{
-//	EnterSection(SECTION_TYPE_DATA, placement, placement == OBJ_PLACEMENT_ABS ? address : 0xFFFF, 0);
-//	dataSize_ = 0;
-//
-//	//write data specific fields
-//	RecordWriterInit(
-//			&exprWriter_,
-//			exprWriterBuf_,
-//			EXPR_WRITER_BUF_SIZE,
-//			IOGetFilePos(stream_));
-//	IOWriteObjSize(stream_, OBJ_RECORD_ILLEGAL_OFFSET);	//exp record offset
-//
-//	RecordWriterInit(
-//			&dataWriter_,
-//			dataWriterBuf_,
-//			DATA_WRITER_BUF_SIZE,
-//			IOGetFilePos(stream_));
-//	IOWriteObjSize(stream_, OBJ_RECORD_ILLEGAL_OFFSET);	//data record offset
-//}
-//
-//void ObjWriteBssSection(byte_t placement, uword_t address, uword_t size)
-//{
-//	EnterSection(SECTION_TYPE_BSS, placement, placement == OBJ_PLACEMENT_ABS ? address : 0xFFFF, size);
-//}
-
 int ObjWriteSection(const ObjSectionInfo* sectionInfo)
 {
 	FlushSection();
@@ -132,12 +106,12 @@ int ObjWriteSection(const ObjSectionInfo* sectionInfo)
 	objsize_t sectionHeaderOffset = IOGetFilePos(stream_);
 	ObjSectionHeader sectionHeader;
 	sectionHeader.type = type_;
-	sectionHeader.next = HTON_OBJSIZE(OBJ_RECORD_ILLEGAL_OFFSET),
-	sectionHeader.alignment = HTON_WORD(sectionInfo->alignment);
-	sectionHeader.address = HTON_WORD(sectionInfo->address);
-	sectionHeader.size = HTON_WORD(0xDEAD);
-	sectionHeader.localSymbolRecordOffset = HTON_OBJSIZE(OBJ_RECORD_ILLEGAL_OFFSET);
-	sectionHeader.globalSymbolRecordOffset = HTON_OBJSIZE(OBJ_RECORD_ILLEGAL_OFFSET);
+	sectionHeader.next = betoh_objsize(OBJ_RECORD_ILLEGAL_OFFSET),
+	sectionHeader.alignment = betoh_word(sectionInfo->alignment);
+	sectionHeader.address = betoh_word(sectionInfo->address);
+	sectionHeader.size = betoh_word(0xDEAD);
+	sectionHeader.localSymbolRecordOffset = betoh_objsize(OBJ_RECORD_ILLEGAL_OFFSET);
+	sectionHeader.globalSymbolRecordOffset = betoh_objsize(OBJ_RECORD_ILLEGAL_OFFSET);
 
 	IOWrite(stream_, &sectionHeader, sizeof sectionHeader);
 
@@ -152,8 +126,8 @@ int ObjWriteSection(const ObjSectionInfo* sectionInfo)
 	{
 		objsize_t dataSecOffset = IOGetFilePos(stream_);
 		ObjDataSection dataSec;
-		dataSec.expRecordOffset = HTON_OBJSIZE(OBJ_RECORD_ILLEGAL_OFFSET);
-		dataSec.dataRecordOffset = HTON_OBJSIZE(OBJ_RECORD_ILLEGAL_OFFSET);
+		dataSec.expRecordOffset = betoh_objsize(OBJ_RECORD_ILLEGAL_OFFSET);
+		dataSec.dataRecordOffset = betoh_objsize(OBJ_RECORD_ILLEGAL_OFFSET);
 
 		IOWrite(stream_, &dataSec, sizeof dataSec);
 
@@ -179,7 +153,7 @@ int ObjWriteData(const void* data, size_t dataSize)
 #ifdef ESC_DEBUG
 	ESC_ASSERT_FATAL(type_ == SECTION_TYPE_DATA, "Can't put data in non-data section");
 #endif
-	RecordWrite(&dataWriter_, stream_, data, dataSize * 2);
+	RecordWrite(&dataWriter_, stream_, data, dataSize);
 	location_ += dataSize;
 	return 0;
 }
@@ -189,14 +163,14 @@ void ObjWriteInst(int isWide, uword_t instWord, uword_t extWord)
 	if(isWide)
 	{
 		uword_t buf[2];
-		buf[0] = HTON_WORD(instWord);
-		buf[1] = HTON_WORD(extWord);
-		ObjWriteData(buf, 2);
+		buf[0] = htole_word(instWord);
+		buf[1] = htole_word(extWord);
+		ObjWriteData(buf, 4);
 	}
 	else
 	{
-		uword_t x = HTON_WORD(instWord);
-		ObjWriteData(&x, 1);
+		uword_t x = htole_word(instWord);
+		ObjWriteData(&x, 2);
 	}
 }
 
@@ -209,7 +183,7 @@ int ObjResData(uword_t size)
 		uword_t i;
 		for(i = 0; i < size; ++i)
 		{
-			RecordWriteWord(&dataWriter_, stream_, 0);
+			RecordWriteByte(&dataWriter_, stream_, 0);
 		}
 	} break;
 
@@ -224,27 +198,6 @@ int ObjResData(uword_t size)
 	location_ += size;
 	return 0;
 }
-
-//size_t ObjWriteInstr(const Instruction* instr)
-//{
-//	uword_t instrWord =	(instr->opcode << OPCODE_OFFSET)
-//			| ((instr->operands[0] & OPERAND0_MASK) << OPERAND0_OFFSET)
-//			| ((instr->operands[1] & OPERAND1_MASK) << OPERAND1_OFFSET)
-//			| ((instr->operands[2] & OPERAND2_MASK) << OPERAND2_OFFSET);
-//
-//	if(instr->wide)
-//	{
-//		uword_t buf[2];
-//		buf[0] = HTON_WORD(instrWord);
-//		buf[1] = HTON_WORD(instr->operands[3]);
-//		ObjWriteData(buf, 2);
-//		return 2;
-//	}
-//
-//	uword_t x = HTON_WORD(instrWord);
-//	ObjWriteData(&x, 1);
-//	return 1;
-//}
 
 int ObjWriteLocalSym(const Symbol* sym)
 {
@@ -264,118 +217,12 @@ int ObjWriteGlobalSym(const Symbol* sym)
 	return 0;
 }
 
-//static void EnterSection(byte_t type, byte_t placement, uword_t addr, uword_t size)
-//{
-//	FlushSection();
-//
-//	IOSeekEnd(stream_);
-//	type_ = type;
-//	placement_ = placement;
-//	offset_ = IOGetFilePos(stream_);
-//
-//	//write section header
-//	IOWriteByte(stream_, type);							//type
-//	IOWriteObjSize(stream_, OBJ_RECORD_ILLEGAL_OFFSET);	//next
-//
-//	switch(placement)
-//	{
-//	case OBJ_PLACEMENT_ABS:
-//		++absSectionCount_;
-//		break;
-//	case OBJ_PLACEMENT_RELOC:
-//		++relocSectionCount_;
-//		break;
-//	default:
-//		EscFatal("Illegal section placement (0x%X)", placement);
-//		break;
-//	}
-//
-//	IOWriteWord(stream_, addr);	//address
-//	IOWriteWord(stream_, size);	//size
-//
-//	RecordWriterInit(
-//			&localSymWriter_,
-//			localSymWriterBuf_,
-//			LOCAL_SYM_WRITER_BUF_SIZE,
-//			IOGetFilePos(stream_));
-//	IOWriteObjSize(stream_, OBJ_RECORD_ILLEGAL_OFFSET );	//local sym record offset
-//
-//	RecordWriterInit(
-//			&globalSymWriter_,
-//			globalSymWriterBuf_,
-//			GLOBAL_SYM_WRITER_BUF_SIZE,
-//			IOGetFilePos(stream_));
-//	IOWriteObjSize(stream_, OBJ_RECORD_ILLEGAL_OFFSET );	//global sym record offset
-//}
-
 void ObjExprBegin(uword_t address)
 {
 	printf("ObjExprBegin(): address=%u\n", address);
 	exprAddress_ = address;
 	exprSize_ = 0;
 }
-
-//int ObjExprEnd(void)
-//{
-//	if(exprSize_ > 0)
-//	{
-//		RecordWriteByte(&exprWriter_, stream_, EXPR_T_END);
-//	}
-//	return 0;
-//}
-//
-//int ObjExprPutNum(word_t num)
-//{
-//	PreExprPut();
-//	RecordWriteByte(&exprWriter_, stream_, EXPR_T_WORD);
-//	RecordWriteWord(&exprWriter_, stream_, num);
-//	return 0;
-//}
-//
-//int ObjExprPutSymbol(const PString* str)
-//{
-//	PreExprPut();
-//#ifdef ESC_DEBUG
-//	printf("ObjExprPutSymbol(): str[%d]=", str->size);
-//	const char* c;
-//	for(c = str->str; c < str->str + str->size; ++c)
-//	{
-//		putchar(*c);
-//	}
-//	putchar('\n');
-//#endif
-//	RecordWriteByte(&exprWriter_, stream_, EXPR_T_SYMBOL);
-//	RecordWriteWord(&exprWriter_, stream_, str->size);
-//	RecordWrite(&exprWriter_, stream_, str->str, str->size);
-//
-//	return 0;
-//}
-//
-//int ObjExprPutOperator(byte_t operator)
-//{
-//	PreExprPut();
-//#ifdef ESC_DEBUG
-//	const char* name;
-//	switch(operator)
-//	{
-//	case EXPR_T_OP_AND: name = "EXPR_T_OP_AND"; break;
-//	case EXPR_T_OP_PLUS: name = "EXPR_T_OP_PLUS"; break;
-//	case EXPR_T_OP_OR: name = "EXPR_T_OP_OR"; break;
-//	case EXPR_T_OP_NOT: name = "EXPR_T_OP_NOT"; break;
-//	case EXPR_T_OP_SUB: name = "EXPR_T_OP_SUB"; break;
-//	case EXPR_T_OP_NEG: name = "EXPR_T_OP_NEG"; break;
-//	case EXPR_T_OP_DIV: name = "EXPR_T_OP_DIV"; break;
-//	default:
-//		EscFatal("ObjExprPutOperator(): ERROR: got %d", operator);
-//		name = "UNKNOWN"; //prevent warning
-//		break;
-//	}
-//	printf("ObjExprPutOperator(): operator=%s\n", name);
-//#endif
-//	RecordWriteByte(&exprWriter_, stream_, operator);
-//
-//	return 0;
-//}
 
 int ObjExpPutToken(const ExpToken* exp)
 {
@@ -388,7 +235,7 @@ int ObjExpPutToken(const ExpToken* exp)
 	if(exprSize_ == 0)
 	{
 		if(exp->type == EXPR_T_END) { return 0; }
-		RecordWriteWord(&exprWriter_, stream_, exprAddress_);
+		RecordWriteWordBE(&exprWriter_, stream_, exprAddress_);
 	}
 	++exprSize_;
 
@@ -397,10 +244,10 @@ int ObjExpPutToken(const ExpToken* exp)
 	switch(exp->type)
 	{
 	case EXPR_T_WORD:
-		RecordWriteWord(&exprWriter_, stream_, exp->wordVal);
+		RecordWriteWordBE(&exprWriter_, stream_, exp->wordVal);
 		break;
 	case EXPR_T_SYMBOL:
-		RecordWriteWord(&exprWriter_, stream_, exp->strLen);
+		RecordWriteWordBE(&exprWriter_, stream_, exp->strLen);
 		RecordWrite(&exprWriter_, stream_, exp->strVal, exp->strLen);
 		break;
 	case EXPR_T_END:
@@ -426,7 +273,7 @@ static void FlushSection(void)
 	//fixup size
 //	IOSetFilePos(stream_, offset_ + OBJ_SECTION_SIZE_OFFSET);
 	IOSetFilePos(stream_, offset_ + offsetof(ObjSectionHeader, size));
-	IOWriteWord(stream_, location_);
+	IOWriteWordBE(stream_, location_);
 
 	UpdatePrevNext();
 }
@@ -448,7 +295,7 @@ static void UpdatePrevNext(void)
 	}
 
 	IOSetFilePos(stream_, *prevNext);
-	IOWriteObjSize(stream_, offset_);
+	IOWriteObjSizeBE(stream_, offset_);
 //	*prevNext = offset_ + OBJ_SECTION_NEXT_OFFSET;
 	*prevNext = offset_ + offsetof(ObjSectionHeader, next);
 }
@@ -464,8 +311,8 @@ static int WriteSymbol(RecordWriter* writer, FILE* stream, const Symbol* sym)
 		char name[sym->nameLen];
 	} buf;
 
-	buf.value = HTON_WORD(sym->address);
-	buf.nameLen = HTON_WORD(sym->nameLen);
+	buf.value = htobe_word(sym->address);
+	buf.nameLen = htobe_word(sym->nameLen);
 
 	memcpy(buf.name, sym->name, sym->nameLen);
 
@@ -476,22 +323,24 @@ static int WriteSymbol(RecordWriter* writer, FILE* stream, const Symbol* sym)
 static void FlushHeader(void)
 {
 	IOSetFilePos(stream_, 0);
-	IOWriteWord(stream_, localSymTotNameSize_);
-	IOWriteWord(stream_, globalSymTotNameSize_);
-	IOWriteWord(stream_, localSymCount_);
-	IOWriteWord(stream_, globalSymCount_);
-	IOWriteWord(stream_, absSectionCount_);
-	IOWriteWord(stream_, relocSectionCount_);
+
+	ObjHeader header;
+	header.localSymTotNameSize = htobe_word(localSymTotNameSize_);
+	header.globalSymTotNameSize = htobe_word(globalSymTotNameSize_);
+	header.localSymCount = htobe_word(localSymCount_);
+	header.globalSymCount = htobe_word(globalSymCount_);
+	header.absSectionCount = htobe_word(absSectionCount_);
+	header.relocSectionCount = htobe_word(relocSectionCount_);
+
+	//last two members (absSectionOffset and relocSectionOffset) should not be written
+	IOWrite(stream_, &header, offsetof(ObjHeader, absSectionOffset));
+
+//	IOWriteWord(stream_, localSymTotNameSize_);
+//	IOWriteWord(stream_, globalSymTotNameSize_);
+//	IOWriteWord(stream_, localSymCount_);
+//	IOWriteWord(stream_, globalSymCount_);
+//	IOWriteWord(stream_, absSectionCount_);
+//	IOWriteWord(stream_, relocSectionCount_);
 }
-
-//static void PreExprPut(void)
-//{
-//	if(exprSize_ == 0)
-//	{
-//		RecordWriteWord(&exprWriter_, stream_, exprAddress_);
-//	}
-//	++exprSize_;
-//}
-
 
 

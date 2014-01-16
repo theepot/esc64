@@ -5,7 +5,7 @@
 #include <esc64asm/objrecord.h>
 
 void ObjectReaderInit(const char* path);
-void ObjReadHeader(ObjectHeader* header);
+void ObjReadHeader(ObjHeader* header);
 void ObjectReaderStart(objsize_t firstOffset);
 void ObjReadSection(objsize_t offset, ObjSectionHeader* sectionHeader);
 void ObjectReaderClose(void);

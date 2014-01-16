@@ -5,8 +5,10 @@
 #include <esc64asm/objread.h>
 #include <esc64asm/esctypes.h>
 #include <esc64asm/opcodes.h>
+#include <esc64asm/align.h>
 
 static void PrintSection(ExeReader* exeReader);
+static void PrintData(const byte_t* data, int align2, size_t dataSize);
 static void PrintInstruction(uword_t instrWord);
 
 int main(int argc, char** argv)
@@ -41,17 +43,19 @@ static void PrintSection(ExeReader* exeReader)
 		return;
 	}
 
-	uword_t data[size];
+	byte_t data[size];
 	ExeReadData(exeReader, data);
 
-	size_t i;
-	for(i = 0; i < size; ++i)
-	{
-		uword_t word = NTOH_WORD(data[i]);
-		printf("\t@0x%04X:\t0x%04X", addr + i, word);
-		PrintInstruction(word);
-		putchar('\n');
-	}
+	PrintData(data, IsAligned(addr, 2), size);
+
+//	size_t i;
+//	for(i = 0; i < size; ++i)
+//	{
+//		uword_t word = letoh_word(data[i]);
+//		printf("\t@0x%04X:\t0x%04X", addr + i, word);
+//		PrintInstruction(word);
+//		putchar('\n');
+//	}
 }
 
 static void PrintInstruction(uword_t instrWord)
@@ -71,8 +75,31 @@ static void PrintInstruction(uword_t instrWord)
 	printf("\t%s\t%u, %u, %u", name, op0, op1, op2);
 }
 
+static void PrintData(const byte_t* data, int align2, size_t dataSize)
+{
+	size_t i = 0;
 
+	if(!align2)
+	{
+		printf("\t\t\t@0x0000:\t0x%02X\n", data[0]);
+		i = 1;
+	}
 
+	while(i + 1 < dataSize)
+	{
+		uword_t word = letoh_word(*(uword_t*)(data + i));
+		printf("\t\t\t@0x%04X:\t0x%04X", i, word);
+		PrintInstruction(word);
+		putchar('\n');
+		i += 2;
+	}
+
+	while(i < dataSize)
+	{
+		printf("\t\t\t@0x%04X:\t0x%02X\n", dataSize - 1, data[i]);
+		++i;
+	}
+}
 
 
 

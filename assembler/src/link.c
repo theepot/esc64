@@ -17,6 +17,7 @@ static void LinkInit(ExeWriter* exeWriter, const char** objFiles, size_t objFile
 static void LoadObjects(SectionLinkHandle* sections);
 static void LoadSections(ObjectLinkHandle* object, SectionLinkHandleList* sectionList, objsize_t offset);
 static void PlaceSections(void);
+static void TestOverlap(const SectionLinkHandle* a, const SectionLinkHandle* b);
 static void AllocateAbsSection(SectionLinkHandle* sec);
 static void AllocateRelocSection(SectionLinkHandle* sec);
 static void LoadGlobalSymbols(void);
@@ -56,26 +57,19 @@ void ExeWriteBss(ExeWriter* writer, uword_t address, uword_t size)
 {
 	IOSeekEnd(writer->stream);
 	IOWriteByte(writer->stream, SECTION_TYPE_BSS);	//type
-	IOWriteWord(writer->stream, address);			//address
-	IOWriteWord(writer->stream, size);				//size
+	IOWriteWordBE(writer->stream, address);			//address
+	IOWriteWordBE(writer->stream, size);			//size
 }
 
 objsize_t ExeWriteData(ExeWriter* writer, uword_t address, uword_t size, const void* data)
 {
 	IOSeekEnd(writer->stream);
 	IOWriteByte(writer->stream, SECTION_TYPE_DATA);	//type
-	IOWriteWord(writer->stream, address);			//address
-	IOWriteWord(writer->stream, size);				//size
+	IOWriteWordBE(writer->stream, address);			//address
+	IOWriteWordBE(writer->stream, size);			//size
 	objsize_t r = IOGetFilePos(writer->stream);
-	IOWrite(writer->stream, data, size * 2);		//data
+	IOWrite(writer->stream, data, size);		//data
 	return r;
-}
-
-void ExeUpdateDataWord(ExeWriter* writer, objsize_t dataOffset, uword_t address, uword_t value)
-{
-	objsize_t x = address << 1;
-	IOSetFilePos(writer->stream, dataOffset + x);
-	IOWriteWord(writer->stream, value);
 }
 
 void ExeReaderInit(ExeReader* reader, const char* path)
@@ -104,8 +98,8 @@ int ExeReadNext(ExeReader* reader)
 		return -1;
 	}
 
-	reader->address = IOReadWord(reader->stream);	//address
-	reader->size = IOReadWord(reader->stream);		//size
+	reader->address = IOReadWordBE(reader->stream);	//address
+	reader->size = IOReadWordBE(reader->stream);	//size
 	
 	if(reader->type == SECTION_TYPE_DATA)
 	{
@@ -127,7 +121,7 @@ void ExeReadData(ExeReader* reader, void* data)
 		return;
 	}
 
-	IORead(reader->stream, data, reader->size * 2);
+	IORead(reader->stream, data, reader->size);
 
 	reader->state = EXE_READER_STATE_START;
 }
@@ -181,7 +175,7 @@ int ResolveSymbol(const char* str, size_t len, uword_t* value)
 
 static void LinkInit(ExeWriter* exeWriter, const char** objFiles, size_t objFileCount, ObjectLinkHandle* objects)
 {
-	ObjectHeader header;
+	ObjHeader header;
 	size_t i;
 
 	exeWriter_ = exeWriter;
@@ -199,16 +193,15 @@ static void LinkInit(ExeWriter* exeWriter, const char** objFiles, size_t objFile
 		ObjReadHeader(&header);
 		ObjectReaderClose();
 
-//		sectionCount_ += header.absSectionCount + header.relocSectionCount;
-		absSectionCount_ += header.absSectionCount;
-		relocSectionCount_ += header.relocSectionCount;
-		globalSymCount_ += header.globalSymCount;
-		globalSymNameSize_ += header.globalSymTotNameSize;
-
 		ObjectLinkHandle* object = &objects_[i];
 		object->path = objFiles[i];
-		object->absSectionList.count = header.absSectionCount;
-		object->relocSectionList.count = header.relocSectionCount;
+		object->absSectionList.count = betoh_word(header.absSectionCount);
+		object->relocSectionList.count = betoh_word(header.relocSectionCount);
+
+		absSectionCount_ += object->absSectionList.count;
+		relocSectionCount_ += object->relocSectionList.count;
+		globalSymCount_ += betoh_word(header.globalSymCount);
+		globalSymNameSize_ += betoh_word(header.globalSymTotNameSize);
 	}
 }
 
@@ -224,7 +217,7 @@ static void LoadObjects(SectionLinkHandle* sections)
 		ObjectReaderInit(object->path);
 
 		//FIXME quickfix
-		ObjectHeader header;
+		ObjHeader header;
 		ObjReadHeader(&header);
 		//end quickfix
 
@@ -233,7 +226,7 @@ static void LoadObjects(SectionLinkHandle* sections)
 		LoadSections(
 				object,
 				&object->absSectionList,
-				header.absSectionOffset);
+				betoh_objsize(header.absSectionOffset));
 		sectionI += object->absSectionList.count;
 
 		//load reloc sections
@@ -241,7 +234,7 @@ static void LoadObjects(SectionLinkHandle* sections)
 		LoadSections(
 				object,
 				&object->relocSectionList,
-				header.relocSectionOffset);
+				betoh_objsize(header.relocSectionOffset));
 		sectionI += object->relocSectionList.count;
 
 		ObjectReaderClose();
@@ -259,13 +252,10 @@ static void LoadSections(ObjectLinkHandle* object, SectionLinkHandleList* sectio
 		assert(!ObjReaderNextSection(&secHeader));
 		SectionLinkHandle* section = &sectionList->sections[i];
 
-//		section->offset = ObjGetSectionOffset();
-//		section->address = ObjReadAddress();
-//		section->size = ObjReadSize();
 		section->offset = ObjGetSectionOffset();
-		section->address = NTOH_WORD(secHeader.address);
-		section->size = NTOH_WORD(secHeader.size);
-		section->alignment = NTOH_WORD(secHeader.alignment);
+		section->address = betoh_word(secHeader.address);
+		section->size = betoh_word(secHeader.size);
+		section->alignment = betoh_word(secHeader.alignment);
 		section->next = NULL;
 	}
 }
@@ -306,45 +296,8 @@ static void PlaceSections(void)
 
 	puts("\nSECTION DUMP AFTER ALLOCATING RELOC SECTIONS");
 	DumpSectionList();
-
-	//TODO remove stuff below, old
-
-
-//	FreeList freeList;
-//	size_t freeListNodeCount = sectionCount_; //TODO need to experiment with this number
-//	FreeListNode freeListNodes[freeListNodeCount];
-//	FreeListInit(&freeList, freeListNodes, freeListNodeCount, 0xFFFF + 1);
-//
-//	size_t i, j;
-//
-//	//place abs sections
-//	for(i = 0; i < objectCount_; ++i)
-//	{
-//		ObjectLinkHandle* object = &objects_[i];
-//		for(j = 0; j < object->absSectionList.count; ++j)
-//		{
-//			SectionLinkHandle* section = &object->absSectionList.sections[j];
-//			assert(!FreeListAllocStatic(&freeList, section->address, section->size));
-//		}
-//	}
-//
-//	//place reloc sections
-//	for(i = 0; i < objectCount_; ++i)
-//	{
-//		ObjectLinkHandle* object = &objects_[i];
-//		for(j = 0; j < object->relocSectionList.count; ++j)
-//		{
-//			SectionLinkHandle* section = &object->relocSectionList.sections[j];
-//			assert(!FreeListAllocDynamic(&freeList, section->size, 1, &section->address)); //FIXME :ALIGN: change dummy alignment of 1 to something meaningfull
-//		}
-//	}
-
-//#ifdef ESC_DEBUG
-//	FreeListDump(&freeList, stdout);
-//#endif
 }
 
-//TODO need prototype
 static void TestOverlap(const SectionLinkHandle* a, const SectionLinkHandle* b)
 {
 	if(a->address + a->size > b->address)
@@ -491,7 +444,7 @@ static void LoadSymbols(ObjectLinkHandle* object, SymTable* symTable, objsize_t 
 		ObjSectionHeader secHeader;
 
 		ObjReadSection(section->offset, &secHeader);
-		if(ObjSymIteratorInit(&symIt, NTOH_OBJSIZE(memberat(objsize_t, &secHeader, symRecordOffset))))
+		if(ObjSymIteratorInit(&symIt, betoh_objsize(memberat(objsize_t, &secHeader, symRecordOffset))))
 		{
 			continue;
 		}
@@ -521,13 +474,15 @@ static void EmitAll(void)
 
 		//init local symtable
 		//FIXME quickfix
-		ObjectHeader header;
+		ObjHeader header;
 		ObjReadHeader(&header);
 		//end quickfix
-		size_t localSymMemSize = SYM_TABLE_GET_SIZE((header.localSymCount << 1) - (header.localSymCount >> 1));
+		uword_t localSymCount = betoh_word(header.localSymCount);
+		uword_t localSymTotNameSize = betoh_word(header.localSymTotNameSize);
+		size_t localSymMemSize = SYM_TABLE_GET_SIZE((localSymCount << 1) - (localSymCount >> 1));
 		byte_t localSymMem[localSymMemSize];
-		char localStrMem[header.localSymTotNameSize];
-		SymTableInit(&localSymTable_, localSymMem, localSymMemSize, localStrMem, header.localSymTotNameSize);
+		char localStrMem[localSymTotNameSize];
+		SymTableInit(&localSymTable_, localSymMem, localSymMemSize, localStrMem, localSymTotNameSize);
 		//LoadSymbols(object, &localSymTable_, OBJ_SECTION_LOCAL_SYM_RECORD_OFFSET);
 		LoadSymbols(object, &localSymTable_, offsetof(ObjSectionHeader, localSymbolRecordOffset));
 
@@ -562,7 +517,6 @@ static void EmitAll(void)
 
 static void LinkSection(SectionLinkHandle* section, uword_t* data)
 {
-	//ObjExprIterator it;
 	ObjExpReader expReader;
 
 	if(ObjExpReaderInit(&expReader))
@@ -570,33 +524,23 @@ static void LinkSection(SectionLinkHandle* section, uword_t* data)
 		return; //no unlinked expressions in this section
 	}
 
-//	if(ObjExprIteratorInit(&it))
-//	{
-//		return;
-//	}
-
-	//while(!ObjExprIteratorNext(&it))
-
 	uword_t address, value;
 	while(!ObjExpReaderNext(&expReader, &address, &value))
 	{
-//		char name[it.curExpr.nameLen];
-//		ObjExprIteratorReadName(&it, name);
-//		const Expression* expr = ObjExprIteratorGetExpr(&it);
-//
-//		uword_t symAddr;
-//		assert(!FindSymbol(expr->name, expr->nameLen, &symAddr));
-//		data[expr->address] = HTON_WORD(symAddr);
-
-		data[address] = HTON_WORD(value);
+		data[address] = htole_word(value);
 	}
 }
 
+//FIXME !!!PRIORITY!!! exedump and exetolst seem to be broken, should look into that
+
 static void EmitSection(SectionLinkHandle* section)
 {
+#ifdef ESC_DEBUG
+	printf("EmitSection(): addr=0x%X, sz=0x%X\n", section->address, section->size);
+#endif
+
 	ObjSectionHeader secHeader;
 	ObjReadSection(section->offset, &secHeader);
-//	byte_t type = ObjReadType();
 	byte_t type = secHeader.type;
 
 	switch(type)

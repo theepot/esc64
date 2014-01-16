@@ -13,3 +13,12 @@ uword_t Align(uword_t val, uword_t align)
 	uword_t r = val & mask ? (val + align) & ~mask : val;
 	return r;
 }
+
+int IsAligned(uword_t val, uword_t align)
+{
+	ASSERT_POWER_OF_TWO(align != 0);
+	uword_t mask = align - 1;
+	ASSERT_POWER_OF_TWO(!(align & mask));
+
+	return !(val & mask);
+}

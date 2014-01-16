@@ -4,12 +4,13 @@
 #include <esc64asm/escerror.h>
 #include <esc64asm/objread.h>
 #include <esc64asm/opcodes.h>
+#include <esc64asm/align.h>
 
-static void PrintHeader(const ObjectHeader* header);
-static void PrintSection(const ObjSectionHeader* secHeader);
+static void PrintHeader(const ObjHeader* header);
+static void PrintSection(int isAbs, const ObjSectionHeader* secHeader);
 static void PrintSymbols(objsize_t offset);
 static void PrintExpr(void);
-static void PrintData(size_t dataSize);
+static void PrintData(int align2, size_t dataSize);
 static void PrintInstruction(uword_t instrWord);
 static const char* SectionTypeToString(byte_t type);
 static void PrintString(const char* str, size_t len);
@@ -19,7 +20,7 @@ int main(int argc, char** argv)
 	assert(argc == 2);
 
 	OpcodeTableInit();
-	ObjectHeader header;
+	ObjHeader header;
 	ObjectReaderInit(argv[1]);
 
 	ObjReadHeader(&header);
@@ -28,23 +29,23 @@ int main(int argc, char** argv)
 	ObjSectionHeader secHeader;
 
 	puts("abs sections:");
-	ObjectReaderStart(header.absSectionOffset);
+	ObjectReaderStart(betoh_objsize(header.absSectionOffset));
 	while(!ObjReaderNextSection(&secHeader))
 	{
-		PrintSection(&secHeader);
+		PrintSection(1, &secHeader);
 	}
 
 	puts("reloc sections:");
-	ObjectReaderStart(header.relocSectionOffset);
+	ObjectReaderStart(betoh_objsize(header.relocSectionOffset));
 	while(!ObjReaderNextSection(&secHeader))
 	{
-		PrintSection(&secHeader);
+		PrintSection(0, &secHeader);
 	}
 
 	return 0;
 }
 
-static void PrintHeader(const ObjectHeader* header)
+static void PrintHeader(const ObjHeader* header)
 {
 	printf(
 			"header:\n"
@@ -56,23 +57,23 @@ static void PrintHeader(const ObjectHeader* header)
 			"\trelocSectionCount=%u\n"
 			"\tabsSectionOffset=%u\n"
 			"\trelocSectionOffset=%u\n",
-			header->localSymTotNameSize,
-			header->globalSymTotNameSize,
-			header->localSymCount,
-			header->globalSymCount,
-			header->absSectionCount,
-			header->relocSectionCount,
-			header->absSectionOffset,
-			header->relocSectionOffset);
+			betoh_word(header->localSymTotNameSize),
+			betoh_word(header->globalSymTotNameSize),
+			betoh_word(header->localSymCount),
+			betoh_word(header->globalSymCount),
+			betoh_word(header->absSectionCount),
+			betoh_word(header->relocSectionCount),
+			betoh_objsize(header->absSectionOffset),
+			betoh_objsize(header->relocSectionOffset));
 }
 
-static void PrintSection(const ObjSectionHeader* secHeader)
+static void PrintSection(int isAbs, const ObjSectionHeader* secHeader)
 {
 	objsize_t offset = ObjGetSectionOffset();
 	objsize_t next = ObjGetSectionNext();
-	uword_t address = NTOH_WORD(secHeader->address);
-	uword_t size = NTOH_WORD(secHeader->size);
-	uword_t alignment = NTOH_WORD(secHeader->alignment);
+	uword_t address = betoh_word(secHeader->address);
+	uword_t size = betoh_word(secHeader->size);
+	uword_t alignment = betoh_word(secHeader->alignment);
 	byte_t type = secHeader->type;
 
 	printf(	"\t%s section offset=0x%X(%u); next=0x%X(%u); address=0x%X(%u); size=0x%X(%u); alignment=0x%X(%u)\n",
@@ -83,13 +84,15 @@ static void PrintSection(const ObjSectionHeader* secHeader)
 			size, size,
 			alignment, alignment);
 
-	puts("\t\tlocal symbols:");
+	objsize_t localOffset = betoh_objsize(secHeader->localSymbolRecordOffset);
+	printf("\t\tlocal symbols: (offset=0x%04X)\n", localOffset);
 //	PrintSymbols(OBJ_SECTION_LOCAL_SYM_RECORD_OFFSET);
-	PrintSymbols(NTOH_OBJSIZE(secHeader->localSymbolRecordOffset));
+	PrintSymbols(localOffset);
 
-	puts("\t\tglobal symbols:");
+	objsize_t globalOffset = betoh_objsize(secHeader->globalSymbolRecordOffset);
+	printf("\t\tglobal symbols: (offset=0x%04X)\n", globalOffset);
 //	PrintSymbols(OBJ_SECTION_GLOBAL_SYM_RECORD_OFFSET);
-	PrintSymbols(NTOH_OBJSIZE(secHeader->globalSymbolRecordOffset));
+	PrintSymbols(globalOffset);
 
 	switch(type)
 	{
@@ -99,7 +102,7 @@ static void PrintSection(const ObjSectionHeader* secHeader)
 		PrintExpr();
 
 		puts("\t\tdata / instructions:");
-		PrintData(size);
+		PrintData(isAbs ? IsAligned(address, 2) : alignment >= 2, size);
 	} break;
 
 	case SECTION_TYPE_BSS:
@@ -163,20 +166,34 @@ static void PrintExpr()
 	}
 }
 
-static void PrintData(size_t dataSize)
+static void PrintData(int align2, size_t dataSize)
 {
 	ObjDataReader dataReader;
 	ObjDataReaderInit(&dataReader);
-	uword_t dataBuf[dataSize];
+	byte_t dataBuf[dataSize];
 	ObjDataReaderRead(&dataReader, dataBuf, dataSize);
-	size_t i;
 
-	for(i = 0; i < dataSize; ++i)
+	size_t i = 0;
+
+	if(!align2)
 	{
-		uword_t word = NTOH_WORD(dataBuf[i]);
+		printf("\t\t\t@0x0000:\t0x%02X\n", dataBuf[0]);
+		i = 1;
+	}
+
+	while(i + 1 < dataSize)
+	{
+		uword_t word = letoh_word(*(uword_t*)(dataBuf + i));
 		printf("\t\t\t@0x%04X:\t0x%04X", i, word);
 		PrintInstruction(word);
 		putchar('\n');
+		i += 2;
+	}
+
+	while(i < dataSize)
+	{
+		printf("\t\t\t@0x%04X:\t0x%02X\n", dataSize - 1, dataBuf[i]);
+		++i;
 	}
 }
 

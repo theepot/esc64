@@ -1,4 +1,5 @@
 .data
+.align 2
 #define LIST_LEN	20
 .word 0xC301
 .word 0xC302

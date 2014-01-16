@@ -4,11 +4,6 @@
 #include <stdio.h>
 #include <esc64asm/esctypes.h>
 
-typedef uint32_t objsize_t;
-
-#define HTON_OBJSIZE(x)	htonl((x))
-#define NTOH_OBJSIZE(x)	ntohl((x))
-
 #define OBJ_RECORD_ILLEGAL_OFFSET (~(objsize_t)0)
 
 typedef struct RecordWriter_
@@ -39,11 +34,11 @@ void RecordWriterInit(RecordWriter* writer, void* buf, size_t bufSize, objsize_t
 void RecordWriterClose(RecordWriter* writer, FILE* file);
 void RecordWrite(RecordWriter* writer, FILE* stream, const void* data, size_t dataSize);
 void RecordWriteByte(RecordWriter* writer, FILE* stream, byte_t val);
-void RecordWriteWord(RecordWriter* writer, FILE* stream, uword_t val);
+void RecordWriteWordBE(RecordWriter* writer, FILE* stream, uword_t val);
 
 void RecordReaderInit(RecordReader* reader, FILE* stream, objsize_t firstOffset);
 size_t RecordRead(RecordReader* reader, FILE* stream, void* buf, size_t amount);
-int RecordReadWord(RecordReader* reader, FILE* stream, uword_t* val);
+int RecordReadWordBE(RecordReader* reader, FILE* stream, uword_t* val);
 int RecordReadByte(RecordReader* reader, FILE* stream, byte_t* val);
 
 #endif

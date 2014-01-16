@@ -30,22 +30,23 @@ void ObjectReaderInit(const char* path)
 	}
 
 	secNext_ = OBJ_RECORD_ILLEGAL_OFFSET;
-	IOSeekForward(objStream_, OBJ_HEADER_SIZE);
+	IOSeekForward(objStream_, sizeof (ObjHeader));
 }
 
-void ObjReadHeader(ObjectHeader* header)
+void ObjReadHeader(ObjHeader* header)
 {
 	objsize_t head = IOGetFilePos(objStream_);
 	IOSetFilePos(objStream_, 0);
 
-	header->localSymTotNameSize = IOReadWord(objStream_);
-	header->globalSymTotNameSize = IOReadWord(objStream_);
-	header->localSymCount = IOReadWord(objStream_);
-	header->globalSymCount = IOReadWord(objStream_);
-	header->absSectionCount = IOReadWord(objStream_);
-	header->relocSectionCount = IOReadWord(objStream_);
-	header->absSectionOffset = IOReadObjSize(objStream_);
-	header->relocSectionOffset = IOReadObjSize(objStream_);
+//	header->localSymTotNameSize = IOReadWord(objStream_);
+//	header->globalSymTotNameSize = IOReadWord(objStream_);
+//	header->localSymCount = IOReadWord(objStream_);
+//	header->globalSymCount = IOReadWord(objStream_);
+//	header->absSectionCount = IOReadWord(objStream_);
+//	header->relocSectionCount = IOReadWord(objStream_);
+//	header->absSectionOffset = IOReadObjSize(objStream_);
+//	header->relocSectionOffset = IOReadObjSize(objStream_);
+	IORead(objStream_, header, sizeof *header);
 
 	IOSetFilePos(objStream_, head);
 }
@@ -60,7 +61,7 @@ void ObjReadSection(objsize_t offset, ObjSectionHeader* sectionHeader)
 	secOffset_ = offset;
 	IOSetFilePos(objStream_, secOffset_);
 	IORead(objStream_, sectionHeader, sizeof *sectionHeader);
-	secNext_ = NTOH_OBJSIZE(sectionHeader->next);
+	secNext_ = betoh_objsize(sectionHeader->next);
 }
 
 void ObjectReaderClose(void)
@@ -160,7 +161,7 @@ int ObjSymIteratorNext(ObjSymIterator* it)
 
 	size_t toRead = sizeof (uword_t) + sizeof (uword_t);
 	byte_t buf[toRead];
-	void* p = buf;
+	byte_t* p = buf;
 	if(RecordRead(&it->symReader, it->stream, buf, toRead) != toRead)
 	{
 		return -1;
@@ -169,11 +170,11 @@ int ObjSymIteratorNext(ObjSymIterator* it)
 	uword_t rawValue;
 	memcpy(&rawValue, p, sizeof rawValue);
 	p += sizeof rawValue;
-	it->curSym.address = NTOH_WORD(rawValue);			//value
+	it->curSym.address = betoh_word(rawValue);		//value
 
 	uword_t rawNameSize;
 	memcpy(&rawNameSize, p, sizeof rawNameSize);
-	it->curSym.nameLen = NTOH_WORD(rawNameSize);	//nameSize
+	it->curSym.nameLen = betoh_word(rawNameSize);	//nameSize
 
 	it->state = OBJ_IT_STATE_READ_STATIC;
 
@@ -199,7 +200,7 @@ int XObjExpReaderInit(XObjExpReader* reader)
 	objsize_t exp = secOffset_ + sizeof (ObjSectionHeader) + offsetof(ObjDataSection, expRecordOffset);
 	IOSetFilePos(objStream_, exp);
 
-	objsize_t firstOffset = IOReadObjSize(objStream_);
+	objsize_t firstOffset = IOReadObjSizeBE(objStream_);
 
 	if(firstOffset == OBJ_RECORD_ILLEGAL_OFFSET) { return -1; }
 
@@ -209,7 +210,7 @@ int XObjExpReaderInit(XObjExpReader* reader)
 
 int XObjExpReaderNextExp(XObjExpReader* reader)
 {
-	if(RecordReadWord(&reader->reader, objStream_, &reader->address)) { return -1; }
+	if(RecordReadWordBE(&reader->reader, objStream_, &reader->address)) { return -1; }
 	return 0;
 }
 
@@ -223,7 +224,7 @@ int XObjExpReaderNextToken(XObjExpReader* reader)
 	case EXPR_T_WORD:
 	case EXPR_T_SYMBOL:
 		ESC_ASSERT_ERROR(
-				!RecordReadWord(&reader->reader, objStream_, (uword_t*)&reader->tok.wordVal),
+				!RecordReadWordBE(&reader->reader, objStream_, (uword_t*)&reader->tok.wordVal),
 				"Incomplete token in postfix expression");
 		break;
 
@@ -250,7 +251,7 @@ int ObjExpReaderInit(ObjExpReader* expReader)
 	objsize_t exp = secOffset_ + sizeof (ObjSectionHeader) + offsetof(ObjDataSection, expRecordOffset);
 	IOSetFilePos(objStream_, exp);
 
-	objsize_t firstOffset = IOReadObjSize(objStream_);
+	objsize_t firstOffset = IOReadObjSizeBE(objStream_);
 	if(firstOffset == OBJ_RECORD_ILLEGAL_OFFSET)
 	{
 		return -1;
@@ -262,7 +263,7 @@ int ObjExpReaderInit(ObjExpReader* expReader)
 
 int ObjExpReaderNext(ObjExpReader* expReader, uword_t* address, uword_t* value)
 {
-	if(RecordReadWord(&expReader->reader, objStream_, address))
+	if(RecordReadWordBE(&expReader->reader, objStream_, address))
 	{
 		return -1;
 	}
@@ -331,7 +332,7 @@ int ObjExpReaderNext(ObjExpReader* expReader, uword_t* address, uword_t* value)
 			break;
 		case EXPR_T_WORD:
 			DUMP("word");
-			ESC_ASSERT_FATAL(!RecordReadWord(&expReader->reader, objStream_, &result), "Incomplete postfix token with type EXPR_T_WORD");
+			ESC_ASSERT_FATAL(!RecordReadWordBE(&expReader->reader, objStream_, &result), "Incomplete postfix token with type EXPR_T_WORD");
 #ifdef ESC_DEBUG
 			printf(", result=%d\n", result);
 #endif
@@ -340,7 +341,7 @@ int ObjExpReaderNext(ObjExpReader* expReader, uword_t* address, uword_t* value)
 			{
 				DUMP("symbol");
 				uword_t size;
-				ESC_ASSERT_FATAL(!RecordReadWord(&expReader->reader, objStream_, &size), "Incomplete postfix token with type EXPR_T_SYMBOL (1)");
+				ESC_ASSERT_FATAL(!RecordReadWordBE(&expReader->reader, objStream_, &size), "Incomplete postfix token with type EXPR_T_SYMBOL (1)");
 				char str[size];
 				ESC_ASSERT_FATAL(RecordRead(&expReader->reader, objStream_, str, size) == size, "Incomplete postfix token with type EXPR_T_SYMBOL (2)");
 #ifdef ESC_DEBUG
@@ -382,14 +383,11 @@ int ObjExpReaderNext(ObjExpReader* expReader, uword_t* address, uword_t* value)
 
 int ObjDataReaderInit(ObjDataReader* dataReader)
 {
-//	assert(secType_ == SECTION_TYPE_DATA);
-
 	dataReader->stream = objStream_;
-//	IOSetFilePos(dataReader->stream, secOffset_ + OBJ_SECTION_DATA_RECORD_OFFSET);
 	objsize_t data = secOffset_ + sizeof (ObjSectionHeader) + offsetof(ObjDataSection, dataRecordOffset);
 	IOSetFilePos(objStream_, data);
 
-	objsize_t firstOffset = IOReadObjSize(dataReader->stream);
+	objsize_t firstOffset = IOReadObjSizeBE(dataReader->stream);
 	if(firstOffset == OBJ_RECORD_ILLEGAL_OFFSET)
 	{
 		return -1;
@@ -402,7 +400,7 @@ int ObjDataReaderInit(ObjDataReader* dataReader)
 
 size_t ObjDataReaderRead(ObjDataReader* reader, void* data, size_t dataSize)
 {
-	return RecordRead(&reader->dataReader, objStream_, data, dataSize * 2);
+	return RecordRead(&reader->dataReader, objStream_, data, dataSize);
 }
 
 static void PostfixPush(word_t val)

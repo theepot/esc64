@@ -13,26 +13,39 @@
 //		- header
 //		- section []
 
-//	header structure
-//		- local symbol total name size	: uword_t	///< size of names of all local symbols
-//		- global symbol total name size	: uword_t 	///< size of names of all global symbols
-//		- local symbol count			: uword_t
-//		- global symbol count			: uword_t
-//		- abs section count				: uword_t
-//		- reloc section count			: uword_t
-//		- abs section offset			: objsize_t
-//		- reloc section offset			: objsize_t
-#define OBJ_HEADER_LOCAL_SYM_TOT_NAME_SIZE_OFFSET	0
-#define OBJ_HEADER_GLOBAL_SYM_TOT_NAME_SIZE_OFFSET	(OBJ_HEADER_LOCAL_SYM_TOT_NAME_SIZE_OFFSET + sizeof (uword_t))
-#define OBJ_HEADER_LOCAL_SYM_COUNT_OFFSET			(OBJ_HEADER_GLOBAL_SYM_TOT_NAME_SIZE_OFFSET + sizeof (uword_t))
-#define OBJ_HEADER_GLOBAL_SYM_COUNT_OFFSET			(OBJ_HEADER_LOCAL_SYM_COUNT_OFFSET + sizeof (uword_t))
-#define OBJ_HEADER_ABS_SECTION_COUNT_OFFSET			(OBJ_HEADER_GLOBAL_SYM_COUNT_OFFSET + sizeof (uword_t))
-#define OBJ_HEADER_RELOC_SECTION_COUNT_OFFSET		(OBJ_HEADER_ABS_SECTION_COUNT_OFFSET + sizeof (uword_t))
-#define OBJ_HEADER_ABS_SECTION_OFFSET_OFFSET		(OBJ_HEADER_RELOC_SECTION_COUNT_OFFSET + sizeof (uword_t))
-#define OBJ_HEADER_RELOC_SECTION_OFFSET_OFFSET		(OBJ_HEADER_ABS_SECTION_OFFSET_OFFSET + sizeof (objsize_t))
-#define OBJ_HEADER_SIZE								(OBJ_HEADER_RELOC_SECTION_OFFSET_OFFSET + sizeof (objsize_t))
+//TODO dont use this anymore, use packed ObjHeader structure
+////	header structure
+////		- local symbol total name size	: uword_t	///< size of names of all local symbols
+////		- global symbol total name size	: uword_t 	///< size of names of all global symbols
+////		- local symbol count			: uword_t
+////		- global symbol count			: uword_t
+////		- abs section count				: uword_t
+////		- reloc section count			: uword_t
+////		- abs section offset			: objsize_t
+////		- reloc section offset			: objsize_t
+//#define OBJ_HEADER_LOCAL_SYM_TOT_NAME_SIZE_OFFSET	0
+//#define OBJ_HEADER_GLOBAL_SYM_TOT_NAME_SIZE_OFFSET	(OBJ_HEADER_LOCAL_SYM_TOT_NAME_SIZE_OFFSET + sizeof (uword_t))
+//#define OBJ_HEADER_LOCAL_SYM_COUNT_OFFSET			(OBJ_HEADER_GLOBAL_SYM_TOT_NAME_SIZE_OFFSET + sizeof (uword_t))
+//#define OBJ_HEADER_GLOBAL_SYM_COUNT_OFFSET			(OBJ_HEADER_LOCAL_SYM_COUNT_OFFSET + sizeof (uword_t))
+//#define OBJ_HEADER_ABS_SECTION_COUNT_OFFSET			(OBJ_HEADER_GLOBAL_SYM_COUNT_OFFSET + sizeof (uword_t))
+//#define OBJ_HEADER_RELOC_SECTION_COUNT_OFFSET		(OBJ_HEADER_ABS_SECTION_COUNT_OFFSET + sizeof (uword_t))
+//#define OBJ_HEADER_ABS_SECTION_OFFSET_OFFSET		(OBJ_HEADER_RELOC_SECTION_COUNT_OFFSET + sizeof (uword_t))
+//#define OBJ_HEADER_RELOC_SECTION_OFFSET_OFFSET		(OBJ_HEADER_ABS_SECTION_OFFSET_OFFSET + sizeof (objsize_t))
+//#define OBJ_HEADER_SIZE								(OBJ_HEADER_RELOC_SECTION_OFFSET_OFFSET + sizeof (objsize_t))
 
-typedef struct ObjectHeader_
+//typedef struct ObjectHeader_
+//{
+//	uword_t localSymTotNameSize;
+//	uword_t globalSymTotNameSize;
+//	uword_t localSymCount;
+//	uword_t globalSymCount;
+//	uword_t absSectionCount;
+//	uword_t relocSectionCount;
+//	objsize_t absSectionOffset;
+//	objsize_t relocSectionOffset;
+//} ObjectHeader;
+
+typedef struct PACKED ObjHeader_
 {
 	uword_t localSymTotNameSize;
 	uword_t globalSymTotNameSize;
@@ -42,7 +55,7 @@ typedef struct ObjectHeader_
 	uword_t relocSectionCount;
 	objsize_t absSectionOffset;
 	objsize_t relocSectionOffset;
-} ObjectHeader;
+} ObjHeader;
 
 //TODO don't use this anymore, use the packed struct below (ObjSectionHeader)
 //	section structure *see struct ObjSectionInfo_*

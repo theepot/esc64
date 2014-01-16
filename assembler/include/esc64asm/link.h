@@ -57,13 +57,6 @@ void ExeWriteBss(ExeWriter* writer, uword_t address, uword_t size);
 objsize_t ExeWriteData(ExeWriter* writer, uword_t address, uword_t size, const void* data);
 
 /**
- * @brief				Sets word [dataOffset + address*2] to value
- * @param dataOffset 	Offset of data
- * @param address		offset from dataOffset in words
- */
-void ExeUpdateDataWord(ExeWriter* writer, objsize_t dataOffset, uword_t address, uword_t value);
-
-/**
  * @brief			Describes ExeReader state
  */
 typedef enum ExeReaderState_
