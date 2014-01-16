@@ -285,7 +285,7 @@ void error(int error_code)
 	set_field(u, "error", error_code);
 }
 
-void create_2op_alu_instruction(opcode op, int alu_fun, carry_sel c)
+void create_2op_alu_instruction(opcode_t op, int alu_fun, carry_sel c)
 {
 	goto_op_entry(op, ALWAYS);
 		breg_ld();
@@ -300,13 +300,13 @@ void create_2op_alu_instruction(opcode op, int alu_fun, carry_sel c)
 	set_next(next_sel_fetch);
 }
 
-void create_nop_instruction(opcode op, int condition)
+void create_nop_instruction(opcode_t op, int condition)
 {
 	goto_op_entry(op, condition);
 	set_next(next_sel_fetch);
 }
 
-void create_conditional_mov_instruction(opcode op, int condition)
+void create_conditional_mov_instruction(opcode_t op, int condition)
 {
 	create_nop_instruction(op, ~condition);
 	goto_op_entry(op, condition);
@@ -316,7 +316,7 @@ void create_conditional_mov_instruction(opcode op, int condition)
 	set_next(next_sel_fetch);
 }
 
-void create_conditional_mov_literal_instruction(opcode op, int condition)
+void create_conditional_mov_literal_instruction(opcode_t op, int condition)
 {
 	goto_op_entry(op, ~condition);
 	pc_inc();
@@ -328,7 +328,7 @@ void create_conditional_mov_literal_instruction(opcode op, int condition)
 	set_next(next_sel_fetch);
 }
 
-void create_illegal_instruction(opcode op)
+void create_illegal_instruction(opcode_t op)
 {
 	goto_op_entry(op, ALWAYS);
 	error(ERROR_WIRE_ILLEGAL_OPCODE);
@@ -623,26 +623,39 @@ int main(int argc, char** argv)
 	//push
 	//TODO: might be optimizable
 	goto_op_entry(op_push, ALWAYS);
-	mem_write(gpreg_oe_sel_sp, gpreg_oe_sel_op1, true);
+		gpreg_oe(gpreg_oe_sel_sp);
+		alu_enable(ALU_F_A_MINUS_ONE);
+		carry_set(carry_sel_zero);
+		reg_ld(reg_ld_sel_sp);
 	set_next(next_sel_next_free);
 	goto_next_free();
 		gpreg_oe(gpreg_oe_sel_sp);
 		alu_enable(ALU_F_A_MINUS_ONE);
 		carry_set(carry_sel_zero);
 		reg_ld(reg_ld_sel_sp);
+	set_next(next_sel_next_free);
+	goto_next_free();
+	mem_write(gpreg_oe_sel_sp, gpreg_oe_sel_op1, true);
 	set_next(next_sel_fetch);
+
+
 
 	//pop
 	goto_op_entry(op_pop, ALWAYS);
+		mem_read(reg_ld_sel_op0, gpreg_oe_sel_sp, true);
+	set_next(next_sel_next_free);
+	goto_next_free();
 		gpreg_oe(gpreg_oe_sel_sp);
 		alu_enable(ALU_F_A_PLUS_ONE);
 		carry_set(carry_sel_one);
 		reg_ld(reg_ld_sel_sp);
-	set_next(next_sel_next_free);
-	goto_next_free();
-		mem_read(reg_ld_sel_op0, gpreg_oe_sel_sp, true);
 	set_next(next_sel_fetch);
-	
+	goto_next_free();
+		gpreg_oe(gpreg_oe_sel_sp);
+		alu_enable(ALU_F_A_PLUS_ONE);
+		carry_set(carry_sel_one);
+		reg_ld(reg_ld_sel_sp);
+	set_next(next_sel_fetch);
 	
 	
 	//halt

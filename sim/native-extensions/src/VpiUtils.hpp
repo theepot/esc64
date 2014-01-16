@@ -50,6 +50,4 @@ public:
 void registerSysTF(const std::string& name, const boost::function<void ()>& func, PLI_INT32 type, PLI_INT32 return_type = 0, PLI_INT32 size = 1);
 void setFunctionReturnValue(s_vpi_value val);
 
-std::ostream& operator << (std::ostream &s, const s_vpi_vecval& rhs);
-
 } //namespace VpiUtils

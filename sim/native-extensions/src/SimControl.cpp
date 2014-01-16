@@ -6,6 +6,7 @@
 #include <thrift/transport/TBufferTransports.h>
 #include <boost/thread.hpp>
 #include <boost/program_options.hpp>
+#include <boost/program_options/parsers.hpp>
 #include <boost/array.hpp>
 #include <boost/function.hpp>
 #include <sstream>
@@ -186,7 +187,6 @@ void ServiceImpl::getMemory(std::vector<int32_t> & _return, const int32_t offset
 
 void ServiceImpl::tickTask()
 {
-	printf("TIIICK\n");
 	SimState::type s;
 
 	for(;;)
@@ -199,7 +199,7 @@ void ServiceImpl::tickTask()
 				prevSimState = simState;
 			}
 			s = simState;
-			/*FIXME debug*/ std::cout << "tickTask(): state=" << _SimState_VALUES_TO_NAMES.at(s) << std::endl;
+			/*FIXME debug*/ //std::cout << "tickTask(): state=" << _SimState_VALUES_TO_NAMES.at(s) << std::endl;
 		}
 		simStateCond.notify_all();
 
@@ -297,13 +297,18 @@ void ServiceImpl::errorTask()
 
 void ServiceImpl::parseOptions(int argc, char** argv)
 {
-	po::options_description desc("Allowed options");
+	po::options_description desc( "Allowed options");
+
 	desc.add_options()
 	    ("paused", "start the simulation paused")
 	    ("lst", po::value<std::string>(), "program lst file");
 
+	boost::program_options::basic_command_line_parser<char> bcp = boost::program_options::basic_command_line_parser<char>(argc, argv);
+	bcp.options(desc);
+	bcp.allow_unregistered();
+
 	po::variables_map vm;
-	po::store(po::parse_command_line(argc, argv, desc), vm);
+	po::store(bcp.run(), vm);
 	po::notify(vm);
 
 	prevSimState = simState = (vm.count("paused") ? SimState::HALTED : SimState::RUNNING);

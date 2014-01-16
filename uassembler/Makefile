@@ -1,7 +1,7 @@
 .PHONY: all
 all: urom.lst
 
-CFLAGS				= -Wall -g -I../common
+CFLAGS				= -Wall -g -I../lib/cpu
 LFLAGS				= -Wall -g
 
 bin_table.o: bin_table.c bin_table.h

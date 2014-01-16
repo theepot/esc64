@@ -1,5 +1,5 @@
 SERVICE_GEN_DIR		=gen-py
-SERVICE				=../service.thrift
+SERVICE				=../../lib/CpuControlService/service.thrift
 SERVICE_TIMESTAMP	=service_timestamp
 
 .PHONY: all
