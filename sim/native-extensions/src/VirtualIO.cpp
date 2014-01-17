@@ -73,7 +73,7 @@ extern "C" {
 void VirtualIO_entry(void) {
 	VirtualIOManager* viom = new VirtualIOManager();
 	
-	RAM* ram = new RAM(false, 0, 1<<15);
+	RAM* ram = new RAM(false, 0, (1<<15) - 1);
 	
 	s_vpi_vlog_info vlog_info;
 	vpi_get_vlog_info(&vlog_info);

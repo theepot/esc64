@@ -1,4 +1,4 @@
-#include "service/SimService.h"
+#include "service/ComputerControlService.h"
 #include "SimControl.hpp"
 #include <thrift/protocol/TBinaryProtocol.h>
 #include <thrift/server/TNonblockingServer.h>
@@ -17,55 +17,67 @@ using namespace ::apache::thrift;
 using namespace ::apache::thrift::protocol;
 using namespace ::apache::thrift::transport;
 using namespace ::apache::thrift::server;
-using namespace ::esc64simsrv;
+using namespace ::esc64controlsrv;
 using namespace ::VpiUtils;
 
 using boost::shared_ptr;
 
 namespace po = boost::program_options;
 
-class ServiceImpl : virtual public SimServiceIf
+class ServiceImpl : virtual public ComputerControlServiceIf
 {
 public:
 	ServiceImpl() { };
 	virtual ~ServiceImpl() { }
 
 	//thrift service implementation
-	SimState::type getState();
+	ComputerState::type getState();
 	void start();
 	void pause();
 	void step();
 	void microStep();
-	ErrCode::type getErrCode();
 	void reset();
+	CarryState::type getCarryFlag();
+	bool getZeroFlag();
 	void getRegister(std::vector<int32_t> & _return, const int32_t offset, const int32_t size);
 	void getMemory(std::vector<int32_t> & _return, const int32_t offset, const int32_t size);
+	int64_t getInstrCount();
+	int64_t getClockCount();
 
 	//verilog tasks
 	void tickTask();
-	void printNumTask(); //still here for reference purposes
-	void startServerTask();
-	void haltTask();
-	void errorTask();
+	void startSimControlTask();
 
 private:
 	static const size_t REG_HANDLES_SIZE = 8;
 	static const int PORT = 9090;
 
+	enum SimControlState {
+		RUNNING = 0,
+		PAUSED,
+		STARTING_STEP,
+		STEPPING,
+		MICRO_STEPPING
+	};
+
 	boost::thread* serviceThread;
-	SimState::type prevSimState;
-	SimState::type simState;
+	SimControlState prevSimState;
+	SimControlState simState;
 	boost::mutex simStateMutex;
 	boost::condition_variable simStateCond;
 	boost::mutex simMutex;
+	int64_t instr_counter;
+	int64_t clock_counter;
 
-	ErrCode::type simError;
-
+	vpiHandle carryFlagHandle;
+	vpiHandle zeroFlagHandle;
 	vpiHandle regHandles[REG_HANDLES_SIZE];
 	vpiHandle ramHandle;
+	vpiHandle atFetchHandle;
+	vpiHandle stateRegHandle;
 
 	void parseOptions(int argc, char** argv);
-	void setState(SimState::type state);
+	void setState(SimControlState state);
 	void initModuleHandles();
 	void serverThreadProc();
 };
@@ -74,42 +86,34 @@ struct VerilogTask
 {
 	const char* name;
 	void (ServiceImpl::*func)();
+	PLI_INT32 taskOrFunc;
 };
 
 static const VerilogTask VERILOG_TASKS[] =
 {
-	{ "$tick", &ServiceImpl::tickTask, },
-	{ "$print_add", &ServiceImpl::printNumTask },
-	{ "$start_thrift_server", &ServiceImpl::startServerTask },
-	{ "$halt", &ServiceImpl::haltTask },
-	{ "$error", &ServiceImpl::errorTask }
+	{ "$tick", &ServiceImpl::tickTask, vpiSysTask},
+	{ "$start_sim_control", &ServiceImpl::startSimControlTask, vpiSysTask},
 };
 
 static const size_t VERILOG_TASKS_SIZE = sizeof VERILOG_TASKS / sizeof (VerilogTask);
 
 ///// implementation /////
-SimState::type ServiceImpl::getState()
-{
-	boost::lock_guard<boost::mutex> lock(simStateMutex);
-	return simState;
-}
-
 void ServiceImpl::start()
 {
-	setState(SimState::RUNNING);
+	setState(RUNNING);
 }
 
 void ServiceImpl::pause()
 {
-	setState(SimState::PAUSED);
+	setState(PAUSED);
 }
 
 void ServiceImpl::step()
 {
-	setState(SimState::STARTING_STEP);
+	setState(STARTING_STEP);
 
 	boost::unique_lock<boost::mutex> lock(simStateMutex);
-	while(simState != SimState::PAUSED)
+	while(simState != PAUSED)
 	{
 		simStateCond.wait(lock);
 	}
@@ -117,24 +121,20 @@ void ServiceImpl::step()
 
 void ServiceImpl::microStep()
 {
-	setState(SimState::MICRO_STEPPING);
+	setState(MICRO_STEPPING);
 
 	boost::unique_lock<boost::mutex> lock(simStateMutex);
-	while(simState == SimState::MICRO_STEPPING)
+	while(simState != PAUSED)
 	{
 		simStateCond.wait(lock);
 	}
 }
 
-ErrCode::type ServiceImpl::getErrCode()
-{
-	boost::lock_guard<boost::mutex> lock(simMutex);
-	return simError;
-}
-
 void ServiceImpl::reset()
 {
 	boost::lock_guard<boost::mutex> lock(simMutex);
+	instr_counter = 0;
+	clock_counter = 0;
 	//TODO
 	std::cout << "reset() is not supported!\n";
 }
@@ -187,30 +187,50 @@ void ServiceImpl::getMemory(std::vector<int32_t> & _return, const int32_t offset
 
 void ServiceImpl::tickTask()
 {
-	SimState::type s;
+	ArgumentIterator args;
+	PLI_INT32 at_fetch = args.NextInt();
+	SimControlState s;
 
-	for(;;)
+	bool loop = true;
+
+	while(loop)
 	{
+		//pause on status not OK.
+		//TODO: breakpoints
+
+		s_vpi_value val;
+		val.format = vpiIntVal;
+		vpi_get_value(stateRegHandle, &val);
+		switch(val.value.integer)
+		{
+		case 0: break;
+		case 1:
+		case 2:
+		case 3:
+		case 4:
+		case 5:
+			setState(PAUSED);
+			break;
+		default: assert(0); break;
+		}
+
 		{
 			boost::lock_guard<boost::mutex> lock(simStateMutex);
 			if(prevSimState != simState)
 			{
-				printf("Simulation state changed from %s to %s\n", _SimState_VALUES_TO_NAMES.at(prevSimState), _SimState_VALUES_TO_NAMES.at(simState));
 				prevSimState = simState;
 			}
 			s = simState;
-			/*FIXME debug*/ //std::cout << "tickTask(): state=" << _SimState_VALUES_TO_NAMES.at(s) << std::endl;
 		}
 		simStateCond.notify_all();
 
 		switch(s)
 		{
-		case SimState::RUNNING:
-			//TODO pause on error, halt or breakpoint
-			return;
+		case RUNNING:
 
-		case SimState::HALTED:
-		case SimState::PAUSED:
+			loop = false;
+			break;
+		case PAUSED:
 			{
 				simMutex.unlock();
 				boost::unique_lock<boost::mutex> lock(simStateMutex);
@@ -222,42 +242,38 @@ void ServiceImpl::tickTask()
 			}
 			break;
 
-		case SimState::STARTING_STEP:
-			setState(SimState::STEPPING);
-			return;
+		case STARTING_STEP:
+			setState(STEPPING);
+			loop = false;
+			break;
 
-		case SimState::STEPPING:
-		{
-			ArgumentIterator args;
-			PLI_INT32 fetch = args.NextInt();
-			if(fetch)
+		case STEPPING: {
+			if(at_fetch)
 			{
-				setState(SimState::PAUSED);
+				setState(PAUSED);
 				break;
 			}
-		} return;
-			
-		case SimState::MICRO_STEPPING:
-			setState(SimState::PAUSED);
-			return;
+			}
+			loop = false;
+			break;
+		case MICRO_STEPPING:
+			setState(PAUSED);
+			loop = false;
+			break;
 
 		default:
 			throw std::runtime_error("Illegal simulation state");
 		}
 	}
+
+	clock_counter++;
+	if(at_fetch) {
+		instr_counter++;
+	}
+
 }
 
-void ServiceImpl::printNumTask()
-{
-	ArgumentIterator it;
-
-	PLI_INT32 a = it.NextInt();
-	PLI_INT32 b = it.NextInt();
-
-	vpi_printf("a(%d) + b(%d) = %d\n", a, b, a + b);
-}
-
-void ServiceImpl::startServerTask()
+void ServiceImpl::startSimControlTask()
 {
 	assert(serviceThread == NULL);
 
@@ -265,7 +281,6 @@ void ServiceImpl::startServerTask()
 	initModuleHandles();
 	
 	//get cmd arguments
-	bool start_paused = false;
 	s_vpi_vlog_info vlog_info;
 	vpi_get_vlog_info(&vlog_info);
 	parseOptions(vlog_info.argc, vlog_info.argv);
@@ -276,32 +291,12 @@ void ServiceImpl::startServerTask()
 	serviceThread = new boost::thread(boost::bind(&ServiceImpl::serverThreadProc, this));
 }
 
-void ServiceImpl::haltTask()
-{
-	setState(SimState::HALTED);
-}
-
-void ServiceImpl::errorTask()
-{
-	setState(SimState::HALTED);
-
-//	vpiHandle systf = vpi_handle(vpiSysTfCall, NULL);
-//	VpiIterator it(vpiArgument, systf);
-//	ArgumentIterator argIt(&it);
-
-	ArgumentIterator it;
-
-	PLI_INT32 e = it.NextInt();
-	simError = static_cast<ErrCode::type>(e);
-}
-
 void ServiceImpl::parseOptions(int argc, char** argv)
 {
 	po::options_description desc( "Allowed options");
 
 	desc.add_options()
-	    ("paused", "start the simulation paused")
-	    ("lst", po::value<std::string>(), "program lst file");
+	    ("paused", "start the simulation paused");
 
 	boost::program_options::basic_command_line_parser<char> bcp = boost::program_options::basic_command_line_parser<char>(argc, argv);
 	bcp.options(desc);
@@ -311,23 +306,10 @@ void ServiceImpl::parseOptions(int argc, char** argv)
 	po::store(bcp.run(), vm);
 	po::notify(vm);
 
-	prevSimState = simState = (vm.count("paused") ? SimState::HALTED : SimState::RUNNING);
-	std::cout << "Starting simulation in " << _SimState_VALUES_TO_NAMES.at(simState) << " state\n";
-
-	switch(vm.count("lst"))
-	{
-	case 0: break;
-	case 1:
-		std::cout << "--lst option not supported yet\n";
-		break;
-
-	default:
-		assert(0 && "too many lst options");
-		break;
-	}
+	prevSimState = simState = (vm.count("paused") ? PAUSED : RUNNING);
 }
 
-void ServiceImpl::setState(SimState::type state)
+void ServiceImpl::setState(SimControlState state)
 {
 	{
 		boost::lock_guard<boost::mutex> lock(simStateMutex);
@@ -336,6 +318,7 @@ void ServiceImpl::setState(SimState::type state)
 	}
 
 	simStateCond.notify_all();
+	//TODO: print state changes when usefull to know
 }
 
 void ServiceImpl::initModuleHandles()
@@ -351,16 +334,90 @@ void ServiceImpl::initModuleHandles()
 		regHandles[i] = vpi_handle_by_name(ss.str().c_str(), top);
 		assert(regHandles[i]);
 	}
+
+	//flags
+	carryFlagHandle = vpi_handle_by_name("carry", top);
+	assert(carryFlagHandle);
+	zeroFlagHandle = vpi_handle_by_name("zero", top);
+	assert(zeroFlagHandle);
+
+	//status
+	stateRegHandle = vpi_handle_by_name("state", top);
+	assert(stateRegHandle);
+
+	//at fetch
+	atFetchHandle = vpi_handle_by_name("at_fetch", top);
+	assert(atFetchHandle);
 }
 
 void ServiceImpl::serverThreadProc()
 {
 	shared_ptr<ServiceImpl> handler(this);
-	shared_ptr<TProcessor> processor(new SimServiceProcessor(handler));
+	shared_ptr<TProcessor> processor(new ComputerControlServiceProcessor(handler));
 	shared_ptr<TProtocolFactory> protocolFactory(new TBinaryProtocolFactory());
 	TNonblockingServer server(processor, protocolFactory, PORT);
 
 	server.serve();
+}
+
+ComputerState::type ServiceImpl::getState() {
+	boost::lock_guard<boost::mutex> lock(simStateMutex);
+	boost::lock_guard<boost::mutex> lock2(simMutex);
+	switch(simState)
+	{
+	case RUNNING: return ComputerState::RUNNING;
+	case PAUSED:
+	case STARTING_STEP:
+	case STEPPING:
+	case MICRO_STEPPING:
+		s_vpi_value val;
+		val.format = vpiIntVal;
+		vpi_get_value(stateRegHandle, &val);
+		switch(val.value.integer)
+		{
+		case 0: return ComputerState::PAUSED;
+		case 1: return ComputerState::UNKNOWN_OPCODE;
+		case 2: return ComputerState::HW_FAULT;
+		case 3: return ComputerState::HW_FAULT;
+		case 4: return ComputerState::HALT_INSTR;
+		case 5: return ComputerState::READ_ERROR;
+		default: assert(0); break;
+		}
+		break;
+	default: assert(0); break;
+	}
+
+	assert(0);
+}
+
+CarryState::type ServiceImpl::getCarryFlag() {
+	boost::lock_guard<boost::mutex> lock(simMutex);
+	s_vpi_value val;
+	val.format = vpiIntVal;
+	vpi_get_value(carryFlagHandle, &val);
+	if(val.value.integer) {
+		return CarryState::SET;
+	} else {
+		return CarryState::UNSET;
+	}
+}
+
+bool ServiceImpl::getZeroFlag() {
+	boost::lock_guard<boost::mutex> lock(simMutex);
+	s_vpi_value val;
+	val.format = vpiIntVal;
+	vpi_get_value(zeroFlagHandle, &val);
+	return val.value.integer != 0;
+}
+
+int64_t ServiceImpl::getInstrCount() {
+	boost::lock_guard<boost::mutex> lock(simMutex);
+	return instr_counter;
+}
+
+int64_t ServiceImpl::getClockCount() {
+	boost::lock_guard<boost::mutex> lock(simMutex);
+	return clock_counter;
 }
 
 void SimControl_entry(void)
@@ -369,6 +426,7 @@ void SimControl_entry(void)
 
 	for(const VerilogTask* t = VERILOG_TASKS; t < VERILOG_TASKS + VERILOG_TASKS_SIZE; ++t)
 	{
-		registerSysTF(t->name, boost::bind(t->func, s), vpiSysTask);
+		registerSysTF(t->name, boost::bind(t->func, s), t->taskOrFunc);
 	}
 }
+

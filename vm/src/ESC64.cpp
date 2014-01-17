@@ -2,65 +2,74 @@
 #include <instr_info.h>
 #include <ESC64.hpp>
 #include <cassert>
+#include <cstdio>
 
 using namespace ::virtual_io;
 
 ESC64::ESC64(VirtualIOManager* viom) : viom(viom) {
-
+	reset();
 }
 
 ESC64::~ESC64() {
 }
 
-bool ESC64::step(void) {
-	Instr i = fetch();
-	return execute(i);
+void ESC64::step(void) {
+	validate_some_stuff();
+
+	if(state != OK)
+		return;
+	Instr i;
+	if(fetch(&i)) {
+		execute(i);
+		step_count++;
+	}
 }
 
 void ESC64::reset(void) {
 	for(int i = 0; i < 8; ++i) {
 		regs[i] = 0;
 	}
+	state = OK;
 	c_flag = false;
 	c_flag_is_defined = true;
 	z_flag = false;
+	step_count = 0;
 }
 
-ESC64::Instr ESC64::fetch(void) {
-	BitVector16 bitvec = viom->read(regs[RGS_PC] >> 1, true, true, false);
-	if(bitvec.b != 0) {
-		assert(0); //temporary assert
+bool ESC64::fetch(ESC64::Instr* out_instr) {
+	int read_data;
+	if(!safe_read_word(regs[RGS_PC], true, true, false, &read_data)) {
+		return false;
 	}
 
 	Instr result;
-	result.opcode = (opcode_t)((bitvec.a >> 9) & 0x01FF);
+	result.opcode = (opcode_t)((read_data >> 9) & 0x01FF);
 	if(instr_info[result.opcode].opcode == 0) {
-		assert(0); //temporary assert
+		state = UNKNOWN_OPCODE;
+		return false;
 	}
-	result.op0 = (bitvec.a >> 6) & 0x7;
-	result.op1 = (bitvec.a >> 3) & 0x7;
-	result.op2 = (bitvec.a >> 0) & 0x7;
+	result.op0 = (read_data >> 6) & 0x7;
+	result.op1 = (read_data >> 3) & 0x7;
+	result.op2 = (read_data >> 0) & 0x7;
 
 	pc_next_word();
 
 	if(instr_info[result.opcode].wide) {
-		BitVector16 bitvec = viom->read(regs[RGS_PC] >> 1, true, true, false);
-		if(bitvec.b != 0) {
-			assert(0); //temporary assert
+		if(!safe_read_word(regs[RGS_PC], true, true, false, &read_data)) {
+			return false;
 		}
-		result.op3 = bitvec.a;
+		result.op3 = read_data;
 
 		pc_next_word();
 	}
 
-
-	return result;
+	*out_instr = result;
+	return true;
 }
 
 // (op[^ \t]+).+$
 // case \1:\n\t{\n\t}\n\tbreak;
-bool ESC64::execute(Instr i) {
-	bool do_break = false;
+void ESC64::execute(Instr i) {
 	switch(i.opcode) {
 	case op_add:
 		regs[i.op0] = regs[i.op1] + regs[i.op2];
@@ -70,7 +79,8 @@ bool ESC64::execute(Instr i) {
 		break;
 	case op_adc:
 		if(!c_flag_is_defined) {
-			assert(0); //temporary assert
+			state = UNDEFINED_EFFECT;
+			break;
 		}
 		regs[i.op0] = regs[i.op1] + regs[i.op2] + c_flag ? 1 : 0;
 		z_flag = (regs[i.op0] & 0xFFFF) == 0;
@@ -85,7 +95,8 @@ bool ESC64::execute(Instr i) {
 		break;
 	case op_sbc:
 		if(!c_flag_is_defined) {
-			assert(0); //temporary assert
+			state = UNDEFINED_EFFECT;
+			break;
 		}
 		regs[i.op0] = regs[i.op1] - regs[i.op2] - 1 + c_flag ? 1 : 0;
 		z_flag = (regs[i.op0] & 0xFFFF) == 0;
@@ -136,10 +147,12 @@ bool ESC64::execute(Instr i) {
 		break;
 #define ESC64_COND_MOV(cond, use_cary) do {\
 		if((use_cary) && !c_flag_is_defined) {\
-			assert(0);\
-		}\
-		if((cond)) {\
-			regs[i.op0] = regs[i.op1];\
+			state = UNDEFINED_EFFECT;\
+			break;\
+		} else {\
+			if((cond)) {\
+				regs[i.op0] = regs[i.op1];\
+			}\
 		}\
 	} while(0)
 	case op_mov:
@@ -183,10 +196,12 @@ bool ESC64::execute(Instr i) {
 		break;
 #define ESC64_COND_MOV_IMM(cond, use_cary) do {\
 		if((use_cary) && !c_flag_is_defined) {\
-			assert(0);\
-		}\
-		if(cond) {\
-			regs[i.op0] = i.op3;\
+			state = UNDEFINED_EFFECT;\
+			break;\
+		} else {\
+			if(cond) {\
+				regs[i.op0] = i.op3;\
+			}\
 		}\
 	} while(0)
 	case op_mov_imm:
@@ -236,11 +251,11 @@ bool ESC64::execute(Instr i) {
 		}
 		break;
 	case op_ldr: {
-		BitVector16 bitvec = viom->read(regs[i.op1] >> 1, true, true, false);
-		if(bitvec.b != 0) {
-			assert(0); //temporary assert
+		int read_data;
+		if(!safe_read_word(regs[i.op1], true, true, false, &read_data)) {
+			break;
 		}
-		regs[i.op0] = bitvec.a;
+		regs[i.op0] = read_data;
 		}
 		break;
 	case op_str: {
@@ -259,11 +274,11 @@ bool ESC64::execute(Instr i) {
 		regs[RGS_PC] = i.op3;
 		break;
 	case op_in: {
-		BitVector16 bitvec = viom->read(regs[i.op1] >> 1, true, true, true);
-		if(bitvec.b != 0) {
-			assert(0); //temporary assert
+		int read_data;
+		if(!safe_read_word(regs[i.op1], true, true, true, &read_data)) {
+			break;
 		}
-		regs[i.op0] = bitvec.a;
+		regs[i.op0] = read_data;
 		}
 		break;
 	case op_out: {
@@ -282,17 +297,16 @@ bool ESC64::execute(Instr i) {
 		}
 		break;
 	case op_pop: {
-		BitVector16 bitvec = viom->read(regs[RGS_SP] >> 1, true, true, false);
-		if(bitvec.b != 0) {
-			assert(0); //temporary assert
+		int read_data;
+		if(!safe_read_word(regs[RGS_SP], true, true, false, &read_data)) {
+			break;
 		}
-		regs[i.op0] = bitvec.a;
+		regs[i.op0] = read_data;
 		regs[RGS_SP] += 2;
 		}
 		break;
 	case op_halt:
-		do_break = true;
-		break_reason = break_reason_halt;
+		state = HALT_INSTR;
 		break;
 	default:
 		assert(0);
@@ -302,27 +316,39 @@ bool ESC64::execute(Instr i) {
 	for(int i = 0; i < 8; ++i) {
 		regs[i] &= 0xFFFF;
 	}
-
-	return do_break;
 }
 
 void ESC64::pc_next_word(void) {
 	if(regs[RGS_PC] >= 0xFFFE) {
-		assert(0); //temporary assert
+		fprintf(stderr, "ESC64: WARNING: program counter overflowed\n");
 	}
 
 	regs[RGS_PC] += 2;
 }
 
+bool ESC64::safe_read_word(int addr, bool csh, bool csl, bool select_dev, int* out_data) {
+	if(addr & 1) {
+		fprintf(stderr, "ESC64: ERROR: tried to read unaligned word\n");
+		state = READ_ERROR;
+		return false;
+	}
+	BitVector16 bitvec = viom->read(addr >> 1, csh, csh, select_dev);
+	if(bitvec.b != 0) {
+		state = READ_ERROR;
+		return false;
+	}
+	*out_data = bitvec.a;
+	return true;
+}
 
-void ESC64::validate_state(void) {
+void ESC64::validate_some_stuff(void) {
 	if((regs[RGS_PC] & 1) != 0) {
-		assert(0); //temporary assert
+		assert(0);
 	}
 
 	for(int i = 0; i < 8; ++i) {
 		if(regs[i] & ~0xFFFF) {
-			assert(0); //temporary assert
+			assert(0);
 		}
 	}
 }

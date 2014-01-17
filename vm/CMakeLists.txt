@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 2.6)
 find_package(VirtualIO REQUIRED PATHS ../lib/VirtualIO NO_DEFAULT_PATH)
 find_package(CPU REQUIRED PATHS ../lib/cpu NO_DEFAULT_PATH)
 find_package(Boost REQUIRED)
-find_package(CpuControlService REQUIRED PATHS ../lib/CpuControlService NO_DEFAULT_PATH)
+find_package(ComputerControlService REQUIRED PATHS ../lib/ComputerControlService NO_DEFAULT_PATH)
 find_package(CInstrInfo REQUIRED PATHS ../lib/CInstrInfo NO_DEFAULT_PATH)
 
 include_directories(${VirtualIO_INCLUDE_DIRS})
@@ -21,14 +21,15 @@ set(THRIFT_GEN_SOURCES
 	${THRIFT_GEN_DIR}/service_constants.h
 	${THRIFT_GEN_DIR}/service_types.cpp
 	${THRIFT_GEN_DIR}/service_types.h
-	${THRIFT_GEN_DIR}/SimService.cpp
-	${THRIFT_GEN_DIR}/SimService.h
+	${THRIFT_GEN_DIR}/ComputerControlService.cpp
+	${THRIFT_GEN_DIR}/ComputerControlService.h
 	)
 
 add_custom_command(	OUTPUT ${THRIFT_GEN_SOURCES}
-					COMMAND thrift -out ${THRIFT_GEN_DIR} --gen cpp ${CPU_CONTROL_SERVICE_THRIFT_FILE}   
-					DEPENDS ${CPU_CONTROL_SERVICE_THRIFT_FILE}
-					COMMENT "Generating ${THRIFT_GEN_DIR} from ${CPU_CONTROL_SERVICE_THRIFT_FILE}")
+					COMMAND mkdir -p ${THRIFT_GEN_DIR}
+					COMMAND thrift -out ${THRIFT_GEN_DIR} --gen cpp ${COMPUTER_CONTROL_SERVICE_THRIFT_FILE}   
+					DEPENDS ${COMPUTER_CONTROL_SERVICE_THRIFT_FILE}
+					COMMENT "Generating ${THRIFT_GEN_DIR} from ${COMPUTER_CONTROL_SERVICE_THRIFT_FILE}")
 
 set_property(DIRECTORY "${CMAKE_BINARY_DIR}" APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES ${THRIFT_GEN_SOURCES})
 
@@ -49,5 +50,5 @@ target_link_libraries(esc64vm ${VirtualIO_LIBRARY})
 target_link_libraries(esc64vm thrift)
 target_link_libraries(esc64vm thriftnb)
 target_link_libraries(esc64vm event)
-
-
+target_link_libraries(esc64vm boost_thread)
+target_link_libraries(esc64vm boost_system)

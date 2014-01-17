@@ -7,10 +7,10 @@ LDFLAGS				= -Wall -shared -L/usr/local/lib -lthrift -lthriftnb -lboost_thread -
 
 SRC					=src
 SERVICE_GEN_DIR		=${SRC}/service
-SERVICE				=../../lib/CpuControlService/service.thrift
+SERVICE				=../../lib/ComputerControlService/service.thrift
 SERVICE_TIMESTAMP	=service_timestamp
-SERVICE_GEN_SRC		=${SERVICE_GEN_DIR}/service_constants.cpp ${SERVICE_GEN_DIR}/service_constants.h ${SERVICE_GEN_DIR}/service_types.cpp ${SERVICE_GEN_DIR}/service_types.h ${SERVICE_GEN_DIR}/SimService.cpp ${SERVICE_GEN_DIR}/SimService.h ${SERVICE_GEN_DIR}/SimService_server.skeleton.cpp
-OBJS				=SimService.o service_constants.o service_types.o SimControl.o VpiUtils.o VirtualIO.o
+SERVICE_GEN_SRC		=${SERVICE_GEN_DIR}/service_constants.cpp ${SERVICE_GEN_DIR}/service_constants.h ${SERVICE_GEN_DIR}/service_types.cpp ${SERVICE_GEN_DIR}/service_types.h ${SERVICE_GEN_DIR}/ComputerControlService.cpp ${SERVICE_GEN_DIR}/ComputerControlService.h ${SERVICE_GEN_DIR}/SimService_server.skeleton.cpp
+OBJS				=ComputerControlService.o service_constants.o service_types.o SimControl.o VpiUtils.o VirtualIO.o
 HEADERS				=$(wildcard ${SRC}/*.hpp)
 TARGET				=native-extensions.vpi
 
