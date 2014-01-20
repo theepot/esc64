@@ -7,6 +7,7 @@
 #include <RAM.hpp>
 #include <string>
 #include <stdexcept>
+#include "VirtualIOExtension.hpp"
 
 extern "C"
 {
@@ -16,16 +17,7 @@ extern "C"
 using namespace ::virtual_io;
 using namespace ::VpiUtils;
 
-class VirtualIOExtension : boost::noncopyable {
-	public:
-		VirtualIOExtension(VirtualIOManager* viom) : viom(viom) {}
-		void read_task(void);
-		void write_task(void);
-	private:
-		VirtualIOManager* viom;
-		s_vpi_vecval virtualiobitvec16_to_vpivecval(BitVector16 in);
-		BitVector16 vpivecval_to_virtualiobitvec16(s_vpi_vecval in);
-};
+RAM* VirtualIOExtension::mainRAM;
 
 s_vpi_vecval VirtualIOExtension::virtualiobitvec16_to_vpivecval(BitVector16 in) {
 	s_vpi_vecval out;
@@ -96,6 +88,7 @@ void VirtualIO_entry(void) {
 	}
 
 	viom->add_device(ram);
+	VirtualIOExtension::mainRAM = ram;
 
 	VirtualIOExtension* vioe = new VirtualIOExtension(viom);
 	

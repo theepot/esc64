@@ -18,6 +18,7 @@ public:
 	bool write(int addr, BitVector16 data, bool csh, bool csl, bool select_dev);
 	int get_size(void) const { return last_addr - first_addr + 1; }
 	void load_from_verilog_file(FILE* f);
+	BitVector16 getByte(int addr);
 };
 
 } //namespace

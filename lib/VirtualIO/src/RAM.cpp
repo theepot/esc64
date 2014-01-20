@@ -6,7 +6,6 @@
 #include <stdexcept>
 #include <boost/format.hpp>
 
-
 #include "RAM.hpp"
 
 namespace virtual_io {
@@ -143,6 +142,21 @@ void RAM::load_from_verilog_file(FILE* f) {
 			break;
 		}
 	}
+}
+
+
+BitVector16 RAM::getByte(int addr) {
+	assert(addr >= 0 && addr < get_size()*2);
+	BitVector16 result;
+	if(addr & 1) {
+		result.a = (memory[addr / 2].a >> 8) & 0xFF;
+		result.b = (memory[addr / 2].b >> 8) & 0xFF;
+	} else {
+		result.a = memory[addr / 2].a & 0xFF;
+		result.b = memory[addr / 2].b & 0xFF;
+	}
+
+	return result;
 }
 
 } //namespace

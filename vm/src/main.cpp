@@ -125,20 +125,31 @@ public:
 	}
 
 	void getRegister(std::vector<int32_t> & _return, const int32_t offset, const int32_t size) {
+		if(offset < 0 || size < 0 || offset + size > 8) {
+			fprintf(stderr, "esc64vm: WARNING: client requested out of range memory\n");
+			return;
+		}
 		boost::lock_guard<boost::mutex> lock(*esc64_mutex);
-		assert(offset >= 0);
-		assert(size >= 0);
-		assert(offset + size <= 8);
+
 		for(int i = offset; i < offset+size; ++i) {
 			_return.push_back(esc64->regs[i]);
 		}
 	}
 
 	void getMemory(std::vector<int32_t> & _return, const int32_t offset, const int32_t size) {
-		/*boost::lock_guard<boost::mutex> lock(*esc64_mutex);
-		assert(offset >= 0);
-		assert(size >= 0);
-		assert(offset + size <= ram->get_size()*2);*/
+		if(offset < 0 || size < 0 || offset + size > (1 << 16))
+		{
+			fprintf(stderr, "esc64bm: WARNING: client requested out of range memory\n");
+			return;
+		}
+
+		boost::lock_guard<boost::mutex> lock(*esc64_mutex);
+		for(int i = offset; i < offset+size; ++i)
+		{
+			BitVector16 bv = ram->getByte(i);
+			int32_t x = ((bv.a & 0xFF) << 8) | (bv.b & 0xFF);
+			_return.push_back(x);
+		}
 
 	}
 

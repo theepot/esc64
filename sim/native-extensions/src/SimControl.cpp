@@ -12,6 +12,8 @@
 #include <sstream>
 #include <VpiUtils.hpp>
 #include <stdint.h>
+#include <VirtualIOExtension.hpp>
+#include <RAM.hpp>
 
 using namespace ::apache::thrift;
 using namespace ::apache::thrift::protocol;
@@ -146,6 +148,7 @@ void ServiceImpl::getRegister(std::vector<int32_t> & _return, const int32_t offs
 
 	if(off >= REG_HANDLES_SIZE || off + sz > REG_HANDLES_SIZE)
 	{
+		fprintf(stderr, "SimControl: WARNING: client requested out of range registers\n");
 		return;
 	}
 
@@ -163,26 +166,19 @@ void ServiceImpl::getRegister(std::vector<int32_t> & _return, const int32_t offs
 
 void ServiceImpl::getMemory(std::vector<int32_t> & _return, const int32_t offset, const int32_t size)
 {
-//	unsigned off = offset;
-//	unsigned sz = size;
-//
-//	if(off > 0xFFFF || off + sz > 0x10000)
-//	{
-//		return;
-//	}
-//
-//	boost::lock_guard<boost::mutex> lock(simMutex);
-//
-//	s_vpi_value val;
-//	val.format = vpiIntVal;
-//
-//	for(unsigned i = off; i < off + sz; ++i)
-//	{
-//		vpiHandle h = vpi_handle_by_index(ramHandle, i);
-//		assert(h);
-//		vpi_get_value(h, &val);
-//		_return.push_back(val.value.integer);
-//	}
+	if(offset < 0 || size < 0 || offset + size > (1 << 16))
+	{
+		fprintf(stderr, "SimControl: WARNING: client requested out of range memory\n");
+		return;
+	}
+
+	boost::lock_guard<boost::mutex> lock(simMutex);
+	for(int i = offset; i < offset+size; ++i)
+	{
+		BitVector16 bv = VirtualIOExtension::mainRAM->getByte(i);
+		int32_t x = ((bv.a & 0xFF) << 8) | (bv.b & 0xFF);
+		_return.push_back(x);
+	}
 }
 
 void ServiceImpl::tickTask()

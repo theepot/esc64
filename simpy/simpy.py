@@ -1,5 +1,7 @@
 #!/usr/bin/python2 -i
+from __future__ import print_function
 import sys
+
 
 sys.path.append('./gen-py')
 
@@ -48,13 +50,31 @@ def reconnect():
 	disconnect()
 	connect()
 	
-	
+
 def print_mem(client, addr, sz = 2):
 
 	m = client.getMemory(addr, sz)
 	print("ram [0x{0:04X}({0:05d}) : 0x{1:04X}({1:05d})] count=0x{2:04X}({2:05d}):".format(addr, addr + sz - 1, sz))
 	for i in range(0, sz):
-		print("@0x{0:04X}({0:05d}):\t0x{1:04X}({1:05d})".format(addr + i, m[i]))
+		print("@0x{0:04X}({0:05d}):\t".format(addr + i), end='')
+		
+		if(m[i] & 0xFF == 0):
+			print("0x{0:02X}({0:03d})".format((m[i] >> 8) & 0xFF))
+		else:
+			for b in range(7,-1,-1):
+				bit = ((m[i] >> b) & 1) | ((m[i] >> (b+8-1)) & 2)
+				if bit == 0:
+					print('0', end='')
+				elif bit == 1:
+					print('z', end='')
+				elif bit == 2:
+					print('1', end='')
+				elif bit == 3:
+					print('x', end='')
+				else:
+					print('?')
+			print()
+		
 
 
 def print_registers(client, a = 0, count = 8):
@@ -98,6 +118,8 @@ def dc():
 	disconnect()
 def ps():
 	print_status(client)
+def pr(addr, size):
+	print_mem(client, addr, size)
 def st():
 	client.start()
 def pa():
