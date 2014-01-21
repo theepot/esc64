@@ -7,13 +7,8 @@
 #include <sstream>
 #include <iostream>
 #include <stdexcept>
-
+#include <VirtualIOExtension.hpp>
 #include <SimControl.hpp>
-
-extern "C" {
-//TODO put this in a header
-void VirtualIO_entry(void);
-}
 
 namespace VpiUtils
 {

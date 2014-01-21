@@ -14,7 +14,7 @@ public:
 	ESC64(VirtualIOManager* viom);
 	~ESC64();
 
-	bool step(void);
+	void step(void);
 	void reset(void);
 
 	//cpu state
@@ -23,14 +23,22 @@ public:
 	bool c_flag_is_defined;
 	bool z_flag;
 
+
 	enum {
-		break_reason_unknown_opcode = 0,
-		break_reason_halt
-	} break_reason;
+		OK,
+		UNKNOWN_OPCODE,
+		HALT_INSTR,
+		READ_ERROR,
+		UNDEFINED_EFFECT,
+	} state;
+
+	int64_t get_step_count() { return step_count; }
 
 
 
 private:
+	int64_t step_count;
+
 	VirtualIOManager* viom;
 
 	struct Instr {
@@ -38,10 +46,10 @@ private:
 		int op0, op1, op2, op3;
 	};
 
-	Instr fetch(void);
-	bool execute(Instr i);
-	//int safe_read(int addr, bool csh, bool csl, bool select_dev);
+	bool fetch(ESC64::Instr* out_instr);
+	void execute(Instr i);
+	bool safe_read_word(int addr, bool csh, bool csl, bool select_dev, int* out_data);
 	void pc_next_word(void);
-	void validate_state(void); //checks for illegal state
+	void validate_some_stuff(void); //checks for illegal state
 
 };

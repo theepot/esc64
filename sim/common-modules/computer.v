@@ -5,8 +5,17 @@
 //`define MAX_CLOCK_CYCLES	1000000
 
 module computer();
-	reg [63:0] tick_counter;
+	reg [63:0] clock_counter;
 	reg clock, notReset;
+	reg [31:0] state;
+	/* status code meaning:
+	 * 0 ok
+	 * 1 unknown opcode
+	 * 2 hardware fault
+	 * 3 reserved for future use
+	 * 4 halt instr
+	 * 5 read error (not implemented yet) TODO: implement read error
+	 */
 	
 	//cpu
 	wire [14:0] address;
@@ -21,68 +30,44 @@ module computer();
 		$dumpfile("computer.vcd");
 		$dumpvars(0);
 				
-		//$print_add(10, 20);
-		$start_thrift_server();
+		$start_sim_control();
 		
-		//cpu.status.r.out = 0;
-		tick_counter = 0;
+		clock_counter = 0;
 		notReset = 0;
 		clock = 0;
+		state = 0;
 		#900 notReset = 1;
 
 `ifdef MAX_CLOCK_CYCLES
 		#((`CLOCK_PERIOD / 2)*2*`MAX_CLOCK_CYCLES)
-		$display("ERROR: computer did not halt in %d cycles", `MAX_CLOCK_CYCLES);
+		$display("computer.v: ERROR: computer did not halt in %d cycles", `MAX_CLOCK_CYCLES);
 		$finish;
 `endif
 	end
 
 	always begin
-		at_fetch_int = at_fetch === 1;
-		$tick(at_fetch_int);
+		$tick(at_fetch);
+
+		#(`CLOCK_PERIOD / 2) clock = 1'b1;
+		#(`CLOCK_PERIOD / 2) clock = 1'b0;
+		clock_counter = clock_counter + 1;
 		
-		if(cpu.irOpcode === 7'b1111111 && tick_counter != 0) begin
-			$display("halt @ tick %d", tick_counter);
-			$display("dumping ram");
-			//#5 $writememb("ram_out.lst", ram.mem, 0, (1<<15)-1);
-			$halt;
-			//$finish;
+		if(ir_opcode === 7'b1111111 && clock_counter != 0) begin
+			$display("computer.v: INFO: halt @ tick %d", clock_counter);
+			state = 4;
 		end
-		else if(cpu.error !== 2'b00 && tick_counter != 0) begin
-			$display("error %d @ tick %d", cpu.error, tick_counter);
-			$finish;
-			$error(cpu.error);
-		end
-		else begin
-			#(`CLOCK_PERIOD / 2) clock = 1'b1;
-			#(`CLOCK_PERIOD / 2) clock = 1'b0;
-			tick_counter = tick_counter + 1;
+		else if(error !== 2'b00 && clock_counter != 0) begin
+			$display("computer.v: ERROR: cpu error %d @ tick %d", cpu.error, clock_counter);
+			if(^error === 1'bx) begin
+				state = 2;
+			end
+			else begin
+				state = error;
+			end
 		end
 	end
 
-	/*always begin
-		$tick;
-		
-		//FIXME debug
-		$display("tick=%d", tick);
-		tick = tick + 1;
-		//end debug
-		
-		#(`CLOCK_PERIOD / 2) clock = ~clock;
-		tick_counter = tick_counter + 1;
-		if(cpu.irOpcode === 7'b1111111) begin
-			$display("halt @ tick %d", tick_counter / 2);
-			$display("dumping ram");
-			#5 $writememb("ram_out.lst", ram.mem, 0, (1<<15)-1);
-			$finish;
-		end
-		if(cpu.error !== 2'b00) begin
-			$display("error %d @ tick %d", cpu.error, tick_counter / 2);
-			$finish;
-		end
-	end*/
-	
-	//ISA monitor wires
+	//monitor wires needed by SimControl extension
 	wire [15:0] reg0 = cpu.registers.r[0].content;
 	wire [15:0] reg1 = cpu.registers.r[1].content;
 	wire [15:0] reg2 = cpu.registers.r[2].content;
@@ -96,11 +81,12 @@ module computer();
 	wire carry = cpu.statusCOut;
 	wire zero = cpu.statusZOut;
 	
-	wire [6:0] opcode = cpu.irOpcode;
-	wire [2:0] op0 = cpu.regselOp0;
-	wire [2:0] op1 = cpu.regselOp1;
-	wire [2:0] op2 = cpu.regselOp2;
+	wire [6:0] ir_opcode = cpu.irOpcode;
+	wire [2:0] ir_op0 = cpu.regselOp0;
+	wire [2:0] ir_op1 = cpu.regselOp1;
+	wire [2:0] ir_op2 = cpu.regselOp2;
+	
+	wire [1:0] error = cpu.error;
 	
 	wire at_fetch = cpu._mSeq.roms_addr[12:0] === 12'd512 ? 1'b1 : 1'b0;
-	integer at_fetch_int;
 endmodule

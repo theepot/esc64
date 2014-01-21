@@ -1,6 +1,7 @@
 #include "mini_assembler.h"
 
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
@@ -80,31 +81,27 @@ void print_memory()
 				{
 					l = globals.mem[i].literal;
 				}
-				print_binary(l, 16);
-				printf("   ");
+				print_binary(l, 8);
+				putchar('\n');
+				print_binary((l >> 8), 8);
+
 			}
 			else
 			{
-				print_binary(globals.mem[i].opcode, OPCODE_WIDTH);
-				putchar('_');
-				print_binary(globals.mem[i].op0, 3);
-				putchar('_');
-				print_binary(globals.mem[i].op1, 3);
-				putchar('_');
-				print_binary(globals.mem[i].op2, 3);
+				uint16_t tmp = (globals.mem[i].opcode << 9) | (globals.mem[i].op0 << 6) | (globals.mem[i].op1 << 3) | globals.mem[i].op2;
+				print_binary(tmp, 8);
+				putchar('\n');
+				print_binary((tmp >> 8), 8);
 			}
 		}
 		else
 		{
-			int tmp;
-			for(tmp = 0; tmp < OPCODE_WIDTH; tmp++)
-				putchar('x');
-			printf("_xxx_xxx_xxx");
+			printf("xxxxxxxx\nxxxxxxxx");
 		}
 		if(globals.mem[i].comment)
-			printf(" // %X %s\n", i, globals.mem[i].comment);
+			printf(" // %X %s\n", i * 2, globals.mem[i].comment);
 		else
-			printf(" // %X\n", i);
+			printf(" // %X\n", i * 2);
 	}
 }
 

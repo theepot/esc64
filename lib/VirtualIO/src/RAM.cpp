@@ -6,7 +6,6 @@
 #include <stdexcept>
 #include <boost/format.hpp>
 
-
 #include "RAM.hpp"
 
 namespace virtual_io {
@@ -17,6 +16,7 @@ RAM::RAM(bool is_device, int first_addr, int last_addr) :
 		is_device(is_device) {
 	assert(first_addr <= last_addr);
 	assert(first_addr >= 0);
+	assert(last_addr < (1 << 15));
 
 	memory = new BitVector16[get_size()];
 
@@ -66,7 +66,7 @@ bool RAM::write(int addr, BitVector16 data, bool csh, bool csl, bool select_dev)
 void RAM::load_from_verilog_file(FILE* f) {
 
 	verilogmem_process_state_t ps;
-	ps.word_width = 16;
+	ps.word_width = 8;
 	ps.format = VERILOGMEM_FORMAT_BINARY;
 
 	start_scanner(f, &ps);
@@ -77,38 +77,47 @@ void RAM::load_from_verilog_file(FILE* f) {
 	while((token = verilogmemlex()) != 0) {
 		switch(token) {
 		case VERILOGMEM_TOKEN_BINARY_WORD:
-			if(addr < first_addr || addr > last_addr) {
+			if(addr < first_addr*2 || addr > (last_addr*2 + 1)) {
 				throw std::runtime_error((boost::format(
 							"virtual-io: RAM: ERROR: could not store word at address %d. line %d: \"%s\". reason: address out of range\n")
 							% addr % ps.line_number % ps.token_text).str());
 			}
-			BitVector16 word;
-			word.a = 0;
-			word.b = 0;
-			for(int n = 0; n < 16; ++n) {
+			BitVector16 byte;
+			byte.a = 0;
+			byte.b = 0;
+			for(int n = 0; n < 8; ++n) {
 
-				word.a <<= 1;
-				word.b <<= 1;
+				byte.a <<= 1;
+				byte.b <<= 1;
 
-				switch(ps.last_value[15 - n]) {
+				switch(ps.last_value[7 - n]) {
 				case VERILOGMEM_BIT_0:
 					break;
 				case VERILOGMEM_BIT_1:
-					word.a |= 1;
+					byte.a |= 1;
 					break;
 				case VERILOGMEM_BIT_X:
-					word.a |= 1;
-					word.b |= 1;
+					byte.a |= 1;
+					byte.b |= 1;
 					break;
 				case VERILOGMEM_BIT_Z:
-					word.b |= 1;
+					byte.b |= 1;
 					break;
 				default:
 					assert(0);
 				}
 			}
 
-			memory[first_addr + addr] = word;
+			{
+				int write_addr = first_addr + addr / 2;
+				if(addr & 1) {
+					memory[write_addr].a = (memory[write_addr].a & 0xFF) | ((byte.a & 0xFF) << 8);
+					memory[write_addr].b = (memory[write_addr].b & 0xFF) | ((byte.b & 0xFF) << 8);
+				} else {
+					memory[write_addr].a = (memory[write_addr].a & 0xFF00) | (byte.a & 0xFF);
+					memory[write_addr].b = (memory[write_addr].b & 0xFF00) | (byte.b & 0xFF);
+				}
+			}
 			addr++;
 
 			break;
@@ -133,6 +142,21 @@ void RAM::load_from_verilog_file(FILE* f) {
 			break;
 		}
 	}
+}
+
+
+BitVector16 RAM::getByte(int addr) {
+	assert(addr >= 0 && addr < get_size()*2);
+	BitVector16 result;
+	if(addr & 1) {
+		result.a = (memory[addr / 2].a >> 8) & 0xFF;
+		result.b = (memory[addr / 2].b >> 8) & 0xFF;
+	} else {
+		result.a = memory[addr / 2].a & 0xFF;
+		result.b = memory[addr / 2].b & 0xFF;
+	}
+
+	return result;
 }
 
 } //namespace
