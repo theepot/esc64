@@ -23,7 +23,7 @@ static void AllocateRelocSection(SectionLinkHandle* sec);
 static void LoadGlobalSymbols(void);
 static void LoadSymbols(ObjectLinkHandle* object, SymTable* symTable, objsize_t symRecordOffset);
 //static int FindSymbol(SymTable* localTable, const char* name, size_t nameLength, uword_t* address);
-static void LinkSection(SectionLinkHandle* section, uword_t* data);
+static void LinkSection(SectionLinkHandle* section, byte_t* data);
 static void EmitAll(void);
 static void EmitSection(SectionLinkHandle* section);
 static void DumpObjects(void);
@@ -515,7 +515,7 @@ static void EmitAll(void)
 //	return -1;
 //}
 
-static void LinkSection(SectionLinkHandle* section, uword_t* data)
+static void LinkSection(SectionLinkHandle* section, byte_t* data)
 {
 	ObjExpReader expReader;
 
@@ -527,7 +527,8 @@ static void LinkSection(SectionLinkHandle* section, uword_t* data)
 	uword_t address, value;
 	while(!ObjExpReaderNext(&expReader, &address, &value))
 	{
-		data[address] = htole_word(value);
+		ESC_ASSERT_FATAL(IsAligned(section->address + address, 2), "unlinked address is not aligned to 2");
+		*(uword_t*)(data + address) = htole_word(value);
 	}
 }
 
@@ -548,7 +549,7 @@ static void EmitSection(SectionLinkHandle* section)
 	case SECTION_TYPE_DATA:
 	{
 		ObjDataReader dataReader;
-		uword_t data[section->size];
+		byte_t data[section->size];
 		ObjDataReaderInit(&dataReader);
 		ObjDataReaderRead(&dataReader, data, section->size);
 		LinkSection(section, data);

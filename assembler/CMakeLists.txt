@@ -10,7 +10,7 @@ set(CMAKE_BUILD_TYPE DEBUG)
 
 set(KEYWORDS_INL include/esc64asm/keywords_gen.h)
 set(KEYWORDS_GPERF keywords.gperf)
-set(KW_GEN_PATH kwgen)
+set(KW_GEN_PATH ../infogen)
 set(KW_GEN_DESCS ${KW_GEN_PATH}/descriptions.rb)
 set(KW_GEN_FILES ${KW_GEN_PATH}/interpreter.rb ${KW_GEN_DESCS})
 set(DECOMP_INL include/esc64asm/decomp_gen.h)
