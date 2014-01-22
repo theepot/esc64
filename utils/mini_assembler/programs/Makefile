@@ -5,5 +5,5 @@ all: $(patsubst %.c,%.lst,$(wildcard *.c))
 	./$< > $@
 
 gen_%: %.c ../mini_assembler.c ../mini_assembler.h
-	gcc -I.. -I/home/kasper/git/esc64/lib/CInstrInfo/src -I../../../lib/cpu -g -lm -Wall $< ../mini_assembler.c -o $@
+	gcc -I.. -I../../../lib/CInstrInfo/src -I../../../lib/cpu -g -lm -Wall $< ../mini_assembler.c -o $@
 
