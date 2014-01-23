@@ -1,5 +1,6 @@
 .PHONY: all
-all: $(patsubst %.c,%.lst,$(wildcard *.c))
+PROGRAMS = $(wildcard *.c) $(wildcard cpu-tests/*.c)
+all: $(patsubst %.c,%.lst,${PROGRAMS})
 
 %.lst: gen_%
 	./$< > $@

@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include "uassembler.h"
 #include "bin_table.h"
+#include <instr_info.h>
 
 //TODO: document changes (io interface)
 //TODO: y/a bus load-from/write-to enums.
@@ -279,6 +280,21 @@ void mem_write(gpreg_oe_sel reg_dest_addr, gpreg_oe_sel reg_src, bool word)
 	io_write(reg_dest_addr, reg_src, false, word, MEM_WRITE_LENGTH);
 }
 
+void push(gpreg_oe_sel src) {
+		gpreg_oe(gpreg_oe_sel_sp);
+		alu_enable(ALU_F_A_MINUS_ONE);
+		carry_set(carry_sel_zero);
+		reg_ld(reg_ld_sel_sp);
+	set_next(next_sel_next_free);
+	goto_next_free();
+		gpreg_oe(gpreg_oe_sel_sp);
+		alu_enable(ALU_F_A_MINUS_ONE);
+		carry_set(carry_sel_zero);
+		reg_ld(reg_ld_sel_sp);
+	set_next(next_sel_next_free);
+	goto_next_free();
+	mem_write(gpreg_oe_sel_sp, src, true);
+}
 
 void error(int error_code)
 {
@@ -370,7 +386,7 @@ int main(int argc, char** argv)
 
 	//reset
 	//goto_reset(u);
-	goto_op_entry(op_reset, ALWAYS);
+	goto_op_entry(0, ALWAYS);
 	set_next(next_sel_next_free);
 	goto_next_free();
 		alu_enable(ALU_F_ZERO);
@@ -427,91 +443,91 @@ int main(int argc, char** argv)
 	create_conditional_mov_instruction(op_mov, ALWAYS);
 
 	//mov on notcarry and notzero
-	create_conditional_mov_instruction(op_mov_on_notcarry_and_notzero, NOT_CARRY_NOT_ZERO);
+	create_conditional_mov_instruction(op_movncnz, NOT_CARRY_NOT_ZERO);
 
 	//mov on notcarry and zero
-	create_conditional_mov_instruction(op_mov_on_notcarry_and_zero, NOT_CARRY_ZERO);
+	create_conditional_mov_instruction(op_movncz, NOT_CARRY_ZERO);
 
 	//mov on notcarry
-	create_conditional_mov_instruction(op_mov_on_notcarry, NOT_CARRY_ZERO | NOT_CARRY_NOT_ZERO);
+	create_conditional_mov_instruction(op_movnc, NOT_CARRY_ZERO | NOT_CARRY_NOT_ZERO);
 
 	//mov on carry and notzero
-	create_conditional_mov_instruction(op_mov_on_carry_and_notzero, CARRY_NOT_ZERO);
+	create_conditional_mov_instruction(op_movcnz, CARRY_NOT_ZERO);
 
 	//mov on notzero
-	create_conditional_mov_instruction(op_mov_on_notzero, CARRY_NOT_ZERO | NOT_CARRY_NOT_ZERO);
+	create_conditional_mov_instruction(op_movnz, CARRY_NOT_ZERO | NOT_CARRY_NOT_ZERO);
 
 	//mov on notcarry or notzero
-	create_conditional_mov_instruction(op_mov_on_notcarry_or_notzero, CARRY_NOT_ZERO | NOT_CARRY_ZERO | NOT_CARRY_NOT_ZERO);
+	create_conditional_mov_instruction(op_movnconz, CARRY_NOT_ZERO | NOT_CARRY_ZERO | NOT_CARRY_NOT_ZERO);
 
 	//mov on carry and zero
-	create_conditional_mov_instruction(op_mov_on_carry_and_zero, CARRY_ZERO);
+	create_conditional_mov_instruction(op_movcz, CARRY_ZERO);
 
 	//mov on zero
-	create_conditional_mov_instruction(op_mov_on_zero, CARRY_ZERO | NOT_CARRY_ZERO);
+	create_conditional_mov_instruction(op_movz, CARRY_ZERO | NOT_CARRY_ZERO);
 
 	//mov on notcarry or zero
-	create_conditional_mov_instruction(op_mov_on_notcarry_or_zero,  CARRY_ZERO | NOT_CARRY_ZERO | NOT_CARRY_NOT_ZERO);
+	create_conditional_mov_instruction(op_movncoz,  CARRY_ZERO | NOT_CARRY_ZERO | NOT_CARRY_NOT_ZERO);
 
 	//mov on carry
-	create_conditional_mov_instruction(op_mov_on_carry, CARRY_ZERO | CARRY_NOT_ZERO);
+	create_conditional_mov_instruction(op_movc, CARRY_ZERO | CARRY_NOT_ZERO);
 
 	//mov on carry or notzero
-	create_conditional_mov_instruction(op_mov_on_carry_or_notzero, CARRY_ZERO | CARRY_NOT_ZERO | NOT_CARRY_NOT_ZERO);
+	create_conditional_mov_instruction(op_movconz, CARRY_ZERO | CARRY_NOT_ZERO | NOT_CARRY_NOT_ZERO);
 
 	//mov on carry or zero
-	create_conditional_mov_instruction(op_mov_on_carry_or_zero, CARRY_ZERO | CARRY_NOT_ZERO | NOT_CARRY_ZERO);
+	create_conditional_mov_instruction(op_movcoz, CARRY_ZERO | CARRY_NOT_ZERO | NOT_CARRY_ZERO);
 
 	//mov literal
-	create_conditional_mov_literal_instruction(op_mov_literal, ALWAYS);
+	create_conditional_mov_literal_instruction(op_mov_imm, ALWAYS);
 
 	//mov literal on notcarry and notzero
-	create_conditional_mov_literal_instruction(op_mov_literal_on_notcarry_and_notzero, NOT_CARRY_NOT_ZERO);
+	create_conditional_mov_literal_instruction(op_movncnz_imm, NOT_CARRY_NOT_ZERO);
 
 	//mov literal on notcarry and zero
-	create_conditional_mov_literal_instruction(op_mov_literal_on_notcarry_and_zero, NOT_CARRY_ZERO);
+	create_conditional_mov_literal_instruction(op_movncz_imm, NOT_CARRY_ZERO);
 
 	//mov literal on notcarry
-	create_conditional_mov_literal_instruction(op_mov_literal_on_notcarry, NOT_CARRY_ZERO | NOT_CARRY_NOT_ZERO);
+	create_conditional_mov_literal_instruction(op_movnc_imm, NOT_CARRY_ZERO | NOT_CARRY_NOT_ZERO);
 
 	//mov literal on carry and notzero
-	create_conditional_mov_literal_instruction(op_mov_literal_on_carry_and_notzero, CARRY_NOT_ZERO);
+	create_conditional_mov_literal_instruction(op_movcnz_imm, CARRY_NOT_ZERO);
 
 	//mov literal on notzero
-	create_conditional_mov_literal_instruction(op_mov_literal_on_notzero, CARRY_NOT_ZERO | NOT_CARRY_NOT_ZERO);
+	create_conditional_mov_literal_instruction(op_movnz_imm, CARRY_NOT_ZERO | NOT_CARRY_NOT_ZERO);
 
 	//mov literal on notcarry or notzero
-	create_conditional_mov_literal_instruction(op_mov_literal_on_notcarry_or_notzero, CARRY_NOT_ZERO | NOT_CARRY_ZERO | NOT_CARRY_NOT_ZERO);
+	create_conditional_mov_literal_instruction(op_movnconz_imm, CARRY_NOT_ZERO | NOT_CARRY_ZERO | NOT_CARRY_NOT_ZERO);
 
 	//mov literal on carry and zero
-	create_conditional_mov_literal_instruction(op_mov_literal_on_carry_and_zero, CARRY_ZERO);
+	create_conditional_mov_literal_instruction(op_movcz_imm, CARRY_ZERO);
 
 	//mov literal on zero
-	create_conditional_mov_literal_instruction(op_mov_literal_on_zero, CARRY_ZERO | NOT_CARRY_ZERO);
+	create_conditional_mov_literal_instruction(op_movz_imm, CARRY_ZERO | NOT_CARRY_ZERO);
 
 	//mov literal on notcarry or zero
-	create_conditional_mov_literal_instruction(op_mov_literal_on_notcarry_or_zero,  CARRY_ZERO | NOT_CARRY_ZERO | NOT_CARRY_NOT_ZERO);
+	create_conditional_mov_literal_instruction(op_movncoz_imm,  CARRY_ZERO | NOT_CARRY_ZERO | NOT_CARRY_NOT_ZERO);
 
 	//mov literal on carry
-	create_conditional_mov_literal_instruction(op_mov_literal_on_carry, CARRY_ZERO | CARRY_NOT_ZERO);
+	create_conditional_mov_literal_instruction(op_movc_imm, CARRY_ZERO | CARRY_NOT_ZERO);
 
 	//mov literal on carry or notzero
-	create_conditional_mov_literal_instruction(op_mov_literal_on_carry_or_notzero, CARRY_ZERO | CARRY_NOT_ZERO | NOT_CARRY_NOT_ZERO);
+	create_conditional_mov_literal_instruction(op_movconz_imm, CARRY_ZERO | CARRY_NOT_ZERO | NOT_CARRY_NOT_ZERO);
 
 	//mov literal on carry or zero
-	create_conditional_mov_literal_instruction(op_mov_literal_on_carry_or_zero, CARRY_ZERO | CARRY_NOT_ZERO | NOT_CARRY_ZERO);
+	create_conditional_mov_literal_instruction(op_movcoz_imm, CARRY_ZERO | CARRY_NOT_ZERO | NOT_CARRY_ZERO);
 
 	//add
 	create_2op_alu_instruction(op_add, ALU_F_ADD, carry_sel_zero);
 
 	//add with carry
-	create_2op_alu_instruction(op_add_with_carry, ALU_F_ADD, carry_sel_status_reg);
+	create_2op_alu_instruction(op_adc, ALU_F_ADD, carry_sel_status_reg);
 
 	//sub
 	create_2op_alu_instruction(op_sub, ALU_F_SUB, carry_sel_one);
 
 	//sub with carry
-	create_2op_alu_instruction(op_sub_with_carry, ALU_F_SUB, carry_sel_status_reg);
+	create_2op_alu_instruction(op_sbc, ALU_F_SUB, carry_sel_status_reg);
 
 	//and
 	create_2op_alu_instruction(op_and, ALU_F_AND, carry_sel_zero);
@@ -535,7 +551,7 @@ int main(int argc, char** argv)
 	set_next(next_sel_fetch);
 
 	//shift left
-	goto_op_entry(op_shift_left_1, ALWAYS);
+	goto_op_entry(op_shl, ALWAYS);
 		gpreg_oe(gpreg_oe_sel_op1);
 		reg_ld(reg_ld_sel_op0);
 		shift_enable(1);
@@ -543,7 +559,7 @@ int main(int argc, char** argv)
 	set_next(next_sel_fetch);
 
 	//shift right
-	goto_op_entry(op_shift_right_1, ALWAYS);
+	goto_op_entry(op_shr, ALWAYS);
 		gpreg_oe(gpreg_oe_sel_op1);
 		reg_ld(reg_ld_sel_op0);
 		shift_enable(0);
@@ -578,12 +594,12 @@ int main(int argc, char** argv)
 
 
 	//load
-	goto_op_entry(op_load, ALWAYS);
+	goto_op_entry(op_ldr, ALWAYS);
 	mem_read(reg_ld_sel_op0, gpreg_oe_sel_op1, true);
 	set_next(next_sel_fetch);
 
 	//store
-	goto_op_entry(op_store, ALWAYS);
+	goto_op_entry(op_str, ALWAYS);
 	mem_write(gpreg_oe_sel_op1, gpreg_oe_sel_op2, true);
 	set_next(next_sel_fetch);
 
@@ -599,9 +615,7 @@ int main(int argc, char** argv)
 
 	//call
 	goto_op_entry(op_call, ALWAYS);
-		gpreg_oe(gpreg_oe_sel_pc);
-		alu_enable(ALU_F_A);
-		reg_ld(reg_ld_sel_lr);
+		push(gpreg_oe_sel_pc);
 	set_next(next_sel_next_free);
 	goto_next_free();
 		gpreg_oe(gpreg_oe_sel_op1);
@@ -610,35 +624,26 @@ int main(int argc, char** argv)
 	set_next(next_sel_fetch);
 
 	//call literal
-	goto_op_entry(op_call_literal, ALWAYS);
+	goto_op_entry(op_call_imm, ALWAYS);
+		pc_inc();
+	set_next(next_sel_next_free);
+	goto_next_free();
+		push(gpreg_oe_sel_pc);
+	set_next(next_sel_next_free);
+	goto_next_free();
 		gpreg_oe(gpreg_oe_sel_pc);
-		alu_enable(ALU_F_A_PLUS_ONE);
-		carry_set(carry_sel_one);
-		reg_ld(reg_ld_sel_lr);
+		alu_enable(ALU_F_A_MINUS_ONE);
+		carry_set(carry_sel_zero);
+		reg_ld(reg_ld_sel_pc);
 	set_next(next_sel_next_free);
 	goto_next_free();
 		mem_read(reg_ld_sel_pc, gpreg_oe_sel_pc, true);
 	set_next(next_sel_fetch);
 
 	//push
-	//TODO: might be optimizable
 	goto_op_entry(op_push, ALWAYS);
-		gpreg_oe(gpreg_oe_sel_sp);
-		alu_enable(ALU_F_A_MINUS_ONE);
-		carry_set(carry_sel_zero);
-		reg_ld(reg_ld_sel_sp);
-	set_next(next_sel_next_free);
-	goto_next_free();
-		gpreg_oe(gpreg_oe_sel_sp);
-		alu_enable(ALU_F_A_MINUS_ONE);
-		carry_set(carry_sel_zero);
-		reg_ld(reg_ld_sel_sp);
-	set_next(next_sel_next_free);
-	goto_next_free();
-	mem_write(gpreg_oe_sel_sp, gpreg_oe_sel_op1, true);
+	push(gpreg_oe_sel_op1);
 	set_next(next_sel_fetch);
-
-
 
 	//pop
 	goto_op_entry(op_pop, ALWAYS);
@@ -649,7 +654,7 @@ int main(int argc, char** argv)
 		alu_enable(ALU_F_A_PLUS_ONE);
 		carry_set(carry_sel_one);
 		reg_ld(reg_ld_sel_sp);
-	set_next(next_sel_fetch);
+	set_next(next_sel_next_free);
 	goto_next_free();
 		gpreg_oe(gpreg_oe_sel_sp);
 		alu_enable(ALU_F_A_PLUS_ONE);

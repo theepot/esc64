@@ -10,7 +10,10 @@ done
 HERE="$( cd -P "$( dirname "$HERE" )" && pwd )"
 
 ### start simulation back-end ###
-vvp -M$HERE/native-extensions -mnative-extensions $HERE/computer.vvp $@ -r ram.lst
+pushd $HERE
+vvp -M$HERE/native-extensions -mnative-extensions $HERE/computer.vvp $@
+popd
+
 #for your convenience: gdb -args vvp -M`pwd`/native-extensions -mnative-extensions `pwd`/computer.vvp
 
 ### start simulation front-end ###

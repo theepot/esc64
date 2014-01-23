@@ -201,7 +201,11 @@ void lbl(const char* const name)
 
 void org(int loc)
 {
-	globals.new_instruction = loc;
+	if(loc & 1) {
+		fprintf(stderr, "ERROR: location %d given to org is not alligned\n", loc);
+		exit(1);
+	}
+	globals.new_instruction = loc / 2;
 }
 
 //operations

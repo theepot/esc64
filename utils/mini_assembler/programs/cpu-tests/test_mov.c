@@ -33,12 +33,31 @@ static void mov_even_more_stuff(int x)
 	mov_stuff(GP6, x);
 }
 
+static int data[] = {
+	0x1000,
+	0x2500,
+	0x307A,
+	0x4974,
+	0x507A,
+	0x632E,
+	0x3FAA,
+	0x2C2C,
+	0x4B2E,
+	0xDCA6,
+	0x5784,
+	0x12F8,
+	0x202E,
+	0xB9C0,
+	0x1AAA,
+	0xF52E
+};
+
 void asm_prgm(void)
 {
 	int n;
-	for(n = 0; n < 16; ++n)
+	for(n = 0; n < sizeof data / sizeof data[0]; ++n)
 	{
-		mov_even_more_stuff(1 << n);
+		mov_even_more_stuff(data[n]);
 	}
 	
 	halt();

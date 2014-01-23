@@ -29,12 +29,13 @@ class ControlServiceHandler : virtual public ComputerControlServiceIf {
 private:
 	ESC64* esc64;
 	RAM* ram;
-	boost::mutex* esc64_mutex; //also protects ram and devices
+	boost::mutex* esc64_mutex; //also protects ram, devices and do_quit
 	RunningState* runningState;
 	boost::mutex* runningState_mutex;
 	boost::condition_variable* cv;
 
 public:
+	bool do_quit;
 	ControlServiceHandler(ESC64* esc64, RAM* ram, boost::mutex* esc64_mutex, RunningState* runningState, boost::mutex* runningState_mutex, boost::condition_variable* cv) :
 		esc64(esc64),
 		ram(ram),
@@ -42,7 +43,7 @@ public:
 		runningState(runningState),
 		runningState_mutex(runningState_mutex),
 		cv(cv) {
-
+		do_quit = false;
 	}
 
 	ComputerState::type getState() {
@@ -59,8 +60,8 @@ public:
 					return ComputerState::UNKNOWN_OPCODE;
 				case ESC64::HALT_INSTR:
 					return ComputerState::HALT_INSTR;
-				case ESC64::READ_ERROR:
-					return ComputerState::READ_ERROR;
+				case ESC64::IO_ERROR:
+					return ComputerState::IO_ERROR;
 				case ESC64::UNDEFINED_EFFECT:
 					return ComputerState::UNDEFINED_EFFECT;
 				default:
@@ -163,6 +164,13 @@ public:
 		return 0;
 	}
 
+	void quit(void) {
+		boost::lock_guard<boost::mutex> lock(*esc64_mutex);
+		do_quit = true;
+
+		cv->notify_all();
+	}
+
 };
 
 
@@ -170,21 +178,43 @@ public:
 int main(int argc, char **argv) {
 	VirtualIOManager* viom = new VirtualIOManager();
 	viom->print_io_activity = true;
+	bool start_paused = false;
 	RAM* ram = new RAM(false, 0, (1 << 15) - 1);
-	FILE* f = fopen("ram.lst", "r");
-	assert(f);
-	ram->load_from_verilog_file(f);
-	fclose(f);
+
+	bool found_ram_argument = false;
+	for(int i = 1; i < argc; ++i) {
+		if(std::string(argv[i]) == "-r") {
+			found_ram_argument = true;
+			if(i + 1 >= argc) {
+				fprintf(stderr, "-r needs an argument\n");
+			} else {
+				FILE* f = fopen(argv[i + 1], "r");
+				if(f != NULL) {
+					ram->load_from_verilog_file(f);
+					fclose(f);
+				} else {
+					fprintf(stderr, "could not open file %s for reading\n", argv[i + 1]);
+				}
+			}
+		} else if(std::string(argv[i]) == "--paused") {
+			start_paused = true;
+		}
+	}
+
+	if(!found_ram_argument) {
+		fprintf(stderr, "WARNING: no ram image defined\n");
+	}
+
 	viom->add_device(ram);
 	ESC64* esc64 = new ESC64(viom);
 	esc64->reset();
 
 	boost::mutex esc64_mutex; //also protects ram and devices
-	RunningState runningState = PAUSED;
+	RunningState runningState = start_paused ? PAUSED : RUNNING;
 	boost::mutex runningState_mutex;
 	boost::condition_variable cv;
 
-	int port = 9090;
+	int port = 9091;
 	shared_ptr<ControlServiceHandler> handler(new ControlServiceHandler(esc64, ram, &esc64_mutex, &runningState, &runningState_mutex, &cv));
 	shared_ptr<TProcessor> processor(new ComputerControlServiceProcessor(handler));
 	shared_ptr<TProtocolFactory> protocolFactory(new TBinaryProtocolFactory());
@@ -195,6 +225,11 @@ int main(int argc, char **argv) {
 	boost::unique_lock<boost::mutex> lock(esc64_mutex);
 
 	for(;;) {
+
+		if(handler->do_quit) {
+			server.stop();
+			break;
+		}
 
 		RunningState rs;
 		runningState_mutex.lock();

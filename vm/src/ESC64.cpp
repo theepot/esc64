@@ -21,7 +21,9 @@ void ESC64::step(void) {
 	Instr i;
 	if(fetch(&i)) {
 		execute(i);
-		step_count++;
+		if(i.opcode != op_halt) {
+			step_count++;
+		}
 	}
 }
 
@@ -38,7 +40,7 @@ void ESC64::reset(void) {
 
 bool ESC64::fetch(ESC64::Instr* out_instr) {
 	int read_data;
-	if(!safe_read_word(regs[RGS_PC], true, true, false, &read_data)) {
+	if(!safe_read_word(regs[RGS_PC], false, &read_data)) {
 		return false;
 	}
 
@@ -46,6 +48,7 @@ bool ESC64::fetch(ESC64::Instr* out_instr) {
 	result.opcode = (opcode_t)((read_data >> 9) & 0x01FF);
 	if(instr_info[result.opcode].opcode == 0) {
 		state = UNKNOWN_OPCODE;
+		fprintf(stderr, "esc64vm: WARNING: encounterd unknown opcode %d\n", result.opcode);
 		return false;
 	}
 	result.op0 = (read_data >> 6) & 0x7;
@@ -55,7 +58,7 @@ bool ESC64::fetch(ESC64::Instr* out_instr) {
 	pc_next_word();
 
 	if(instr_info[result.opcode].wide) {
-		if(!safe_read_word(regs[RGS_PC], true, true, false, &read_data)) {
+		if(!safe_read_word(regs[RGS_PC], false, &read_data)) {
 			return false;
 		}
 		result.op3 = read_data;
@@ -82,7 +85,7 @@ void ESC64::execute(Instr i) {
 			state = UNDEFINED_EFFECT;
 			break;
 		}
-		regs[i.op0] = regs[i.op1] + regs[i.op2] + c_flag ? 1 : 0;
+		regs[i.op0] = regs[i.op1] + regs[i.op2] + (c_flag ? 1 : 0);
 		z_flag = (regs[i.op0] & 0xFFFF) == 0;
 		c_flag = regs[i.op0] > 0xFFFF;
 		c_flag_is_defined = true;
@@ -98,7 +101,7 @@ void ESC64::execute(Instr i) {
 			state = UNDEFINED_EFFECT;
 			break;
 		}
-		regs[i.op0] = regs[i.op1] - regs[i.op2] - 1 + c_flag ? 1 : 0;
+		regs[i.op0] = regs[i.op1] - regs[i.op2] - 1 + (c_flag ? 1 : 0);
 		z_flag = (regs[i.op0] & 0xFFFF) == 0;
 		c_flag = regs[i.op0] <= 0xFFFF;
 		c_flag_is_defined = true;
@@ -132,6 +135,8 @@ void ESC64::execute(Instr i) {
 		break;
 	case op_not:
 		regs[i.op0] = ~regs[i.op1];
+		z_flag = (regs[i.op0] & 0xFFFF) == 0;
+		c_flag_is_defined = false;
 		break;
 	case op_shl:
 		regs[i.op0] = regs[i.op1] << 1;
@@ -252,53 +257,40 @@ void ESC64::execute(Instr i) {
 		break;
 	case op_ldr: {
 		int read_data;
-		if(!safe_read_word(regs[i.op1], true, true, false, &read_data)) {
+		if(!safe_read_word(regs[i.op1], false, &read_data)) {
 			break;
 		}
 		regs[i.op0] = read_data;
 		}
 		break;
-	case op_str: {
-		BitVector16 bitvec;
-		bitvec.b = 0;
-		bitvec.a = regs[i.op2];
-		viom->write(regs[i.op1] >> 1, bitvec, true, true, false);
-		}
+	case op_str:
+		safe_write_word(regs[i.op1], regs[i.op2], false);
 		break;
 	case op_call:
-		regs[RGS_LR] = regs[RGS_PC];
+		push(RGS_PC);
 		regs[RGS_PC] = regs[i.op1];
 		break;
 	case op_call_imm:
-		regs[RGS_LR] = regs[RGS_PC];
+		push(RGS_PC);
 		regs[RGS_PC] = i.op3;
 		break;
 	case op_in: {
 		int read_data;
-		if(!safe_read_word(regs[i.op1], true, true, true, &read_data)) {
+		if(!safe_read_word(regs[i.op1], true, &read_data)) {
 			break;
 		}
 		regs[i.op0] = read_data;
 		}
 		break;
-	case op_out: {
-		BitVector16 bitvec;
-		bitvec.b = 0;
-		bitvec.a = regs[i.op2];
-		viom->write(regs[i.op1] >> 1, bitvec, true, true, true);
-		}
+	case op_out:
+		safe_write_word(regs[i.op1], regs[i.op2], true);
 		break;
-	case op_push: {
-		regs[RGS_SP] -= 2;
-		BitVector16 bitvec;
-		bitvec.b = 0;
-		bitvec.a = regs[i.op1];
-		viom->write(regs[RGS_SP] >> 1, bitvec, true, true, false);
-		}
+	case op_push:
+		push(i.op1);
 		break;
 	case op_pop: {
 		int read_data;
-		if(!safe_read_word(regs[RGS_SP], true, true, false, &read_data)) {
+		if(!safe_read_word(regs[RGS_SP], false, &read_data)) {
 			break;
 		}
 		regs[i.op0] = read_data;
@@ -318,26 +310,58 @@ void ESC64::execute(Instr i) {
 	}
 }
 
+void ESC64::push(int reg) {
+	assert(reg >= 0);
+	assert(reg <= 8);
+	regs[RGS_SP] -= 2;
+	regs[RGS_SP] &= 0xFFFF;
+	safe_write_word(regs[RGS_SP], regs[reg], false);
+}
+
 void ESC64::pc_next_word(void) {
 	if(regs[RGS_PC] >= 0xFFFE) {
 		fprintf(stderr, "ESC64: WARNING: program counter overflowed\n");
 	}
 
 	regs[RGS_PC] += 2;
+	regs[RGS_PC] &= 0xFFFF;
 }
 
-bool ESC64::safe_read_word(int addr, bool csh, bool csl, bool select_dev, int* out_data) {
+bool ESC64::safe_read_word(int addr, bool select_dev, int* out_data) {
+	assert(addr <= 0xFFFF);
+	assert(addr >= 0);
 	if(addr & 1) {
 		fprintf(stderr, "ESC64: ERROR: tried to read unaligned word\n");
-		state = READ_ERROR;
+		state = IO_ERROR;
 		return false;
 	}
-	BitVector16 bitvec = viom->read(addr >> 1, csh, csh, select_dev);
+	BitVector16 bitvec = viom->read(addr >> 1, true, true, select_dev);
 	if(bitvec.b != 0) {
-		state = READ_ERROR;
+		state = IO_ERROR;
 		return false;
 	}
 	*out_data = bitvec.a;
+	assert(*out_data <= 0xFFFF);
+	assert(*out_data >= 0);
+	return true;
+}
+
+bool ESC64::safe_write_word(int addr, int data, bool select_dev) {
+	assert(data <= 0xFFFF);
+	assert(data >= 0);
+	assert(addr <= 0xFFFF);
+	assert(addr >= 0);
+	if(addr & 1) {
+		fprintf(stderr, "ESC64: ERROR: tried to write unaligned word\n");
+		state = IO_ERROR;
+		return false;
+	}
+
+	BitVector16 bitvec;
+	bitvec.b = 0;
+	bitvec.a = data;
+	viom->write(addr >> 1, bitvec, true, true, select_dev);
+
 	return true;
 }
 
