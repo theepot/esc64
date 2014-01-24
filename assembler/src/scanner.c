@@ -577,18 +577,10 @@ static void GetDirective(void)
 
 static int GetRegisterRef(void)
 {
-	//	r0..r4
-	//	r5 PC
-	//	r6 LR
-	//	r7 SP
-
 	struct SpecialReg_ { const char* name; int val; };
-	static struct SpecialReg_ SPECIAL_REGS[] = { { "pc", REG_PC }, { "lr", REG_LR }, { "sp", REG_SP } };
+	static struct SpecialReg_ SPECIAL_REGS[] = { { "pc", REG_PC }, { "sp", REG_SP } };
 	static const size_t SPECIAL_REGS_SIZE = sizeof SPECIAL_REGS / sizeof (struct SpecialReg_);
 
-	//FIXME debug stuffs
-
-	unsigned n_ = 0;
 	struct SpecialReg_* i;
 	for(i = SPECIAL_REGS; i < SPECIAL_REGS + SPECIAL_REGS_SIZE; ++i)
 	{
@@ -598,7 +590,6 @@ static int GetRegisterRef(void)
 			token_.intValue = i->val;
 			return 0;
 		}
-		++n_;
 	}
 
 	return GetRegisterNumeric();
