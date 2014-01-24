@@ -41,7 +41,7 @@ module ESC64AsmDesc
 		end
 			
 		def inspect
-			"Instruction(uname=#{@uname}, opcode=#{@opcode}, pattern=#{@pattern}, bindings=#{@bindings})"
+			"Instruction(uname=#{@uname}, opcode=#{@opcode}, pattern=#{@pattern}, bindings=#{@bindings}, default_operands=#{@default_operands})"
 		end
 		
 		def legal?
@@ -83,7 +83,7 @@ module ESC64AsmDesc
 		end
 		
 		def get_inst_word
-			(@opcode << 9) | (@default_operands[0] << 6) | (@default_operands[1] << 3) | @default_operands[0]
+			(@opcode << 9) | (@default_operands[0] << 6) | (@default_operands[1] << 3) | @default_operands[2]
 		end
 		
 		def get_c_name

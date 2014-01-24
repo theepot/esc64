@@ -120,8 +120,6 @@ def ps():
 	print_status(client)
 def pr(addr, size):
 	print_mem(client, addr, size)
-def st():
-	client.start()
 def pa():
 	client.pause()
 def rs():

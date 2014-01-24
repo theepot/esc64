@@ -32,6 +32,22 @@ module Descriptions
 		[ MoveReg.new(name, name, op), MoveImm.new("#{name}_imm", name, opWide) ]
 	end
 	
+	class JmpReg < Instruction
+		def initialize name, mnemonic, opcode
+			super name, opcode, false, "#{mnemonic} rd:reg", { "rd" => 1 }, [ 7, 0, 0 ]
+		end
+	end
+	
+	class JmpImm < Instruction
+		def initialize name, mnemonic, opcode
+			super name, opcode, true, "#{mnemonic} imm:imm", {}, [ 7, 0, 0 ]
+		end
+	end
+	
+	def self.def_jmps name, op, opWide
+		[ JmpReg.new(name, name, op), JmpImm.new("#{name}_imm", name, opWide) ]
+	end
+	
 	class Shift < Instruction
 		def initialize name, opcode
 			super name, opcode, false, "#{name} rd:reg, rs:reg", { "rd" => 0, "rs" => 1 }, [ 0, 0, 0 ]
@@ -59,6 +75,7 @@ module Descriptions
 		NotWide.new("not rd:reg, rs:reg", 0x11, { "rd" => 0, "rs" => 1 }),
 		Shift.new("shl",	0x12),
 		Shift.new("shr",	0x21),
+		
 		def_movs("", 		0x30,	0x3F),
 		def_movs("ncnz",	0x31,	0x40),
 		def_movs("ncz",		0x32,	0x41),
@@ -72,26 +89,48 @@ module Descriptions
 		def_movs("c",		0x3C,	0x4B),
 		def_movs("conz",	0x3D,	0x4C),
 		def_movs("coz",		0x3E,	0x4D),
+		
+		def_jmps("jmp",		0x30,	0x3F),
+		def_jmps("jnc",		0x33,	0x42),
+		def_jmps("jcnz",	0x34,	0x43),
+		def_jmps("jnz",		0x35,	0x44),
+		def_jmps("jz",		0x3A,	0x49),
+		def_jmps("jncoz",	0x3B,	0x4A),
+		def_jmps("jc",		0x3C,	0x4B),
+		
 		NotWide.new("cmp ra:reg, rb:reg", 0x4E, { "ra" => 1, "rb" => 2 }),
-		NotWide.new("ldr rd:reg, rs:reg", 0x51, { "rd" => 0, "rs" => 1 }),
-		NotWide.new("str rd:reg, rs:reg", 0x54, { "rd" => 1, "rs" => 2 }),
+		
+		NotWide.new("ld rd:reg, rs:reg", 0x51, { "rd" => 0, "rs" => 1 }),
+		NotWide.new("ldb rd:reg, rs:reg", 0x52, { "rd" => 0, "rs" => 1 }),
+		
+		NotWide.new("st rd:reg, rs:reg", 0x54, { "rd" => 1, "rs" => 2 }),
+		NotWide.new("stb rd:reg, rs:reg", 0x55, { "rd" => 1, "rs" => 2 }),
+		
 		NotWide.new("call r:reg", 0x57, { "r" => 1 }),
 		Instruction.new("call_imm", 0x58, true, "call addr:imm", { }, [ 0, 0, 0 ]),
 		NotWide.new("in rd:reg, rs:reg", 0x59, { "rd" => 0, "rs" => 1 }),
 		NotWide.new("out rd:reg, rs:reg", 0x5A, { "rd" => 1, "rs" => 2 }),
 		NotWide.new("push r:reg", 0x5B, { "r" => 1 }),
 		NotWide.new("pop r:reg", 0x5C, { "r" => 0 }),
+		Instruction.new("ret", 0x5C, false, "ret", {}, [ 7, 0, 0 ]),
 		NotWide.new("halt", 0x7F, {})
 	]
 	
 	aliass =
 	[
 		Alias.new("moveq",	"movz"),
-		Alias.new("movnq",	"movnz"),
+		Alias.new("movne",	"movnz"),
 		Alias.new("movlt",	"movnc"),
 		Alias.new("movgt",	"movcnz"),
 		Alias.new("movle",	"movncoz"),
-		Alias.new("movge",	"movc")
+		Alias.new("movge",	"movc"),
+		
+		Alias.new("jeq",	"jz"),
+		Alias.new("jne",	"jnz"),
+		Alias.new("jlt",	"jnc"),
+		Alias.new("jgt",	"jcnz"),
+		Alias.new("jle",	"jncoz"),
+		Alias.new("jge",	"jc")
 	]
 	
 	directives =
