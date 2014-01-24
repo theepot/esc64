@@ -14,6 +14,7 @@
 #include <stdint.h>
 #include <VirtualIOExtension.hpp>
 #include <RAM.hpp>
+#include <cstdlib>
 
 using namespace ::apache::thrift;
 using namespace ::apache::thrift::protocol;
@@ -26,10 +27,12 @@ using boost::shared_ptr;
 
 namespace po = boost::program_options;
 
+static TNonblockingServer* server_ptr; //TODO: dehackify
+
 class ServiceImpl : virtual public ComputerControlServiceIf
 {
 public:
-	ServiceImpl() { };
+	ServiceImpl();
 	virtual ~ServiceImpl() { }
 
 	//thrift service implementation
@@ -39,6 +42,7 @@ public:
 	void step();
 	void microStep();
 	void reset();
+	void quit();
 	CarryState::type getCarryFlag();
 	bool getZeroFlag();
 	void getRegister(std::vector<int32_t> & _return, const int32_t offset, const int32_t size);
@@ -59,7 +63,8 @@ private:
 		PAUSED,
 		STARTING_STEP,
 		STEPPING,
-		MICRO_STEPPING
+		MICRO_STEPPING,
+		QUITING
 	};
 
 	boost::thread* serviceThread;
@@ -70,6 +75,7 @@ private:
 	boost::mutex simMutex;
 	int64_t instr_counter;
 	int64_t clock_counter;
+	bool ignore_at_fetch;
 
 	vpiHandle carryFlagHandle;
 	vpiHandle zeroFlagHandle;
@@ -100,6 +106,12 @@ static const VerilogTask VERILOG_TASKS[] =
 static const size_t VERILOG_TASKS_SIZE = sizeof VERILOG_TASKS / sizeof (VerilogTask);
 
 ///// implementation /////
+ServiceImpl::ServiceImpl() {
+	ignore_at_fetch = true;
+	instr_counter = 0;
+	clock_counter = 0;
+}
+
 void ServiceImpl::start()
 {
 	setState(RUNNING);
@@ -134,11 +146,12 @@ void ServiceImpl::microStep()
 
 void ServiceImpl::reset()
 {
-	boost::lock_guard<boost::mutex> lock(simMutex);
-	instr_counter = 0;
-	clock_counter = 0;
+	//boost::lock_guard<boost::mutex> lock(simMutex);
+	//instr_counter = 0;
+	//clock_counter = 0;
+	//ignore_at_fetch = true;
 	//TODO
-	std::cout << "reset() is not supported!\n";
+	std::cout << "reset() is not supported! Restart the simulation\n";
 }
 
 void ServiceImpl::getRegister(std::vector<int32_t> & _return, const int32_t offset, const int32_t size)
@@ -187,12 +200,33 @@ void ServiceImpl::tickTask()
 	PLI_INT32 at_fetch = args.NextInt();
 	SimControlState s;
 
-	bool loop = true;
+	if(at_fetch) {
+		instr_counter++;
+	}
 
+	if(ignore_at_fetch && at_fetch) {
+		if(instr_counter == 2) {
+			ignore_at_fetch = false;
+			instr_counter = 1;
+		}
+	}
+
+	bool loop = true;
 	while(loop)
 	{
 		//pause on status not OK.
 		//TODO: breakpoints
+
+		{
+			boost::lock_guard<boost::mutex> lock(simStateMutex);
+			if(simState == QUITING) {
+				loop = false;
+				server_ptr->stop();
+				serviceThread->join();
+				vpi_control(vpiFinish);
+				break;
+			}
+		}
 
 		s_vpi_value val;
 		val.format = vpiIntVal;
@@ -230,7 +264,7 @@ void ServiceImpl::tickTask()
 			{
 				simMutex.unlock();
 				boost::unique_lock<boost::mutex> lock(simStateMutex);
-				while(simState == s)
+				if(simState == s)
 				{
 					simStateCond.wait(lock);
 				}
@@ -243,12 +277,11 @@ void ServiceImpl::tickTask()
 			loop = false;
 			break;
 
-		case STEPPING: {
-			if(at_fetch)
+		case STEPPING:
+			if(!ignore_at_fetch && at_fetch)
 			{
 				setState(PAUSED);
 				break;
-			}
 			}
 			loop = false;
 			break;
@@ -256,17 +289,14 @@ void ServiceImpl::tickTask()
 			setState(PAUSED);
 			loop = false;
 			break;
-
+		case QUITING:
+			break;
 		default:
 			throw std::runtime_error("Illegal simulation state");
 		}
 	}
 
 	clock_counter++;
-	if(at_fetch) {
-		instr_counter++;
-	}
-
 }
 
 void ServiceImpl::startSimControlTask()
@@ -346,12 +376,14 @@ void ServiceImpl::initModuleHandles()
 	assert(atFetchHandle);
 }
 
+
 void ServiceImpl::serverThreadProc()
 {
 	shared_ptr<ServiceImpl> handler(this);
 	shared_ptr<TProcessor> processor(new ComputerControlServiceProcessor(handler));
 	shared_ptr<TProtocolFactory> protocolFactory(new TBinaryProtocolFactory());
 	TNonblockingServer server(processor, protocolFactory, PORT);
+	server_ptr = &server;
 
 	server.serve();
 }
@@ -376,7 +408,7 @@ ComputerState::type ServiceImpl::getState() {
 		case 2: return ComputerState::HW_FAULT;
 		case 3: return ComputerState::HW_FAULT;
 		case 4: return ComputerState::HALT_INSTR;
-		case 5: return ComputerState::READ_ERROR;
+		case 5: return ComputerState::IO_ERROR;
 		default: assert(0); break;
 		}
 		break;
@@ -414,6 +446,10 @@ int64_t ServiceImpl::getInstrCount() {
 int64_t ServiceImpl::getClockCount() {
 	boost::lock_guard<boost::mutex> lock(simMutex);
 	return clock_counter;
+}
+
+void ServiceImpl::quit() {
+	setState(QUITING);
 }
 
 void SimControl_entry(void)

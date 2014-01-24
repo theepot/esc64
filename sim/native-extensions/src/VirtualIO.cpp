@@ -70,8 +70,10 @@ void VirtualIO_entry(void) {
 	s_vpi_vlog_info vlog_info;
 	vpi_get_vlog_info(&vlog_info);
 
+	bool found_ram_argument = false;
 	for(int i = 1; i < vlog_info.argc; ++i) {
 		if(std::string(vlog_info.argv[i]) == "-r") {
+			found_ram_argument = true;
 			if(i + 1 >= vlog_info.argc) {
 				fprintf(stderr, "-r needs an argument\n");
 			} else {
@@ -87,7 +89,12 @@ void VirtualIO_entry(void) {
 		}
 	}
 
+	if(!found_ram_argument) {
+		fprintf(stderr, "WARNING: no ram image defined\n");
+	}
+
 	viom->add_device(ram);
+	viom->print_io_activity = true;
 	VirtualIOExtension::mainRAM = ram;
 
 	VirtualIOExtension* vioe = new VirtualIOExtension(viom);

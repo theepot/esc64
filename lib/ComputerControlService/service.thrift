@@ -8,7 +8,7 @@ enum ComputerState
 	UNKNOWN_OPCODE,
 	HALT_INSTR,
 	HW_FAULT,
-	READ_ERROR,
+	IO_ERROR,
 	UNDEFINED_EFFECT,
 	BREAKPOINT,
 }
@@ -28,6 +28,7 @@ service ComputerControlService
 	void microStep(),
 	void step(),
 	void reset(),
+	void quit(), //quits the vm or simulation
 	CarryState getCarryFlag(),
 	bool getZeroFlag(),
 	i64 getInstrCount(),

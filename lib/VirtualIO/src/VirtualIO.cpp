@@ -8,6 +8,8 @@
 namespace virtual_io {
 
 BitVector16 VirtualIOManager::read(int addr, bool csh, bool csl, bool select_dev) {
+	assert(addr >= 0);
+	assert(addr <= 0xFFFF);
 	assert(csh || csl);
 
 	if(print_io_activity)
@@ -40,6 +42,8 @@ BitVector16 VirtualIOManager::read(int addr, bool csh, bool csl, bool select_dev
 }
 
 void VirtualIOManager::write(int addr, BitVector16 data, bool csh, bool csl, bool select_dev) {
+	assert(addr >= 0);
+	assert(addr <= 0xFFFF);
 	assert(csh || csl);
 
 	if(print_io_activity) {

@@ -42,9 +42,10 @@
 #define R	r4
 	mov		T, 2
 	cmp		N, T
-	movlt	pc, lr
-	
-	push	lr
+	movge	pc, dont_return
+	pop		pc
+
+dont_return:
 #define P	lr
 
 	shr		T, N

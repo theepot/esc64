@@ -4,10 +4,10 @@
 
 void asm_prgm(void)
 {
-	unsigned dest = 0x7FFF;
+	unsigned dest = 0xFFFE;
 
 #define FN3(f, a, b, e, z, c) \
-	dest -= 3; \
+	dest -= 6; \
 	fprintf(stderr, "@%05u expect: %04X, %c, %c\n", dest, (e), (z) ? '1' : '0', (c) ? '1' : '0'); \
 	mov_literal(GP0, (a)); \
 	mov_literal(GP1, (b)); \
@@ -16,8 +16,8 @@ void asm_prgm(void)
 	store(GP2, GP0); \
 	mov_literal(GP0, 1); \
 	mov(GP1, GP0); \
-	mov_literal(GP2, dest+1); \
-	mov_literal(GP3, dest+2); \
+	mov_literal(GP2, dest+2); \
+	mov_literal(GP3, dest+4); \
 	mov_literal(GP4, 0); \
 	mov_on_notzero(GP0, GP4); \
 	mov_on_notcarry(GP1, GP4); \
@@ -25,7 +25,7 @@ void asm_prgm(void)
 	store(GP3, GP1);
 
 #define FN2(f, a, e, z, c) \
-	dest -= 3; \
+	dest -= 6; \
 	fprintf(stderr, "@%05u expect: %04X, %c, %c\n", dest, (e), (z) ? '1' : '0', (c) ? '1' : '0'); \
 	mov_literal(GP1, (a)); \
 	mov_literal(GP2, dest); \
@@ -33,8 +33,8 @@ void asm_prgm(void)
 	store(GP2, GP0); \
 	mov_literal(GP0, 1); \
 	mov(GP1, GP0); \
-	mov_literal(GP2, dest+1); \
-	mov_literal(GP3, dest+2); \
+	mov_literal(GP2, dest+2); \
+	mov_literal(GP3, dest+4); \
 	mov_literal(GP4, 0); \
 	mov_on_notzero(GP0, GP4); \
 	mov_on_notcarry(GP1, GP4); \
@@ -57,6 +57,7 @@ void asm_prgm(void)
 	SUB(1, 10, 0xFFF7, 0, 0);
 	SUB(7, 7, 7-7, 1, 1);
 
+	//NOTE: or xor and 'and' operations leave carry in a undefined state, so the results of these tests may be different in different implementations
 	OR(123, 0, 123, 0, 0);
 	OR(0, 0, 0, 1, 0);
 
