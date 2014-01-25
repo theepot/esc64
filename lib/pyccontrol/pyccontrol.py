@@ -45,6 +45,28 @@ class Computer:
 		self.disconnect()
 		self.connect()
 		
+	def getmem(self, address, amount=2):
+		m = self.client.getMemory(address, amount)
+		r = []
+		for v in m:
+			if v & 0xFF:
+				raise Exception("undefined value in memory")
+			r.append((v >> 8) & 0xFF)
+		return r
+		
+	def getmemwords(self, address, amount=2):
+		if address & 1:
+			raise Exception("address is not aligned")
+		if amount & 1:
+			raise Exception("amount not a multiple of 2")
+		m = self.getmem(address, amount)
+		r = []
+		i = 0
+		while i < amount:
+			r.append(m[i] | (m[i+1] << 8))
+			i += 2
+		return r
+				
 	def print_mem(self, addr, sz = 2, f=sys.stdout):
 		m = self.client.getMemory(addr, sz)
 		print("ram [0x{0:04X}({0:05d}) : 0x{1:04X}({1:05d})] count=0x{2:04X}({2:05d}):".format(addr, addr + sz - 1, sz), file=f)
