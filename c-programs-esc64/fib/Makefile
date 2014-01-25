@@ -5,7 +5,7 @@
 SRC			:= src
 PROGRAM		:= fib
 LST			:= $(PROGRAM).lst
-OBJECTS		:= fib.o
+OBJECTS		:= fib.o globals.o
 PP			:= $(foreach F,$(OBJECTS),$(subst .o,.pp.s,$(F)))
 LCC_S		:= $(foreach F,$(OBJECTS),$(subst .o,.lcc.s,$(F)))
 

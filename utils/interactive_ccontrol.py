@@ -30,16 +30,16 @@ def rc():
 def dc():
 	c.disconnect()
 def ps():
-	c.print_status(client)
+	c.print_status()
 def pr(addr, size):
-	c.print_mem(client, addr, size)
-def st():
+	c.print_mem(addr, size)
+def start():
 	c.client.start()
 def pa():
 	c.client.pause()
 def rs():
 	c.client.reset()
-def st():
+def step():
 	c.client.step()
 def ia():
 	interactive_stepping()

@@ -18,5 +18,5 @@ clean:
 	gpp -n +c ";" "\n" -o $@ $^
 
 %.o: %.pp.s
-	esc-as $@ $^
+	esc-as $@ $^ > esc-as-stdout.log
 

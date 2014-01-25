@@ -1,3 +1,9 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ESC64 C runtime procedures ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+#include "esccrt.inc"
+
 ;;;;; entry point ;;;;;
 .data
 .org 0
