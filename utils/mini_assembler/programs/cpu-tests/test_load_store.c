@@ -7,12 +7,20 @@ static void store_stuff(int addr, int content)
 	mov_literal(GP0, addr);
 	mov_literal(GP2, content);
 	store(GP0, GP2);
+	mov_literal(GP0, addr+1);
+	store_byte(GP0, GP2);
+	mov_literal(GP0, addr+2);
+	store_byte(GP0, GP2);
 }
 
 static void load_stuff(int addr)
 {
 	mov_literal(GP0, addr);
 	load(GP2, GP0);
+	mov_literal(GP0, addr+1);
+	load_byte(GP3, GP0);
+	mov_literal(GP0, addr+2);
+	load_byte(GP4, GP0);
 }
 
 static int locations[] = {
@@ -40,7 +48,7 @@ void asm_prgm(void)
 	
 	for(n = 0; n < sizeof(locations)/sizeof(locations[0]); ++n)
 	{
-		store_stuff(locations[n], 1 << n);
+		store_stuff(locations[n], locations[n] + n);
 	}
 	
 	for(n = 0; n < sizeof(locations)/sizeof(locations[0]); ++n)

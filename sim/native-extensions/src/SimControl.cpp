@@ -56,7 +56,7 @@ public:
 
 private:
 	static const size_t REG_HANDLES_SIZE = 8;
-	static const int PORT = 9090;
+	int port;
 
 	enum SimControlState {
 		RUNNING = 0,
@@ -323,6 +323,8 @@ void ServiceImpl::parseOptions(int argc, char** argv)
 
 	desc.add_options()
 	    ("paused", "start the simulation paused");
+	desc.add_options()
+		("port", boost::program_options::value<int>()->default_value(9090), "the port number on wich the thrift client should listen");
 
 	boost::program_options::basic_command_line_parser<char> bcp = boost::program_options::basic_command_line_parser<char>(argc, argv);
 	bcp.options(desc);
@@ -333,6 +335,7 @@ void ServiceImpl::parseOptions(int argc, char** argv)
 	po::notify(vm);
 
 	prevSimState = simState = (vm.count("paused") ? PAUSED : RUNNING);
+	port = vm["port"].as<int>();
 }
 
 void ServiceImpl::setState(SimControlState state)
@@ -382,7 +385,7 @@ void ServiceImpl::serverThreadProc()
 	shared_ptr<ServiceImpl> handler(this);
 	shared_ptr<TProcessor> processor(new ComputerControlServiceProcessor(handler));
 	shared_ptr<TProtocolFactory> protocolFactory(new TBinaryProtocolFactory());
-	TNonblockingServer server(processor, protocolFactory, PORT);
+	TNonblockingServer server(processor, protocolFactory, port);
 	server_ptr = &server;
 
 	server.serve();

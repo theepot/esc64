@@ -49,7 +49,9 @@ private:
 	bool fetch(ESC64::Instr* out_instr);
 	void execute(Instr i);
 	bool safe_read_word(int addr, bool select_dev, int* out_data);
+	bool safe_read_byte(int addr, bool select_dev, int* out_data);
 	bool safe_write_word(int addr, int data, bool select_dev);
+	bool safe_write_byte(int addr, int data, bool select_dev);
 	void pc_next_word(void);
 	void validate_some_stuff(void); //checks for illegal state
 

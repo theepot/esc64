@@ -13,8 +13,6 @@ void asm_prgm(void)
 {
 	mov_literal(SP, 0x7FFF);
 
-
-
 	mov_literal(GP0, 0);
 	mov_literal(GP1, 5);
 

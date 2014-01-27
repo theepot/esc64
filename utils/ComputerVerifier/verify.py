@@ -106,13 +106,13 @@ def compare_computers(c1, c2, print_trace=False, continue_after_differences=Fals
 		raise Exception("During executing one of the computers got into a wrong state")
 
 #NOTE: ramimage should be an absolute path
-def start_simulation(ramimage, stdout, stderr):
-	proc = subprocess.Popen([scriptdir + '/../../sim/run_sim.sh', '--paused', '-r', ramimage], shell=False, stdout=stdout, stderr=stderr)
+def start_simulation(ramimage, port, stdout, stderr):
+	proc = subprocess.Popen([scriptdir + '/../../sim/run_sim.sh', '--paused', '-r', ramimage, '-p', str(port)], shell=False, stdout=stdout, stderr=stderr)
 	return proc
 
 #NOTE: ramimage should be an absolute path
-def start_vm(ramimage, stdout, stderr):
-	proc = subprocess.Popen([scriptdir + '/../../vm/esc64vm', '--paused', '-r', ramimage], stdout=stdout, stderr=stderr)
+def start_vm(ramimage, port, stdout, stderr):
+	proc = subprocess.Popen([scriptdir + '/../../vm/esc64vm', '--paused', '-r', ramimage, '-p', str(port)], stdout=stdout, stderr=stderr)
 	return proc
 
 parser = argparse.ArgumentParser(description='starts and compares the simulation with the vm')
@@ -122,12 +122,14 @@ args = parser.parse_args()
 exitcode = 0
 
 try:
-	simproc = start_simulation(vars(args)['ram'], open('simout.txt', 'w'), open('simerr.txt', 'w'))
-	vmproc = start_vm(vars(args)['ram'], open('vmout.txt', 'w'), open('vmerr.txt', 'w'))
+	simport = 9090
+	vmport = 9091
+	simproc = start_simulation(vars(args)['ram'], simport, open('simout.txt', 'w'), open('simerr.txt', 'w'))
+	vmproc = start_vm(vars(args)['ram'], vmport, open('vmout.txt', 'w'), open('vmerr.txt', 'w'))
 	time.sleep(2)
 
-	c1 = Computer(9090)
-	c2 = Computer(9091)
+	c1 = Computer(simport, "sim")
+	c2 = Computer(vmport, "vm")
 
 	if not compare_computers(c1, c2, print_trace=True):
 		print("done. errors occured")

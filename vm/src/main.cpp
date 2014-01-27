@@ -9,6 +9,7 @@
 #include <ESC64.hpp>
 #include <cassert>
 #include <cstdio>
+#include <cstdlib>
 
 using namespace ::apache::thrift;
 using namespace ::apache::thrift::protocol;
@@ -181,12 +182,14 @@ int main(int argc, char **argv) {
 	bool start_paused = false;
 	RAM* ram = new RAM(false, 0, (1 << 15) - 1);
 
+	int port = 9090;
 	bool found_ram_argument = false;
 	for(int i = 1; i < argc; ++i) {
 		if(std::string(argv[i]) == "-r") {
 			found_ram_argument = true;
 			if(i + 1 >= argc) {
 				fprintf(stderr, "-r needs an argument\n");
+				return 1;
 			} else {
 				FILE* f = fopen(argv[i + 1], "r");
 				if(f != NULL) {
@@ -198,7 +201,19 @@ int main(int argc, char **argv) {
 			}
 		} else if(std::string(argv[i]) == "--paused") {
 			start_paused = true;
+		} else if(std::string(argv[i]) == "-p") {
+			if(i + 1 >= argc) {
+				fprintf(stderr, "-p needs an argument\n");
+				return 1;
+			} else {
+				port = strtol(argv[i+1], NULL, 10);
+			}
 		}
+	}
+
+	if(port <= 0 || port > 65535) {
+		fprintf(stderr, "ERROR: invalid thrift server port: %d\n", port);
+		return 1;
 	}
 
 	if(!found_ram_argument) {
@@ -214,7 +229,6 @@ int main(int argc, char **argv) {
 	boost::mutex runningState_mutex;
 	boost::condition_variable cv;
 
-	int port = 9091;
 	shared_ptr<ControlServiceHandler> handler(new ControlServiceHandler(esc64, ram, &esc64_mutex, &runningState, &runningState_mutex, &cv));
 	shared_ptr<TProcessor> processor(new ComputerControlServiceProcessor(handler));
 	shared_ptr<TProtocolFactory> protocolFactory(new TBinaryProtocolFactory());

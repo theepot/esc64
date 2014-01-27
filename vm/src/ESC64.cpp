@@ -255,7 +255,7 @@ void ESC64::execute(Instr i) {
 		c_flag_is_defined = true;
 		}
 		break;
-	case op_ldr: {
+	case op_ld: {
 		int read_data;
 		if(!safe_read_word(regs[i.op1], false, &read_data)) {
 			break;
@@ -263,8 +263,19 @@ void ESC64::execute(Instr i) {
 		regs[i.op0] = read_data;
 		}
 		break;
-	case op_str:
+	case op_ldb: {
+		int read_data;
+		if(!safe_read_byte(regs[i.op1], false, &read_data)) {
+			break;
+		}
+		regs[i.op0] = read_data;
+		}
+		break;
+	case op_st:
 		safe_write_word(regs[i.op1], regs[i.op2], false);
+		break;
+	case op_stb:
+		safe_write_byte(regs[i.op1], regs[i.op2] & 0xFF, false);
 		break;
 	case op_call:
 		push(RGS_PC);
@@ -346,6 +357,39 @@ bool ESC64::safe_read_word(int addr, bool select_dev, int* out_data) {
 	return true;
 }
 
+bool ESC64::safe_read_byte(int addr, bool select_dev, int* out_data) {
+	assert(addr <= 0xFFFF);
+	assert(addr >= 0);
+	bool alligned_access = (addr & 1) == 0;
+
+	BitVector16 bitvec = viom->read(addr >> 1, !alligned_access, alligned_access, select_dev);
+
+	if((bitvec.b & (0xFF << (alligned_access ? 0 : 8))) != 0) {
+		state = IO_ERROR;
+		return false;
+	}
+	*out_data = (bitvec.a >> (alligned_access ? 0 : 8)) & 0xFF;
+
+	assert(*out_data <= 0xFF);
+	assert(*out_data >= 0);
+	return true;
+}
+
+bool ESC64::safe_write_byte(int addr, int data, bool select_dev) {
+	assert(data <= 0xFF);
+	assert(data >= 0);
+	assert(addr <= 0xFFFF);
+	assert(addr >= 0);
+
+	bool alligned_access = (addr & 1) == 0;
+	BitVector16 bitvec;
+	bitvec.b = 0;
+	bitvec.a = data << (alligned_access ? 0 : 8);
+	viom->write(addr >> 1, bitvec, !alligned_access, alligned_access, select_dev);
+
+	return true;
+}
+
 bool ESC64::safe_write_word(int addr, int data, bool select_dev) {
 	assert(data <= 0xFFFF);
 	assert(data >= 0);
@@ -366,6 +410,7 @@ bool ESC64::safe_write_word(int addr, int data, bool select_dev) {
 }
 
 void ESC64::validate_some_stuff(void) {
+	//program counter is alligned
 	if((regs[RGS_PC] & 1) != 0) {
 		assert(0);
 	}

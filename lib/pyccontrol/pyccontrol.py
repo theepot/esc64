@@ -13,8 +13,6 @@ from thrift.transport import TSocket
 from thrift.transport import TTransport
 from thrift.protocol import TBinaryProtocol
 
-#TODO: eliminate common code with simpy.py
-
 class Computer:
 	def __init__(self, port, name=None):
 		if name == None:

@@ -101,6 +101,8 @@ void shiftl(const int dst, const int src);
 void shiftr(const int dst, const int src);
 void load(const int dst, const int src);
 void store(const int dst, const int src);
+void load_byte(const int dst, const int src);
+void store_byte(const int dst, const int src);
 void call(const int addr_reg);
 void call_literal(const int addr);
 void call_literal_labeled(const char* const name);

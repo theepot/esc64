@@ -492,12 +492,22 @@ void shiftr(const int dst, const int src)
 
 void load(const int dst, const int src)
 {
-	add_instruction(op_ldr, dst, src, 0, "load");
+	add_instruction(op_ld, dst, src, 0, "load");
 }
 
 void store(const int dst, const int src)
 {
-	add_instruction(op_str, 0, dst, src, "store");
+	add_instruction(op_st, 0, dst, src, "store");
+}
+
+void load_byte(const int dst, const int src)
+{
+	add_instruction(op_ldb, dst, src, 0, "load byte");
+}
+
+void store_byte(const int dst, const int src)
+{
+	add_instruction(op_stb, 0, dst, src, "store byte");
 }
 
 void call(const int addr_reg)

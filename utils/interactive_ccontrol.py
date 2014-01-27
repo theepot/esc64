@@ -2,6 +2,7 @@
 from __future__ import print_function
 import sys
 import os
+import argparse
 
 scriptdir = os.path.dirname(os.path.realpath(__file__))
 
@@ -10,10 +11,12 @@ sys.path.append(scriptdir + '/../lib/pyccontrol/gen-py')
 
 from pyccontrol import *
 
-port = 9090
-if len(sys.argv) > 1:
-	port = int(sys.argv[1])
-	
+parser = argparse.ArgumentParser(description='interactive control of a ESC64 computer via thrift')
+parser.add_argument('-p', '--port', type=int, default='9090', help='the port of the server')
+args = parser.parse_args()
+
+port = vars(args)['port']
+
 print('connecting to computer @ port' + str(port))
 c = Computer(port)
 
@@ -30,7 +33,7 @@ def rc():
 def dc():
 	c.disconnect()
 def ps():
-	c.print_status(client)
+	c.print_status()
 def pr(addr, size):
 	c.print_mem(client, addr, size)
 def st():

@@ -88,5 +88,6 @@ module computer();
 	
 	wire [1:0] error = cpu.error;
 	
+	//at_fetch is high when the microsequencer it at the first microinstruction of the fetch cycle. 
 	wire at_fetch = cpu._mSeq.roms_addr[12:0] === 12'd512 ? 1'b1 : 1'b0;
 endmodule
