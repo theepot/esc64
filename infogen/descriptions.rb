@@ -5,25 +5,25 @@ module Descriptions
 
 	class Func < Instruction
 		def initialize name, opcode
-			super name, opcode, false, "#{name} rd:reg, ra:reg, rb:reg", { "rd" => 0, "ra" => 1, "rb" => 2 }, [ 0, 0, 0 ]
+			super name, opcode, false, "#{name} rd:reg, ra:reg, rb:reg", { "rd" => 0, "ra" => 1, "rb" => 2 }, [ 0, 0, 0 ], false
 		end
 	end
 	
 	class Step < Instruction
 		def initialize name, opcode
-			super name, opcode, false, "#{name} rd:reg, rs:reg", { "rd" => 0, "rs" => 1 }, [ 0, 0, 0 ]
+			super name, opcode, false, "#{name} rd:reg, rs:reg", { "rd" => 0, "rs" => 1 }, [ 0, 0, 0 ], false
 		end
 	end
 	
 	class MoveReg < Instruction
 		def initialize name, mnemonic, opcode
-			super name, opcode, false, "#{mnemonic} rd:reg, rs:reg", { "rd" => 0, "rs" => 1 }, [ 0, 0, 0 ]
+			super name, opcode, false, "#{mnemonic} rd:reg, rs:reg", { "rd" => 0, "rs" => 1 }, [ 0, 0, 0 ], false
 		end
 	end
 	
 	class MoveImm < Instruction
 		def initialize name, mnemonic, opcode
-			super name, opcode, true, "#{mnemonic} rd:reg, imm:imm", { "rd" => 0 }, [ 0, 0, 0, ]
+			super name, opcode, true, "#{mnemonic} rd:reg, imm:imm", { "rd" => 0 }, [ 0, 0, 0, ], false
 		end
 	end
 	
@@ -34,13 +34,13 @@ module Descriptions
 	
 	class JmpReg < Instruction
 		def initialize name, mnemonic, opcode
-			super name, opcode, false, "#{mnemonic} rd:reg", { "rd" => 1 }, [ 7, 0, 0 ]
+			super name, opcode, false, "#{mnemonic} rd:reg", { "rd" => 1 }, [ 7, 0, 0 ], true
 		end
 	end
 	
 	class JmpImm < Instruction
 		def initialize name, mnemonic, opcode
-			super name, opcode, true, "#{mnemonic} imm:imm", {}, [ 7, 0, 0 ]
+			super name, opcode, true, "#{mnemonic} imm:imm", {}, [ 7, 0, 0 ], true
 		end
 	end
 	
@@ -50,13 +50,13 @@ module Descriptions
 	
 	class Shift < Instruction
 		def initialize name, opcode
-			super name, opcode, false, "#{name} rd:reg, rs:reg", { "rd" => 0, "rs" => 1 }, [ 0, 0, 0 ]
+			super name, opcode, false, "#{name} rd:reg, rs:reg", { "rd" => 0, "rs" => 1 }, [ 0, 0, 0 ], false
 		end
 	end
 	
 	class NotWide < Instruction
 		def initialize mnem, opcode, bindings
-			super nil, opcode, false, mnem, bindings, [ 0, 0, 0 ]
+			super nil, opcode, false, mnem, bindings, [ 0, 0, 0 ], false
 			@uname = @pattern.mnem
 		end
 	end
@@ -107,12 +107,12 @@ module Descriptions
 		NotWide.new("stb rd:reg, rs:reg", 0x55, { "rd" => 1, "rs" => 2 }),
 		
 		NotWide.new("call r:reg", 0x57, { "r" => 1 }),
-		Instruction.new("call_imm", 0x58, true, "call addr:imm", { }, [ 0, 0, 0 ]),
+		Instruction.new("call_imm", 0x58, true, "call addr:imm", { }, [ 0, 0, 0 ], false),
 		NotWide.new("in rd:reg, rs:reg", 0x59, { "rd" => 0, "rs" => 1 }),
 		NotWide.new("out rd:reg, rs:reg", 0x5A, { "rd" => 1, "rs" => 2 }),
 		NotWide.new("push r:reg", 0x5B, { "r" => 1 }),
 		NotWide.new("pop r:reg", 0x5C, { "r" => 0 }),
-		Instruction.new("ret", 0x5C, false, "ret", {}, [ 7, 0, 0 ]),
+		Instruction.new("ret", 0x5C, false, "ret", {}, [ 7, 0, 0 ], true),
 		NotWide.new("halt", 0x7F, {})
 	]
 	

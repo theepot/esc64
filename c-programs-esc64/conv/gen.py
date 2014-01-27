@@ -11,7 +11,7 @@ class CType:
 		self.signed = signed
 		self.max_ = max_
 		self.min_ = min_
-		
+				
 	def getname(self, pre, post):
 		return "{0}_{1}_{2}".format(pre, self.name, post)
 	

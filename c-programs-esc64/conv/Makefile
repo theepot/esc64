@@ -19,6 +19,16 @@ INCLUDES	:= $(CRT_PATH)
 .PHONY: all
 all: $(LST) conv_x86linux
 
+.PHONY: test
+test: esc64r.log x86linuxr.log
+	meld esc64r.log x86linuxr.log
+
+esc64r.log: $(LST)
+	echo "hello" > $@
+
+x86linuxr.log: conv_x86linux
+	./conv_x86linux > $@
+
 .PHONY: clean
 clean:
 	rm -f $(PROGRAM)

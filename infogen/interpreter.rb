@@ -30,14 +30,16 @@ module ESC64AsmDesc
 		attr_accessor :pattern
 		attr_accessor :bindings
 		attr_accessor :default_operands
+		attr_accessor :pseudo
 	
-		def initialize uname, opcode, wide, pattern, bindings, default_operands
+		def initialize uname, opcode, wide, pattern, bindings, default_operands, pseudo
 			@uname = uname
 			@opcode = opcode
 			@wide = wide
 			@pattern = Pattern.new pattern
 			@bindings = bindings
 			@default_operands = default_operands
+			@pseudo = pseudo
 		end
 			
 		def inspect
@@ -230,6 +232,13 @@ module ESC64AsmDesc
 		
 		def export_instructions insts
 			@instructions = insts
+			@nopseudo = @instructions.dup.delete_if { |i| i.pseudo }
+			for i in @nopseudo
+				if @nopseudo.count { |j| j.opcode == i.opcode } > 1
+					puts "ducplicated opcodes in pseudo: #{i.opcode}"
+				end
+			end
+			
 			for inst in @instructions
 				begin
 					legal_inst? inst
@@ -354,7 +363,7 @@ module ESC64AsmDesc
 		end
 		
 		def emit_c_instr_info filename
-			sorted = @instructions.sort { |a, b| a.opcode <=> b.opcode }
+			sorted = @nopseudo.sort { |a, b| a.opcode <=> b.opcode }
 			
 			File.open(filename + ".h", "w") do |f|
 				f.write "/*GENERATED OUT OF descriptions.rb*/\n"
@@ -429,7 +438,7 @@ module ESC64AsmDesc
 			File.open(filename, "w") do |f|
 				f.write "#include <esc64asm/decomp.h>\n\n"
 				
-				sorted = @instructions.sort { |a, b| a.opcode <=> b.opcode }
+				sorted = @nopseudo.sort { |a, b| a.opcode <=> b.opcode }
 				
 				f.write "static const DecompInfo DECOMP_INFO[] =\n{\n"
 				c_decomp_inst f, sorted[0], 0

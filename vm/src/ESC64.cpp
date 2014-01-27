@@ -255,7 +255,7 @@ void ESC64::execute(Instr i) {
 		c_flag_is_defined = true;
 		}
 		break;
-	case op_ldr: {
+	case op_ld: {
 		int read_data;
 		if(!safe_read_word(regs[i.op1], false, &read_data)) {
 			break;
@@ -263,7 +263,7 @@ void ESC64::execute(Instr i) {
 		regs[i.op0] = read_data;
 		}
 		break;
-	case op_str:
+	case op_st:
 		safe_write_word(regs[i.op1], regs[i.op2], false);
 		break;
 	case op_call:

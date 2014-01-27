@@ -594,12 +594,12 @@ int main(int argc, char** argv)
 
 
 	//load
-	goto_op_entry(op_ldr, ALWAYS);
+	goto_op_entry(op_ld, ALWAYS);
 	mem_read(reg_ld_sel_op0, gpreg_oe_sel_op1, true);
 	set_next(next_sel_fetch);
 
 	//store
-	goto_op_entry(op_str, ALWAYS);
+	goto_op_entry(op_st, ALWAYS);
 	mem_write(gpreg_oe_sel_op1, gpreg_oe_sel_op2, true);
 	set_next(next_sel_fetch);
 
