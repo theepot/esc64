@@ -4,6 +4,10 @@ all: urom.lst
 CFLAGS				= -Wall -g -I../lib/CInstrInfo/src/ -I../lib/cpu
 LFLAGS				= -Wall -g
 
+.PHONY: clean
+clean:
+	rm -f bin_table.o uassembler.o urom.lst gen_urom
+
 bin_table.o: bin_table.c bin_table.h
 	gcc -c -o $@ $(CFLAGS) $<
 

@@ -14,3 +14,6 @@ a.out
 *.exe
 *.ps
 *.pyc
+*.log
+*.pp.s
+*.lcc.s
