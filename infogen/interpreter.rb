@@ -104,7 +104,7 @@ module ESC64AsmDesc
 			end
 			return rev_bind
 		end
-						
+								
 		def to_s; inspect end
 	end
 
@@ -452,7 +452,58 @@ module ESC64AsmDesc
 				f.write "\n};"
 			end
 		end
+		
+		def emit_py_disasm filename
+			File.open(filename, "w") do |f|
+				info = disasm_info
 				
+				f.write "class InstInfo:\n"
+				f.write "\tdef __init__(self, uname, wide):\n"
+				f.write "\t\tself.uname = uname\n"
+				f.write "\t\tself.wide = wide\n\n"
+				
+				f.write "disasm_info = [\\\n"
+				f.write "\t#{py_disasm_info info[0]}"
+				
+				for i in 1..0x7F
+					f.write ",\\\n\t#{py_disasm_info info[i]}"
+				end
+				
+				f.write "\\\n]\n"
+			end
+		end
+		
+		def py_disasm_info i
+			if i == nil
+				"None"
+			else
+				"InstInfo(\"#{i.uname}\", #{i.wide ? "True" : "False"})"
+			end
+		end
+				
+		def disasm_info
+			if @disasm_info
+				@disasm_info
+			else
+				gen_disasm_info
+			end
+		end
+		
+		def gen_disasm_info
+			sorted = @nopseudo.sort { |a, b| a.opcode <=> b.opcode }
+			n = 0
+			@disasm_info = []
+			for i in 0..0x7F
+				if sorted[n].opcode == i
+					@disasm_info << sorted[n]
+					n = n + 1
+				else
+					@disasm_info << nil
+				end
+			end
+			@disasm_info
+		end
+		
 		def emit_gperf_verbatim f
 			f.write "///// typedefs /////\n"
 			f.write "typedef struct DirHandlerWrapper_ DirHandlerWrapper;\n"
@@ -683,6 +734,7 @@ module ESC64AsmDesc
 		gperf_path = nil
 		decomp_c_path = nil
 		c_instr_info_path = nil
+		py_disasm_path = nil
 		verbose = false
 		
 		OptionParser.new do |opts|
@@ -696,6 +748,10 @@ module ESC64AsmDesc
 			
 			opts.on("-p PATH", "--emit-c-instr-info PATH", "C opcode defines") do |p|
 				c_instr_info_path = p
+			end
+			
+			opts.on("-y PATH", "--emit-python-disasm PATH", "disassembly info for python") do |p|
+				py_disasm_path = p
 			end
 			
 			opts.on("-v", "--verbose", "be verbose") do |v|
@@ -714,6 +770,10 @@ module ESC64AsmDesc
 		
 		if decomp_c_path != nil
 			i.emit_c_decomp decomp_c_path
+		end
+		
+		if py_disasm_path != nil
+			i.emit_py_disasm py_disasm_path
 		end
 		
 		if c_instr_info_path != nil

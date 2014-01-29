@@ -65,8 +65,8 @@ def compare_computers(c1, c2, print_trace=False, continue_after_differences=Fals
 				c1.print_status()
 				c2.print_status()
 		
-		m1 = c1.client.getMemory(0, 2**16-1)
-		m2 = c2.client.getMemory(0, 2**16-1)
+		m1 = c1.client.getMemory(0, 2**16)
+		m2 = c2.client.getMemory(0, 2**16)
 		diff_addrs = compare_mem(m1, m2)
 		if not len(diff_addrs) == 0:
 			any_differences = True

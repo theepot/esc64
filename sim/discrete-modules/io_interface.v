@@ -138,11 +138,12 @@ module io_interface(clock, notReset, a_bus, y_bus, rd, wr, select_dev, idle_n, w
 	
 	assign out_csl_n = low_to_low_transceiver_oe_n;
 	
-	always @ (address0, word_clean, idle_clean) begin
-		if(address0 && word_clean && !idle_clean) begin
-			$display("WARNING: trying to access unaligned word");
-		end
-	end
+//	TODO: make sure this does not warn us when there is nothing bad going on
+//	always @ (address0, word_clean, idle_clean) begin
+//		if(address0 && word_clean && !idle_clean) begin
+//			$display("WARNING: trying to access unaligned word");
+//		end
+//	end
 	
 endmodule
 

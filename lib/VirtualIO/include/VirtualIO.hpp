@@ -14,6 +14,10 @@ struct BitVector16 {
 	10 1
 	11 x
 	*/
+	bool is_defined() const		{ return (b & 0xFFFF) == 0; }
+	unsigned getValue() const		{ return a & 0xFFFF; }
+	unsigned getHighByte() const	{ return (a >> 8) & 0xFF; }
+	unsigned getLowByte() const		{ return a & 0xFF; }
 };
 
 class VirtualIO {

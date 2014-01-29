@@ -272,6 +272,14 @@ static void SyOpStackDump(void)
 
 static int ParseLine(void)
 {
+	//FIXME debug
+	if(line_ == 60)
+	{
+		const char* please = "break";
+		(void)please;
+	}
+	//end
+
 #ifdef ESC_DEBUG
 	printf("ParseLine(): line=%04u; PC=0x%04X\n", line_, ObjGetLocation());
 #endif
@@ -444,6 +452,17 @@ void ParseWord(void)
 
 	result = htole_word(result);
 	ObjWriteData(&result, 2);
+}
+
+void ParseByte(void)
+{
+	ArgType t = FirstArgument();
+	if(t != ARG_T_EXPR) { UnexpectedToken(); }
+
+	word_t result = 0xDEAD;
+	ParseExpression(1, 0, &result);
+
+	ObjWriteData(&result, 1);
 }
 
 void ParseDataSection(void)

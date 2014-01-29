@@ -5,6 +5,7 @@
 #include <thrift/transport/TBufferTransports.h>
 #include <boost/thread.hpp>
 #include <RAM.hpp>
+#include <VirtualOStream.hpp>
 #include <VirtualIO.hpp>
 #include <ESC64.hpp>
 #include <cassert>
@@ -178,9 +179,10 @@ public:
 
 int main(int argc, char **argv) {
 	VirtualIOManager* viom = new VirtualIOManager();
-	viom->print_io_activity = true;
+	viom->print_io_activity = false;
 	bool start_paused = false;
 	RAM* ram = new RAM(false, 0, (1 << 15) - 1);
+	VirtualOStream* vos = new VirtualOStream(0xAAAA >> 1, &std::cout);
 
 	int port = 9090;
 	bool found_ram_argument = false;
@@ -221,6 +223,7 @@ int main(int argc, char **argv) {
 	}
 
 	viom->add_device(ram);
+	viom->add_device(vos);
 	ESC64* esc64 = new ESC64(viom);
 	esc64->reset();
 
