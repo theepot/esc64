@@ -48,13 +48,18 @@ public:
 		do_quit = false;
 	}
 
-	ComputerState::type getState() {
-		boost::lock_guard<boost::mutex> lock1(*runningState_mutex);
-		boost::lock_guard<boost::mutex> lock2(*esc64_mutex);
+	RunningState getRunningState() {
+		boost::lock_guard<boost::mutex> lock(*runningState_mutex);
+		return *runningState;
+	}
 
-		if(*runningState == RUNNING) {
+	ComputerState::type getState() {
+		RunningState r = getRunningState();
+
+		if(r == RUNNING) {
 			return ComputerState::RUNNING;
-		} else if (*runningState == PAUSED) {
+		} else if (r == PAUSED) {
+			boost::lock_guard<boost::mutex> lock2(*esc64_mutex);
 			switch(esc64->state) {
 				case ESC64::OK:
 					return ComputerState::PAUSED;
@@ -98,13 +103,12 @@ public:
 	}
 
 	void step() {
-		boost::lock_guard<boost::mutex> lock1(*runningState_mutex);
-		if(*runningState != RUNNING) {
+		if(getRunningState() != RUNNING) {
 			boost::lock_guard<boost::mutex> lock2(*esc64_mutex);
 
 			esc64->step();
-			cv->notify_all();
 		}
+		cv->notify_all();
 	}
 
 	void reset() {
@@ -245,6 +249,7 @@ int main(int argc, char **argv) {
 
 		if(handler->do_quit) {
 			server.stop();
+			cv.notify_all();
 			break;
 		}
 
@@ -267,7 +272,7 @@ int main(int argc, char **argv) {
 			runningState = PAUSED;
 			runningState_mutex.unlock();
 		}
-
+		cv.notify_all();
 	}
 
   return 0;
