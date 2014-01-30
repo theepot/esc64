@@ -1,12 +1,10 @@
 .PHONY: all
-all: test_abstract.vvp test_discrete.vvp
+all: test.vvp
 
-TEST_SRC = $(wildcard *_test.v)
-DEPENDENCIES_ABSTRACT = $(wildcard ../../abstract-modules/*.v) $(wildcard ../../common-modules/*.v)
-DEPENDENCIES_DISCRETE = $(wildcard ../../discrete-modules/*.v) $(wildcard ../../common-modules/*.v) $(wildcard ../../ICs/*.v)
+SRC = $(wildcard *_test.v)
+DEPENDENCIES_DIRS = ../../modules ../../ICs
+DEPENDENCIES = $(foreach i, $(DEPENDENCIES_DIRS), $(wildcard $(i)/*.v))
+INCLUDE_FLAGS = $(foreach i, $(DEPENDENCIES_DIRS), -I$(i))
 
-test_abstract.vvp: $(TEST_SRC) $(DEPENDENCIES_ABSTRACT)
-	iverilog -Wall -DWAVEDUMPFILE=\"test_abstract.vcd\" -I../../abstract-modules -I../../common-modules -o$@ $<
-
-test_discrete.vvp: $(TEST_SRC) $(DEPENDENCIES_DISCRETE)
-	iverilog -Wall -DWAVEDUMPFILE=\"test_discrete.vcd\" -I../../ICs -I../../discrete-modules -I../../common-modules -o$@ $<
+test.vvp: $(SRC) $(DEPENDENCIES)
+	iverilog -Wall -DWAVEDUMPFILE=\"test.vcd\" $(INCLUDE_FLAGS) -o$@ $<
