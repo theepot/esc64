@@ -139,10 +139,11 @@ module Descriptions
 		Directive.new("bss",	:section,		"ParseBSSSection"),
 		Directive.new("org",	:section_opt,	"ParseOrg"),
 		Directive.new("align",	:section_opt,	"ParseAlign"),
-		Directive.new("pad",	:section_opt,	"ParsePad"),
+		Directive.new("pad",	:other,			"ParsePad"),
 		Directive.new("resw",	:other,			"ParseResW"),
 		Directive.new("global",	:other,			"ParseGlobal"),
-		Directive.new("word",	:other,			"ParseWord")
+		Directive.new("word",	:other,			"ParseWord"),
+		Directive.new("byte",	:other,			"ParseByte")
 	]
 	
 	ESC64AsmDesc.export instructions, aliass, directives

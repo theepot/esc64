@@ -342,12 +342,15 @@ bool ESC64::safe_read_word(int addr, bool select_dev, int* out_data) {
 	assert(addr <= 0xFFFF);
 	assert(addr >= 0);
 	if(addr & 1) {
-		fprintf(stderr, "ESC64: ERROR: tried to read unaligned word\n");
+		fprintf(stderr, "ESC64: ERROR: tried to read unaligned word at %X\n", addr);
 		state = IO_ERROR;
 		return false;
 	}
 	BitVector16 bitvec = viom->read(addr >> 1, true, true, select_dev);
+	bitvec.a &= 0xFFFF;
+	bitvec.b &= 0xFFFF;
 	if(bitvec.b != 0) {
+		fprintf(stderr, "ESC64: ERROR: tried to read undefined data word at %X\n", addr);
 		state = IO_ERROR;
 		return false;
 	}
@@ -363,8 +366,8 @@ bool ESC64::safe_read_byte(int addr, bool select_dev, int* out_data) {
 	bool alligned_access = (addr & 1) == 0;
 
 	BitVector16 bitvec = viom->read(addr >> 1, !alligned_access, alligned_access, select_dev);
-
 	if((bitvec.b & (0xFF << (alligned_access ? 0 : 8))) != 0) {
+		fprintf(stderr, "ESC64: ERROR: tried to read undefined data byte at %X\n", addr);
 		state = IO_ERROR;
 		return false;
 	}
@@ -396,7 +399,7 @@ bool ESC64::safe_write_word(int addr, int data, bool select_dev) {
 	assert(addr <= 0xFFFF);
 	assert(addr >= 0);
 	if(addr & 1) {
-		fprintf(stderr, "ESC64: ERROR: tried to write unaligned word\n");
+		fprintf(stderr, "ESC64: ERROR: tried to write unaligned word at %X\n", addr);
 		state = IO_ERROR;
 		return false;
 	}

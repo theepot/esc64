@@ -17,15 +17,16 @@ BitVector16 VirtualIOManager::read(int addr, bool csh, bool csl, bool select_dev
 
 	//init result at Z
 	BitVector16 result;
-	result.a = 0;
-	result.b = -1;
+	BitVector16 dev_result;
+	dev_result.a = 0;
+	dev_result.b = -1;
 	int responding_device = -1;
 	int n = 0;
 	for(std::vector<VirtualIO*>::iterator i = devices.begin(); i != devices.end(); ++i, ++n) {
-		if((*i)->read(addr, csh, csl, select_dev, &result)) {
+		if((*i)->read(addr, csh, csl, select_dev, &dev_result)) {
 			if(print_io_activity) {
 				printf("virtual-io: INFO: device %d responded. Result: ", n);
-				std::cout << result << std::endl;
+				std::cout << dev_result << std::endl;
 			}
 			if(responding_device != -1) {
 				fprintf(stderr, "virtual-io: ERROR: at least two devices responded to a read. Devices %d and %d at %X\n", responding_device, n, addr);
@@ -33,11 +34,12 @@ BitVector16 VirtualIOManager::read(int addr, bool csh, bool csl, bool select_dev
 				result.b = -1;
 				break;
 			} else {
+				result = dev_result;
 				responding_device = n;
 			}
 		}
 	}
-
+	
 	return result;
 }
 
@@ -71,7 +73,7 @@ void VirtualIOManager::write(int addr, BitVector16 data, bool csh, bool csl, boo
 
 std::ostream& operator << (std::ostream &s, const BitVector16& rhs) {
 	for(int i = 15; i >= 0; --i) {
-		s << "0z1x"[((((rhs.a >> i & 0x1) << 1) | ((rhs.b >> i) & 0x1)))];
+		s << "0z1x"[(((rhs.a >> i) & 0x1) << 1) | ((rhs.b >> i) & 0x1)];
 	}
 	return s;
 }

@@ -1,9 +1,11 @@
 SERVICE_GEN_DIR		=gen-py
 SERVICE				=../ComputerControlService/service.thrift
 SERVICE_TIMESTAMP	=service_timestamp
+DISASM_INFO			=gen_disasm.py
+INFOGEN				=../../infogen
 
 .PHONY: all
-all: ${SERVICE_TIMESTAMP}
+all: ${SERVICE_TIMESTAMP} ${DISASM_INFO}
 
 .PHONY: clean
 clean:
@@ -16,3 +18,5 @@ ${SERVICE_TIMESTAMP}: ${SERVICE}
 	thrift -out ${SERVICE_GEN_DIR} --gen py ${SERVICE}
 	touch $@
 
+${DISASM_INFO}: ${INFOGEN}/interpreter.rb ${INFOGEN}/descriptions.rb
+	ruby -I${INFOGEN} ${INFOGEN}/descriptions.rb -y $@

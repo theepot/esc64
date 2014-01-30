@@ -13,6 +13,8 @@ from thrift.transport import TSocket
 from thrift.transport import TTransport
 from thrift.protocol import TBinaryProtocol
 
+from gen_disasm import *
+
 class Computer:
 	def __init__(self, port, name=None):
 		if name == None:
@@ -64,7 +66,47 @@ class Computer:
 			r.append(m[i] | (m[i+1] << 8))
 			i += 2
 		return r
+	
+	def until(self, a):
+		print("until(): running...")
+		pc = self.client.getRegister(7, 1)[0]
+		while pc != a:
+			self.client.step()
+			pc = self.client.getRegister(7, 1)[0]
+		print("until(): stopped")
+	
+	def disasm(self, i):
+		opcode = (i >> 9) & 0x7F
+		op0 = (i >> 6) & 7
+		op1 = (i >> 3) & 7
+		op2 = i & 7
+		info = disasm_info[opcode]
+		if info == None:
+			return None
+		else:
+			return "{0} {1}, {2}, {3}".format(info.uname, op0, op1, op2)
+	
+	def disasmhere(self, area=8):
+		pc = self.client.getRegister(7, 1)[0]
+		a = max(pc - area, 0)
+		b = min(pc + area + 2, 0x10000)
+		mem = self.getmemwords(a, b - a)
+		
+		for i in range(a, b, 2):
+			#print("disasmhere(): loop: i={0} a={1}")
+			x = mem[(i - a) / 2]
+			ind = ' '
+			if pc == i:
+				ind = '>'
+			inst = self.disasm(x)
+			if inst == None:
+				inst = ""
+			else:
+				inst = "   {0}".format(inst)
 				
+			s = " {0} 0x{1:04X}:   0x{2:04X}{3}".format(ind, i, x, inst)
+			print(s)
+	
 	def print_mem(self, addr, sz = 2, f=sys.stdout):
 		m = self.client.getMemory(addr, sz)
 		print("ram [0x{0:04X}({0:05d}) : 0x{1:04X}({1:05d})] count=0x{2:04X}({2:05d}):".format(addr, addr + sz - 1, sz), file=f)
