@@ -124,8 +124,8 @@ exitcode = 0
 try:
 	simport = 9090
 	vmport = 9091
-	simproc = start_simulation(vars(args)['ram'], simport, open('simout.txt', 'w'), open('simerr.txt', 'w'))
-	vmproc = start_vm(vars(args)['ram'], vmport, open('vmout.txt', 'w'), open('vmerr.txt', 'w'))
+	simproc = start_simulation(vars(args)['ram'], simport, open('simstdout.log', 'w'), open('simstderr.log', 'w'))
+	vmproc = start_vm(vars(args)['ram'], vmport, open('vmstdout.log', 'w'), open('vmstderr.log', 'w'))
 	time.sleep(2)
 
 	c1 = Computer(simport, "sim")

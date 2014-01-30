@@ -21,7 +21,8 @@ module computer();
 	wire [14:0] address;
 	wire [15:0] data;
 	wire rd_n, wr_n, csh_n, csl_n, select_dev;
-	cpu cpu(clock, notReset, address, data, rd_n, wr_n, csh_n, csl_n, select_dev);
+	reg inspect_cpu;
+	cpu cpu(clock, notReset, address, data, rd_n, wr_n, csh_n, csl_n, select_dev, inspect_cpu, error, at_fetch);
 	
 	//virtual-io
 	virtual_io virtual_io(address, data, rd_n, wr_n, csh_n, csl_n, select_dev);
@@ -31,13 +32,13 @@ module computer();
 		$dumpvars(0);
 				
 		$start_sim_control();
-		
+		inspect_cpu = 0;
 		clock_counter = 0;
 		notReset = 0;
 		clock = 0;
 		state = 0;
 		#900 notReset = 1;
-
+	
 `ifdef MAX_CLOCK_CYCLES
 		#((`CLOCK_PERIOD / 2)*2*`MAX_CLOCK_CYCLES)
 		$display("computer.v: ERROR: computer did not halt in %d cycles", `MAX_CLOCK_CYCLES);
@@ -86,8 +87,10 @@ module computer();
 	wire [2:0] ir_op1 = cpu.regselOp1;
 	wire [2:0] ir_op2 = cpu.regselOp2;
 	
-	wire [1:0] error = cpu.error;
+	wire [1:0] error; //connected to cpu
+	
+	wire at_fetch; //connected to cpu
 	
 	//at_fetch is high when the microsequencer it at the first microinstruction of the fetch cycle. 
-	wire at_fetch = cpu._mSeq.roms_addr[12:0] === 12'd512 ? 1'b1 : 1'b0;
+	//wire at_fetch = cpu._mSeq.roms_addr[12:0] === 12'd1024 ? 1'b1 : 1'b0;
 endmodule

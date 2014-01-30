@@ -18,6 +18,12 @@
 
 typedef struct
 {
+	int addresses[4];
+	int len;
+} addresses4_t;
+
+typedef struct
+{
 	bin_table table;
 
 	char* next_addr_collumn_name;
@@ -27,13 +33,11 @@ typedef struct
 	int opcode_width;
 
 	int addr_fetch;
-	int addr_current;
 	int addr_free;
 	int addr_reset;
-	int addr_previous;
+	addresses4_t current_addresses;
 
 	int current_at_op_entry;
-	int op_entry_zero_carry_flags;
 } uassembler;
 
 typedef enum next_sel
@@ -51,15 +55,17 @@ void fprint_urom(FILE* f, uassembler* uasm);
 void assert_signal(uassembler* uasm, const char* field_name);
 void set_field(uassembler* uasm, const char* field_name, int value);
 void set_default(uassembler* uasm);
+void set_next_hardcoded(uassembler* uasm, int addr);
 void set_next(uassembler* uasm, next_sel nxt);
 void goto_address(uassembler* uasm, int address);
 void goto_reset(uassembler* uasm);
 void goto_fetch(uassembler* uasm);
-void goto_next_free(uassembler* uasm);
+int goto_next_free(uassembler* uasm);
 void goto_op_entry(uassembler* uasm, int opcode, int carry_zero_flags);
-void copy_fields_from_previous(uassembler* uasm); //TODO: remove. this is deprecated
+void goto_inspect_cpu_entry(uassembler* uasm, int opcode, int carry_zero_flags);
 void check_current_addr(uassembler* uasm);
 void print_state(uassembler* uasm, FILE* f);
+addresses4_t get_jmptable_addresses(uassembler* uasm, int opcode, int flags, int inspect_cpu);
 void print_verilog(uassembler* uasm, int comments);
 
 #endif

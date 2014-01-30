@@ -7,9 +7,10 @@
 `include "regFile.v"
 `include "io_interface.v"
 
-module cpu(clock, notReset, address, data, memNotRead, memNotWrite, csh_n, csl_n, select_dev);
-	input clock, notReset;
-	output memNotRead, memNotWrite, csh_n, csl_n, select_dev;
+module cpu(clock, notReset, address, data, memNotRead, memNotWrite, csh_n, csl_n, select_dev, cpu_inspect, error, at_fetch);
+	input clock, notReset, cpu_inspect;
+	output memNotRead, memNotWrite, csh_n, csl_n, select_dev, at_fetch;
+	output [1:0] error;
 	inout [15:0] data;
 	inout [14:0] address;
 		
@@ -62,16 +63,14 @@ module cpu(clock, notReset, address, data, memNotRead, memNotWrite, csh_n, csl_n
 	instructionRegister ir(clock, irNotLoad, yBus, irOpcode, regselOp0, regselOp1, regselOp2);
 		
 	//micro sequencer
-	wire [33:0] control;
-	mSeq #(.ROM_FILENAME("urom.lst")) _mSeq(clock, notReset, irOpcode, statusCOut, statusZOut, control);
-	
-	//error signals
-	wire [1:0] error;
+	wire [41:0] control;
+	mSeq #(.ROM_FILENAME("urom.lst")) _mSeq(clock, notReset, irOpcode, statusCOut, statusZOut, cpu_inspect, control);
 	
 	//io interface
 	wire memRead, memWrite, io_select_dev, io_idle_n, io_word, io_dir_out, io_address_reg_ld_n, io_data_reg_ld_n;
 	io_interface _io_interface(clock, notReset, aBus, yBus, memRead, memWrite, io_select_dev, io_idle_n, io_word, io_dir_out, io_address_reg_ld_n, io_data_reg_ld_n, address, data, memNotRead, memNotWrite, csl_n, csh_n, select_dev);
-		
+	
+	assign at_fetch = control[34];//1, H
 	assign io_data_reg_ld_n = control[33];//1, L
 	assign io_address_reg_ld_n = control[32];//1, L
 	assign io_select_dev = control[31];//1, H

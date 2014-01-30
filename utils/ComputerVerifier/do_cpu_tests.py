@@ -20,7 +20,7 @@ def do_test(f):
 	print('testing with ' + os.path.basename(f) + ' ', end='')
 	sys.stdout.flush()
 	
-	exitcode = subprocess.call([scriptdir + '/verify.py', '-r', f], stdout=open('outlog.txt', 'w'), stderr=open('errlog.txt', 'w'))
+	exitcode = subprocess.call([scriptdir + '/verify.py', '-r', f], stdout=open('stdout.log', 'w'), stderr=open('stderr.log', 'w'))
 	if exitcode == 0:
 		print('OK')
 	else:

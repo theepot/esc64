@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <cpu.h>
 #include <stdbool.h>
+#include <assert.h>
 #include "uassembler.h"
 #include "bin_table.h"
 #include <instr_info.h>
@@ -10,6 +11,7 @@
 
 bin_table_collumn_description field_descrps[] = {
 	{.name = "padding", .width = -1, .active_high = H}, //most significant bits
+	{.name = "at_fetch", .width = 1, .active_high = H},
 	{.name = "data_reg_ld_n", .width = 1, .active_high = L},
 	{.name = "address_reg_ld_n", .width = 1, .active_high = L},
 	{.name = "io_select_dev", .width = 1, .active_high = H},
@@ -178,7 +180,6 @@ void pc_inc(void)
 void io_read(reg_ld_sel reg_dest, gpreg_oe_sel reg_with_address, bool select_device, bool word, int length)
 {
 	length--;
-	//assert_signal(u, "io_dir_out");
 	assert_signal(u, "io_idle_n");
 	if(select_device)
 		assert_signal(u, "io_select_dev");
@@ -191,7 +192,6 @@ void io_read(reg_ld_sel reg_dest, gpreg_oe_sel reg_with_address, bool select_dev
 	{
 		set_next(next_sel_next_free);
 		goto_next_free();
-		//assert_signal(u, "data_dir_in");
 		assert_signal(u, "io_idle_n");
 		if(select_device)
 			assert_signal(u, "io_select_dev");
@@ -202,7 +202,6 @@ void io_read(reg_ld_sel reg_dest, gpreg_oe_sel reg_with_address, bool select_dev
 	
 	set_next(next_sel_next_free);
 	goto_next_free();
-	//assert_signal(u, "data_dir_in");
 	assert_signal(u, "io_idle_n");
 	if(select_device)
 		assert_signal(u, "io_select_dev");
@@ -301,6 +300,27 @@ void error(int error_code)
 	set_field(u, "error", error_code);
 }
 
+void expose_bit(int b)
+{
+	gpreg_oe(gpreg_oe_sel_0);
+	breg_ld();
+	set_next(next_sel_next_free);
+	goto_next_free();
+	gpreg_oe(gpreg_oe_sel_0);
+	alu_enable(ALU_F_SUB);
+	if(!b)
+		carry_set(carry_sel_one);
+	else
+		carry_set(carry_sel_zero);
+	assert_signal(u, "data_reg_ld_n");
+	set_next(next_sel_next_free);
+	goto_next_free();
+
+	assert_signal(u, "io_idle_n");
+	assert_signal(u, "io_dir_out");
+	assert_signal(u, "io_word");
+}
+
 void create_2op_alu_instruction(opcode_t op, int alu_fun, carry_sel c)
 {
 	goto_op_entry(op, ALWAYS);
@@ -376,7 +396,7 @@ int main(int argc, char** argv)
 {
 	uassembler uasm;
 	u = & uasm;
-	uassembler_init(u, field_descrps,  sizeof(field_descrps) / sizeof(field_descrps[0]), UROM_ADDR_WIDTH, "next", "nextsel", 7, 8*6);
+	uassembler_init(u, field_descrps,  sizeof(field_descrps) / sizeof(field_descrps[0]), UROM_ADDR_WIDTH, "next", "nextsel", 7, 8*7);
 
 	//illegal state
 	fill_whole_memory_with_illegal_state();
@@ -433,6 +453,7 @@ int main(int argc, char** argv)
 
 	//fetch
 	goto_fetch();
+	assert_signal(u, "at_fetch");
 	mem_read(reg_ld_sel_ir, gpreg_oe_sel_pc, true);
 	pc_inc();
 	set_next(next_sel_next_free);
@@ -676,6 +697,78 @@ int main(int argc, char** argv)
 	//halt
 	goto_op_entry(op_halt, ALWAYS);
 	set_next(next_sel_current);
+
+	//inspect cpu
+	int f;
+	int inspect_cpu_addresses[4];
+	for(f = 0; f < 4; ++f)
+	{
+		inspect_cpu_addresses[f] = goto_next_free();
+
+		//expose registers
+		int r;
+		for(r = gpreg_oe_sel_0; r < gpreg_oe_sel_0+8; ++r) {
+			gpreg_oe(r);
+			alu_enable(ALU_F_A);
+			assert_signal(u, "data_reg_ld_n");
+			set_next(next_sel_next_free);
+			goto_next_free();
+
+			assert_signal(u, "io_idle_n");
+			assert_signal(u, "io_dir_out");
+			assert_signal(u, "io_word");
+
+			set_next(next_sel_next_free);
+			goto_next_free();
+		}
+
+		//expose flags
+		//first zero, then carry
+		switch(f) {
+		case 0:
+			expose_bit(0);
+			set_next(next_sel_next_free);
+			goto_next_free();
+			expose_bit(0);
+			break;
+		case 1:
+			expose_bit(1);
+			set_next(next_sel_next_free);
+			goto_next_free();
+			expose_bit(0);
+			break;
+		case 2:
+			expose_bit(0);
+			set_next(next_sel_next_free);
+			goto_next_free();
+			expose_bit(1);
+			break;
+		case 3:
+			expose_bit(1);
+			set_next(next_sel_next_free);
+			goto_next_free();
+			expose_bit(1);
+			break;
+		default:
+			assert(0);
+			break;
+		}
+
+		//jump to instruction(or inspect_cpu again)
+		set_next(next_sel_next_free);
+		goto_next_free();
+		set_next(next_sel_op_entry);
+	}
+
+	int n;
+	for(n = 0; n < (1 << OPCODE_WIDTH); ++n)
+	{
+		for(f = 0; f < 4; ++f)
+		{
+			goto_inspect_cpu_entry(u, n, 1 << f);
+			set_next_hardcoded(u, inspect_cpu_addresses[f]);
+		}
+	}
 
 	print_verilog(u, 1);
 

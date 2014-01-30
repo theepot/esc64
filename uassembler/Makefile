@@ -1,5 +1,5 @@
 .PHONY: all
-all: urom.lst
+all: urom.lst gen_urom
 
 CFLAGS				= -Wall -g -I../lib/CInstrInfo/src/ -I../lib/cpu
 LFLAGS				= -Wall -g
