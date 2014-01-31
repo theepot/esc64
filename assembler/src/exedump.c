@@ -6,6 +6,7 @@
 #include <esc64asm/esctypes.h>
 #include <esc64asm/opcodes.h>
 #include <esc64asm/align.h>
+#include <esc64asm/decomp.h>
 
 static void PrintSection(ExeReader* exeReader);
 static void PrintData(const byte_t* data, int align2, size_t dataSize);
@@ -14,9 +15,6 @@ static void PrintInstruction(uword_t instrWord);
 int main(int argc, char** argv)
 {
 	assert(argc == 2);
-
-	//OpcodeTransInit();
-	OpcodeTableInit();
 
 	ExeReader exeReader;
 	ExeReaderInit(&exeReader, argv[1]);
@@ -61,7 +59,7 @@ static void PrintSection(ExeReader* exeReader)
 static void PrintInstruction(uword_t instrWord)
 {
 	uword_t opcode = (instrWord >> OPCODE_OFFSET) & OPCODE_MASK;
-	const char* name = GetOpcodeName(opcode);
+	const char* name = GetDecompInfo(opcode)->uName;
 
 	if(!name)
 	{

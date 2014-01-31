@@ -144,6 +144,7 @@ module Descriptions
 		Directive.new("align",	:section_opt,	"ParseAlign"),
 		Directive.new("pad",	:other,			"ParsePad"),
 		Directive.new("resw",	:other,			"ParseResW"),
+		Directive.new("resb",	:other,			"ParseResB"),
 		Directive.new("global",	:other,			"ParseGlobal"),
 		Directive.new("word",	:other,			"ParseWord"),
 		Directive.new("byte",	:other,			"ParseByte")

@@ -511,6 +511,15 @@ void ParseResW(void)
 	word_t n = 0;
 	ParseExpression(1, 0, &n);
 	ESC_ASSERT_WARNING(sectionInfo.type != SECTION_TYPE_DATA, "Reserved space in data section will be filled with zeroes");
+	ObjResData(n * 2);
+}
+
+void ParseResB(void)
+{
+	if(FirstArgument() != ARG_T_EXPR) { UnexpectedToken(); }
+	word_t n = 0;
+	ParseExpression(1, 0, &n);
+	ESC_ASSERT_WARNING(sectionInfo.type != SECTION_TYPE_DATA, "Reserved space in data section will be filled with zeroes");
 	ObjResData(n);
 }
 

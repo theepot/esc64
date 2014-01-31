@@ -456,6 +456,15 @@ static void LoadSymbols(ObjectLinkHandle* object, SymTable* symTable, objsize_t 
 			ObjSymIteratorReadName(&symIt, name);
 
 			const Symbol* sym = ObjSymIteratorGetSym(&symIt);
+
+			//FIXME debug
+			if(sym->address == 20)
+			{
+				const char* please = "break";
+				(void)please;
+			}
+			//end
+
 			assert(!SymTableInsert(symTable, sym->name, sym->nameLen, sym->address + section->address));
 		}
 	}

@@ -4,9 +4,9 @@
 
 
 SRC			:= src
-PROGRAM		:= conv_esc64
+PROGRAM		:= test
 LST			:= $(PROGRAM).lst
-OBJECTS		:= conv.o
+OBJECTS		:= test.o
 PP			:= $(foreach F,$(OBJECTS),$(subst .o,.pp.s,$(F)))
 LCC_S		:= $(foreach F,$(OBJECTS),$(subst .o,.lcc.s,$(F)))
 
@@ -18,7 +18,7 @@ GPP_FLAGS	:= -I$(CRT_PATH) -I.
 CFLAGS		:=
 
 .PHONY: all
-all: $(LST) convlinux
+all: $(LST)
 
 .PHONY: clean
 clean:
@@ -27,13 +27,6 @@ clean:
 	rm -f $(PP)
 	rm -f $(LCC_S)
 	rm -f $(OBJECTS)
-	rm -f convlinux convlinux.o
-
-convlinux.o: $(SRC)/conv.c
-	gcc -c -g -Wall -Wextra -I. -I../common/include -o $@ $^
-
-convlinux: convlinux.o
-	gcc -g -Wall -Wextra -o $@ $^ ../common/linuxtest.o
 
 $(LST): $(PROGRAM)
 	esc-exetolst $@ $^
