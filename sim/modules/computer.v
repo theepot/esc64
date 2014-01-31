@@ -92,5 +92,5 @@ module computer();
 	wire at_fetch; //connected to cpu
 	
 	//at_fetch is high when the microsequencer it at the first microinstruction of the fetch cycle. 
-	//wire at_fetch = cpu._mSeq.roms_addr[12:0] === 12'd1024 ? 1'b1 : 1'b0;
+	//wire at_fetch = cpu._control_unit.roms_addr[12:0] === 12'd1024 ? 1'b1 : 1'b0;
 endmodule

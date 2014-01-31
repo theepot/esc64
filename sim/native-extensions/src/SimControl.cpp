@@ -57,6 +57,7 @@ public:
 private:
 	static const size_t REG_HANDLES_SIZE = 8;
 	int port;
+	bool quit_after_halt;
 
 	enum SimControlState {
 		RUNNING = 0,
@@ -222,8 +223,8 @@ void ServiceImpl::tickTask()
 			if(simState == QUITING) {
 				loop = false;
 				server_ptr->stop();
-				serviceThread->join();
 				vpi_control(vpiFinish);
+				simMutex.unlock();
 				break;
 			}
 		}
@@ -237,7 +238,18 @@ void ServiceImpl::tickTask()
 		case 1:
 		case 2:
 		case 3:
+			setState(PAUSED);
+			break;
 		case 4:
+			if(quit_after_halt)
+			{
+				setState(QUITING);
+			}
+			else
+			{
+				setState(PAUSED);
+			}
+			break;
 		case 5:
 			setState(PAUSED);
 			break;
@@ -324,7 +336,9 @@ void ServiceImpl::parseOptions(int argc, char** argv)
 	desc.add_options()
 	    ("paused", "start the simulation paused");
 	desc.add_options()
-		("p", boost::program_options::value<int>()->default_value(9090), "the port number on wich the thrift client should listen");
+		("quit-after-halt", "quit after halt instruction");
+	desc.add_options()
+		("port", boost::program_options::value<int>()->default_value(9090), "the port number on wich the thrift client should listen");
 
 	boost::program_options::basic_command_line_parser<char> bcp = boost::program_options::basic_command_line_parser<char>(argc, argv);
 	bcp.options(desc);
@@ -335,7 +349,8 @@ void ServiceImpl::parseOptions(int argc, char** argv)
 	po::notify(vm);
 
 	prevSimState = simState = (vm.count("paused") ? PAUSED : RUNNING);
-	port = vm["p"].as<int>();
+	port = vm["port"].as<int>();
+	quit_after_halt = (vm.count("quit-after-halt") ? true : false);
 }
 
 void ServiceImpl::setState(SimControlState state)

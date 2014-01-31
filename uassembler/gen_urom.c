@@ -8,9 +8,11 @@
 
 //TODO: document changes (io interface)
 //TODO: y/a bus load-from/write-to enums.
+//TODO: make an enum for all ALU operations and create one function that enables one of these operations
 
 bin_table_collumn_description field_descrps[] = {
 	{.name = "padding", .width = -1, .active_high = H}, //most significant bits
+	{.name = "signed_cmp", .width = 1, .active_high = H},
 	{.name = "at_fetch", .width = 1, .active_high = H},
 	{.name = "data_reg_ld_n", .width = 1, .active_high = L},
 	{.name = "address_reg_ld_n", .width = 1, .active_high = L},
@@ -30,7 +32,7 @@ bin_table_collumn_description field_descrps[] = {
 	{.name = "aluBRegNotLoad", .width = 1, .active_high = L},
 	{.name = "aluNotALUOE", .width = 1, .active_high = L},
 	{.name = "aluF", .width = 5, .active_high = H},
-	{.name = "aluNotShiftOE", .width = 1, .active_high = L},
+	{.name = "aluNotExtraOE", .width = 1, .active_high = L},
 	{.name = "aluCSel", .width = 1, .active_high = H},
 	{.name = "aluUCIn", .width = 1, .active_high = H},
 	{.name = "memRead", .width = 1, .active_high = H},
@@ -134,31 +136,6 @@ void reg_ld(reg_ld_sel sel)
 	
 }
 
-void alu_enable(int func)
-{
-	assert_signal(u, "aluNotALUOE");
-	set_field(u, "aluF", func);
-}
-
-void shift_enable(int left_not_rigth)
-{
-	assert_signal(u, "aluNotShiftOE");
-	if(left_not_rigth)
-		set_field(u, "aluF", ALU_F_SHIFT_LEFT);
-	else
-		set_field(u, "aluF", ALU_F_SHIFT_RIGHT);
-}
-
-void breg_ld(void)
-{
-	assert_signal(u, "aluBRegNotLoad");
-}
-
-void status_ld(void)
-{
-	assert_signal(u, "statusNotLoad");
-}
-
 void carry_set(carry_sel sel)
 {
 	if(sel == carry_sel_status_reg)
@@ -170,6 +147,42 @@ void carry_set(carry_sel sel)
 		set_field(u, "aluCSel", ALU_CSEL_UCIN);
 		set_field(u, "aluUCIn", sel);
 	}
+}
+
+void alu_enable(int func)
+{
+	assert_signal(u, "aluNotALUOE");
+	set_field(u, "aluF", func);
+}
+
+void shift_enable(int left_not_rigth)
+{
+	if(left_not_rigth)
+	{
+		assert_signal(u, "aluNotALUOE");
+		carry_set(carry_sel_zero);
+		set_field(u, "aluF", ALU_F_SHIFT_LEFT);
+	}
+	else
+	{
+		assert_signal(u, "aluNotExtraOE");
+		set_field(u, "aluF", ALU_F_SHIFT_RIGHT);
+	}
+}
+
+void alu_sign_extend() {
+	assert_signal(u, "aluNotExtraOE");
+	set_field(u, "aluF", ALU_F_SING_EXT);
+}
+
+void breg_ld(void)
+{
+	assert_signal(u, "aluBRegNotLoad");
+}
+
+void status_ld(void)
+{
+	assert_signal(u, "statusNotLoad");
 }
 
 void pc_inc(void)
@@ -571,6 +584,20 @@ int main(int argc, char** argv)
 		gpreg_oe(gpreg_oe_sel_op1);
 	set_next(next_sel_fetch);
 
+	//signed compare
+	goto_op_entry(op_cmp, ALWAYS);
+		breg_ld();
+		gpreg_oe(gpreg_oe_sel_op2);
+	set_next(next_sel_next_free);
+	goto_next_free();
+		alu_enable(ALU_F_SUB);
+		assert_signal(u, "signed_cmp");
+		status_ld();
+		carry_set(carry_sel_one);
+		gpreg_oe(gpreg_oe_sel_op1);
+	set_next(next_sel_fetch);
+
+
 	//shift left
 	goto_op_entry(op_shl, ALWAYS);
 		gpreg_oe(gpreg_oe_sel_op1);
@@ -611,6 +638,13 @@ int main(int argc, char** argv)
 		reg_ld(reg_ld_sel_op0);
 		alu_enable(ALU_F_NOT_A);
 		status_ld();
+	set_next(next_sel_fetch);
+
+	//sign extend
+	goto_op_entry(op_sxt, ALWAYS);
+		gpreg_oe(gpreg_oe_sel_op1);
+		alu_sign_extend();
+		reg_ld(reg_ld_sel_op0);
 	set_next(next_sel_fetch);
 
 

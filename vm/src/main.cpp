@@ -207,14 +207,15 @@ int main(int argc, char **argv) {
 			}
 		} else if(std::string(argv[i]) == "--paused") {
 			start_paused = true;
-		} else if(std::string(argv[i]) == "-p") {
+		} else if(std::string(argv[i]) == "--port") {
 			if(i + 1 >= argc) {
-				fprintf(stderr, "-p needs an argument\n");
+				fprintf(stderr, "--port needs an argument\n");
 				return 1;
 			} else {
 				port = strtol(argv[i+1], NULL, 10);
 			}
 		}
+		//TODO: add --quit-after-halt
 	}
 
 	if(port <= 0 || port > 65535) {

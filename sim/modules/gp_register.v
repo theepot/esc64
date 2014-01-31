@@ -3,7 +3,7 @@
 `include "octRegister_74377.v"
 `include "OctThreeState_74541.v"
 
-module GPRegister(clock, notLoad, notOE, in, out);
+module gp_register(clock, notLoad, notOE, in, out);
 	input clock, notOE, notLoad;
 	input [15:0] in;
 	output [15:0] out;

@@ -107,12 +107,12 @@ def compare_computers(c1, c2, print_trace=False, continue_after_differences=Fals
 
 #NOTE: ramimage should be an absolute path
 def start_simulation(ramimage, port, stdout, stderr):
-	proc = subprocess.Popen([scriptdir + '/../../sim/run_sim.sh', '--paused', '-r', ramimage, '-p', str(port)], shell=False, stdout=stdout, stderr=stderr)
+	proc = subprocess.Popen([scriptdir + '/../../sim/run_sim.sh', '--paused', '-r', ramimage, '--port', str(port)], shell=False, stdout=stdout, stderr=stderr)
 	return proc
 
 #NOTE: ramimage should be an absolute path
 def start_vm(ramimage, port, stdout, stderr):
-	proc = subprocess.Popen([scriptdir + '/../../vm/esc64vm', '--paused', '-r', ramimage, '-p', str(port)], stdout=stdout, stderr=stderr)
+	proc = subprocess.Popen([scriptdir + '/../../vm/esc64vm', '--paused', '-r', ramimage, '--port', str(port)], stdout=stdout, stderr=stderr)
 	return proc
 
 parser = argparse.ArgumentParser(description='starts and compares the simulation with the vm')

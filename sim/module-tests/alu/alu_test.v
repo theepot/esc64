@@ -11,12 +11,12 @@ module alu_test();
 	reg		[15:0]  b;
 	wire	[15:0]  y;
 	reg		[4:0]   f;
-	reg		csel, ucin, srcin, notALUOE, notShiftOE;
+	reg		csel, ucin, srcin, notALUOE, notExtraOE;
 	wire	cout, zout;
 	
 	task alu_print_state;
 	begin
-		$display("ERROR: alu state: a:%X b:%X y:%X f:%X csel:%X ucin:%X srcin:%X notALUOE:%X notShiftOE:%X cout:%X zout:%X\n", a, b, y, f, csel, ucin, srcin, notALUOE, notShiftOE, cout, zout);
+		$display("ERROR: alu state: a:%X b:%X y:%X f:%X csel:%X ucin:%X srcin:%X notALUOE:%X notExtraOE:%X cout:%X zout:%X\n", a, b, y, f, csel, ucin, srcin, notALUOE, notExtraOE, cout, zout);
 	end
 	endtask
 
@@ -34,10 +34,10 @@ module alu_test();
 		else begin
 			cin = srcin;
 		end
-		if(notALUOE && notShiftOE) begin
+		if(notALUOE && notExtraOE) begin
 			expected_y = 16'bzzzzzzzzzzzzzzzz;
 		end
-		else if(~notShiftOE && notALUOE) begin
+		else if(~notExtraOE && notALUOE) begin
 			/*if(f[0]) begin
 				expected_cout = a >> 15;
 				expected_y = a << 1;
@@ -58,7 +58,7 @@ module alu_test();
 				default:$display("Warning in ALU test. Illegal shift instruction");
 			endcase
 		end
-		else if(~notALUOE && notShiftOE) begin
+		else if(~notALUOE && notExtraOE) begin
 			case(f)
 				`ALU_F_A: begin
 					expected_y = a + cin;
@@ -111,12 +111,12 @@ module alu_test();
 			alu_print_state();
 		end
 		
-		if((!notALUOE ^ !notShiftOE) && expected_cout !== 1'bx && expected_cout !== cout) begin
+		if((!notALUOE ^ !notExtraOE) && expected_cout !== 1'bx && expected_cout !== cout) begin
 			$display("ERROR: cout(carry out) is %X. Expected %X", cout, expected_cout);
 			alu_print_state();
 		end
 		
-		if((!notALUOE ^ !notShiftOE) && expected_zout !== zout) begin
+		if((!notALUOE ^ !notExtraOE) && expected_zout !== zout) begin
 			$display("ERROR: zout(zero out) is %X. Expected %X", zout, expected_zout);
 			alu_print_state();
 		end
@@ -132,7 +132,7 @@ module alu_test();
 		a = 16'HDEAD;
 		b = 16'HBEEF;
 		notALUOE = 0;
-		notShiftOE = 1;
+		notExtraOE = 1;
 		csel = `ALU_CSEL_SRCIN;
 		ucin = 0;
 		srcin = 0;
@@ -145,7 +145,7 @@ module alu_test();
 		# `TEST_DELAY a = 16'H0002;
 		b = 16'HBEEF;
 		notALUOE = 0;
-		notShiftOE = 1;
+		notExtraOE = 1;
 		csel = `ALU_CSEL_SRCIN;
 		ucin = 0;
 		srcin = 1;
@@ -158,7 +158,7 @@ module alu_test();
 		# `TEST_DELAY a = 16'HFFFF;
 		b = 16'HBEEF;
 		notALUOE = 0;
-		notShiftOE = 1;
+		notExtraOE = 1;
 		csel = `ALU_CSEL_SRCIN;
 		ucin = 0;
 		srcin = 1;
@@ -171,7 +171,7 @@ module alu_test();
 		# `TEST_DELAY a = 16'HDEAD;
 		b = 16'HBEEF;
 		notALUOE = 0;
-		notShiftOE = 1;
+		notExtraOE = 1;
 		csel = `ALU_CSEL_SRCIN;
 		ucin = 0;
 		srcin = 0;
@@ -184,7 +184,7 @@ module alu_test();
 		# `TEST_DELAY a = 16'H0000;
 		b = 16'HBEEF;
 		notALUOE = 0;
-		notShiftOE = 1;
+		notExtraOE = 1;
 		csel = `ALU_CSEL_SRCIN;
 		ucin = 0;
 		srcin = 0;
@@ -197,7 +197,7 @@ module alu_test();
 		# `TEST_DELAY a = 16'H0002;
 		b = 16'HBEEF;
 		notALUOE = 0;
-		notShiftOE = 1;
+		notExtraOE = 1;
 		csel = `ALU_CSEL_SRCIN;
 		ucin = 0;
 		srcin = 0;
@@ -210,7 +210,7 @@ module alu_test();
 		# `TEST_DELAY a = 16'bxxxxxxxxxxxxxxxx;
 		b = 16'bxxxxxxxxxxxxxxxx;
 		notALUOE = 0;
-		notShiftOE = 1;
+		notExtraOE = 1;
 		csel = `ALU_CSEL_SRCIN;
 		ucin = 0;
 		srcin = 1;
@@ -223,7 +223,7 @@ module alu_test();
 		# `TEST_DELAY a = 16'HDEAD;
 		b = 16'HBEEF;
 		notALUOE = 0;
-		notShiftOE = 1;
+		notExtraOE = 1;
 		csel = `ALU_CSEL_SRCIN;
 		ucin = 0;
 		srcin = 0;
@@ -236,7 +236,7 @@ module alu_test();
 		# `TEST_DELAY a = 16'HA4D7;
 		b = 16'H07F8;
 		notALUOE = 0;
-		notShiftOE = 1;
+		notExtraOE = 1;
 		csel = `ALU_CSEL_SRCIN;
 		ucin = 0;
 		srcin = 0;
@@ -249,7 +249,7 @@ module alu_test();
 		# `TEST_DELAY a = 16'HFFFF;
 		b = 16'H0001;
 		notALUOE = 0;
-		notShiftOE = 1;
+		notExtraOE = 1;
 		csel = `ALU_CSEL_SRCIN;
 		ucin = 0;
 		srcin = 0;
@@ -262,7 +262,7 @@ module alu_test();
 		# `TEST_DELAY a = 16'H0010;
 		b = 16'H0001;
 		notALUOE = 0;
-		notShiftOE = 1;
+		notExtraOE = 1;
 		csel = `ALU_CSEL_SRCIN;
 		ucin = 0;
 		srcin = 1;
@@ -275,7 +275,7 @@ module alu_test();
 		# `TEST_DELAY a = 16'HF000;
 		b = 16'H0001;
 		notALUOE = 0;
-		notShiftOE = 1;
+		notExtraOE = 1;
 		csel = `ALU_CSEL_SRCIN;
 		ucin = 0;
 		srcin = 1;
@@ -288,7 +288,7 @@ module alu_test();
 		# `TEST_DELAY a = 16'H0001;
 		b = 16'H0010;
 		notALUOE = 0;
-		notShiftOE = 1;
+		notExtraOE = 1;
 		csel = `ALU_CSEL_SRCIN;
 		ucin = 0;
 		srcin = 1;
@@ -301,7 +301,7 @@ module alu_test();
 		# `TEST_DELAY a = 16'HF000;
 		b = 16'H0010;
 		notALUOE = 0;
-		notShiftOE = 1;
+		notExtraOE = 1;
 		csel = `ALU_CSEL_SRCIN;
 		ucin = 0;
 		srcin = 0;
@@ -314,7 +314,7 @@ module alu_test();
 		# `TEST_DELAY a = 16'HF031;
 		b = 16'H0010;
 		notALUOE = 0;
-		notShiftOE = 1;
+		notExtraOE = 1;
 		csel = `ALU_CSEL_SRCIN;
 		ucin = 0;
 		srcin = 0;
@@ -327,7 +327,7 @@ module alu_test();
 		# `TEST_DELAY a = 16'HF031;
 		b = 16'H0010;
 		notALUOE = 0;
-		notShiftOE = 1;
+		notExtraOE = 1;
 		csel = `ALU_CSEL_SRCIN;
 		ucin = 0;
 		srcin = 0;
@@ -340,7 +340,7 @@ module alu_test();
 		# `TEST_DELAY a = 16'HF031;
 		b = 16'H0010;
 		notALUOE = 0;
-		notShiftOE = 1;
+		notExtraOE = 1;
 		csel = `ALU_CSEL_SRCIN;
 		ucin = 0;
 		srcin = 0;
@@ -353,7 +353,7 @@ module alu_test();
 		# `TEST_DELAY a = 16'HF031;
 		b = 16'H0010;
 		notALUOE = 0;
-		notShiftOE = 1;
+		notExtraOE = 1;
 		csel = `ALU_CSEL_SRCIN;
 		ucin = 0;
 		srcin = 0;
@@ -366,7 +366,7 @@ module alu_test();
 		# `TEST_DELAY a = 16'H0031;
 		b = 16'H0010;
 		notALUOE = 1;
-		notShiftOE = 0;
+		notExtraOE = 0;
 		csel = `ALU_CSEL_SRCIN;
 		ucin = 0;
 		srcin = 0;
@@ -379,7 +379,7 @@ module alu_test();
 		# `TEST_DELAY a = 16'H8FA1;
 		b = 16'H0010;
 		notALUOE = 1;
-		notShiftOE = 0;
+		notExtraOE = 0;
 		csel = `ALU_CSEL_SRCIN;
 		ucin = 0;
 		srcin = 0;
@@ -392,7 +392,7 @@ module alu_test();
 		# `TEST_DELAY a = 16'H8000;
 		b = 16'H0010;
 		notALUOE = 1;
-		notShiftOE = 0;
+		notExtraOE = 0;
 		csel = `ALU_CSEL_SRCIN;
 		ucin = 0;
 		srcin = 0;
@@ -405,7 +405,7 @@ module alu_test();
 		# `TEST_DELAY a = 16'H0000;
 		b = 16'H0010;
 		notALUOE = 1;
-		notShiftOE = 0;
+		notExtraOE = 0;
 		csel = `ALU_CSEL_SRCIN;
 		ucin = 0;
 		srcin = 0;
@@ -418,7 +418,7 @@ module alu_test();
 		# `TEST_DELAY a = 16'HF031;
 		b = 16'H0010;
 		notALUOE = 1;
-		notShiftOE = 0;
+		notExtraOE = 0;
 		csel = `ALU_CSEL_SRCIN;
 		ucin = 0;
 		srcin = 0;
@@ -431,7 +431,7 @@ module alu_test();
 		# `TEST_DELAY a = 16'HF031;
 		b = 16'H0010;
 		notALUOE = 1;
-		notShiftOE = 1;
+		notExtraOE = 1;
 		csel = `ALU_CSEL_SRCIN;
 		ucin = 0;
 		srcin = 0;
@@ -444,7 +444,7 @@ module alu_test();
 		# `TEST_DELAY a = 16'HF031;
 		b = 16'H0010;
 		notALUOE = 0;
-		notShiftOE = 1;
+		notExtraOE = 1;
 		csel = `ALU_CSEL_UCIN;
 		ucin = 1;
 		srcin = 0;
@@ -456,6 +456,6 @@ module alu_test();
 		#20 $finish;
 	end
 		
-		alu koenraad_de_rekenpiraat(a, b, y, f, csel, ucin, srcin, cout, zout, notALUOE, notShiftOE);
+		alu koenraad_de_rekenpiraat(a, b, y, f, csel, ucin, srcin, cout, zout, notALUOE, notExtraOE);
 
 endmodule

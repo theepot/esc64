@@ -12,9 +12,9 @@
 #define ALU_F_SHIFT_LEFT	0x05
 #define ALU_F_SHIFT_RIGHT	0x02
 #define ALU_CSEL_UCIN		0x00
-#define ALU_CSEL_FCIN		0x01
+#define ALU_CSEL_srcin		0x01
 
-static uint16_t a, b, f, csel, ucin, fcin, notALUOE, notShiftOE;
+static uint16_t a, b, f, csel, ucin, srcin, notALUOE, notExtraOE;
 static uint16_t y, zout;
 
 static InputPin* cout;
@@ -34,9 +34,9 @@ static void calc_expected(void);
 	OUT(func, f);\
 	OUT(c_sel, csel);\
 	OUT(u_cin, ucin);\
-	OUT(f_cin, fcin);\
+	OUT(f_cin, srcin);\
 	OUT(not_ALUOE, notALUOE);\
-	OUT(not_shiftOE, notShiftOE);\
+	OUT(not_extraOE, notExtraOE);\
 } while(0)
 
 void test(void)
@@ -48,7 +48,7 @@ void test(void)
 	DECL_OUTPUT(u_cin, 38, 1);
 	DECL_OUTPUT(f_cin, 39, 1);
 	DECL_OUTPUT(not_ALUOE, 40, 1);
-	DECL_OUTPUT(not_shiftOE, 41, 1);
+	DECL_OUTPUT(not_extraOE, 41, 1);
 	
 	DECL_INPUT(resultY, 0, 16);
 	DECL_INPUT(c_out, 16, 1);
@@ -119,21 +119,21 @@ void test(void)
 		f = testValues[i].f;
 		if(testValues[i].shift)
 		{
-			notShiftOE = 0;
+			notExtraOE = 0;
 			notALUOE = 1;
 		}
 		else
 		{
-			notShiftOE = 1;
+			notExtraOE = 1;
 			notALUOE = 0;
 		}
 		
 		uint8_t x;
-		for(x = 0; x <= 7; ++x) //for each combination of csel, ucin, fcin
+		for(x = 0; x <= 7; ++x) //for each combination of csel, ucin, srcin
 		{
 			csel = x & (1 << 0);
 			ucin = (x & (1 << 1)) >> 1;
-			fcin = (x & (1 << 2)) >> 2;
+			srcin = (x & (1 << 2)) >> 2;
 			
 			SET_EXPECTED;
 			SET_OUTPUTS;
@@ -156,8 +156,8 @@ static void calc_expected(void)
 		case ALU_CSEL_UCIN:
 			cin = ucin;
 			break;
-		case ALU_CSEL_FCIN:
-			cin = fcin;
+		case ALU_CSEL_srcin:
+			cin = srcin;
 			break;
 		default:
 			fprintf(stderr, "csel=%u\n", csel);
@@ -165,7 +165,7 @@ static void calc_expected(void)
 			break;
 	}
 
-	if(!notALUOE && notShiftOE) // ALU OE
+	if(!notALUOE && notExtraOE) // ALU OE
 	{
 		switch(f)
 		{
@@ -202,7 +202,7 @@ static void calc_expected(void)
 				break;
 		}
 	}
-	else if(!notShiftOE && notALUOE) // shift OE
+	else if(!notExtraOE && notALUOE) // shift OE
 	{
 		if(f == ALU_F_SHIFT_LEFT)
 		{
@@ -217,7 +217,7 @@ static void calc_expected(void)
 	}
 	else
 	{
-		fprintf(stderr, "notALUOE=%u; notShiftOE=%u\n", notALUOE, notShiftOE);
+		fprintf(stderr, "notALUOE=%u; notExtraOE=%u\n", notALUOE, notExtraOE);
 		ERROR_ERRLINE("Invalid combination of OE");
 	}
 	
