@@ -138,6 +138,9 @@ void ESC64::execute(Instr i) {
 		z_flag = (regs[i.op0] & 0xFFFF) == 0;
 		c_flag_is_defined = false;
 		break;
+	case op_sxt:
+		regs[i.op0] = (regs[i.op1] & 0xFF) | ((regs[i.op1] & 0x80) ? 0xFF00 : 0);
+		break;
 	case op_shl:
 		regs[i.op0] = regs[i.op1] << 1;
 		z_flag = (regs[i.op0] & 0xFFFF) == 0;

@@ -470,6 +470,11 @@ void not(const int dst, const int a)
 	add_instruction(op_not, dst, a, 0, "not");
 }
 
+void sxt(const int dst, const int a)
+{
+	add_instruction(op_sxt, dst, a, 0, "sign extend");
+}
+
 void inc(const int dst, const int a)
 {
 	add_instruction(op_inc, dst, a, 0, "inc");
@@ -539,6 +544,11 @@ void out(const int dst, const int src)
 void cmp(const int a, const int b)
 {
 	add_instruction(op_cmp, 0, a, b, "compare");
+}
+
+void scmp(const int a, const int b)
+{
+	add_instruction(op_scmp, 0, a, b, "signed compare");
 }
 
 void halt()

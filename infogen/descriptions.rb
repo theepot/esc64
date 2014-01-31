@@ -101,6 +101,8 @@ module Descriptions
 		NotWide.new("cmp ra:reg, rb:reg", 0x4E, { "ra" => 1, "rb" => 2 }),
 		NotWide.new("scmp ra:reg, rb:reg", 0x4F, { "ra" => 1, "rb" => 2 }),
 		
+		NotWide.new("sxt rd:reg, rs:reg", 0x50, { "rd" => 0, "rs" => 1 }),
+		
 		NotWide.new("ld rd:reg, rs:reg", 0x51, { "rd" => 0, "rs" => 1 }),
 		NotWide.new("ldb rd:reg, rs:reg", 0x52, { "rd" => 0, "rs" => 1 }),
 		

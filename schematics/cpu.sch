@@ -1864,7 +1864,7 @@ netname=aluCSel
 N 28300 38600 28300 38300 4
 {
 T 28300 38200 5 10 1 1 270 0 1
-netname=aluNotShiftOE
+netname=aluNotExtraOE
 }
 N 28000 38600 28000 38300 4
 {
@@ -1929,7 +1929,7 @@ netname=aluCSel
 N 13300 39200 13000 39200 4
 {
 T 12900 39200 5 10 1 1 0 6 1
-netname=aluNotShiftOE
+netname=aluNotExtraOE
 }
 N 13300 42500 13000 42500 4
 {
@@ -2129,7 +2129,7 @@ N 12300 35800 12600 35800 4
 T 11800 35800 5 10 1 1 0 0 1
 netname=reset
 }
-C 22100 41200 1 270 0 mSeq.sym
+C 22100 41200 1 270 0 control_unit.sym
 {
 T 28700 41000 5 10 1 1 0 0 1
 device=microsequencer

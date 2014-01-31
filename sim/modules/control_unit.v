@@ -1,5 +1,5 @@
-`ifndef _MSEQ_S_INCLUDED_
-`define _MSEQ_S_INCLUDED_
+`ifndef _CONTROLUNIT_INCLUDED_
+`define _CONTROLUNIT_INCLUDED_
 
 `include "octRegister_74273.v"
 `include "Quad2To1Mux_74157.v"
@@ -7,7 +7,7 @@
 
 `define ROM_CHIPS 7
 
-module mSeq(clock, notReset, opcode, carry, zero, cpu_inspect, control);
+module control_unit(clock, notReset, opcode, carry, zero, cpu_inspect, control);
 	parameter ROM_FILENAME="urom.lst";
 	
 	input clock, notReset, carry, zero, cpu_inspect;

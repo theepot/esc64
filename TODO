@@ -1,6 +1,5 @@
 List of TODO things:
 	-rename control lines from the microsequencer. Some of them have really ugly names
-	-rename ALU's signal fcin to s(tatus)r(register)cin. worked on it, but not sure if it is done.
 	
 	-In schematics: All active low in/outputs should either have a not in it's name, or a graphical bar above it
 	
@@ -15,3 +14,5 @@ List of TODO things:
 	-fix the mixing of printf and <<
 	
 	verilog sram module. there is almost no difference between abstract and discrete version. resolve this weirdness
+	
+	-adjust the ALU sim test to the new ALU

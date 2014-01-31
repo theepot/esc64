@@ -1,7 +1,7 @@
 `ifndef _REGFILE_INCLUDED_
 `define _REGFILE_INCLUDED_
 
-`include "GPRegister.v"
+`include "gp_register.v"
 `include "pc.v"
 
 module regFile(clock, aBus, yBus, notOE, notLoad, pcNotReset, pcInc);
@@ -11,7 +11,7 @@ module regFile(clock, aBus, yBus, notOE, notLoad, pcNotReset, pcInc);
 	
 	inout [15:0] yBus;
 	
-	GPRegister r[6:0] (clock, notLoad[6:0], notOE[6:0], yBus, aBus);
+	gp_register r[6:0] (clock, notLoad[6:0], notOE[6:0], yBus, aBus);
 	program_counter pc(clock, pcNotReset, notLoad[7], notOE[7], pcInc, yBus, aBus);
 endmodule
 

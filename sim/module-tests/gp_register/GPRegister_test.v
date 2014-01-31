@@ -1,12 +1,12 @@
 `include "globals.v"
-`include "GPRegister.v"
+`include "gp_register.v"
 
 //WAVEDUMPFILE macro should be defined
 
 `define TEST_DELAY (500)
 `define TEST_CLOCK (800)
 
-module GPRegister_test();
+module gp_register_test();
 	wire [15:0] data_bus;
 	reg [15:0] data;
 	reg clock, reg0notLoad, reg0notOE, reg1notLoad, reg1notOE;
@@ -85,7 +85,7 @@ module GPRegister_test();
 		# `TEST_CLOCK clock = ~clock;
 	end
 
-	GPRegister register0(clock, reg0notLoad, reg0notOE, data_bus, data_bus);
-	GPRegister register1(clock, reg1notLoad, reg1notOE, data_bus, data_bus);
+	gp_register register0(clock, reg0notLoad, reg0notOE, data_bus, data_bus);
+	gp_register register1(clock, reg1notLoad, reg1notOE, data_bus, data_bus);
 
 endmodule

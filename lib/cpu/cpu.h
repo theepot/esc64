@@ -27,8 +27,9 @@ extern "C" {
 #define ALU_F_A_PLUS_ONE	0x00//carry in: 1
 #define ALU_F_A_MINUS_ONE	0x1E//carry in: 0
 #define ALU_F_ZERO			0x07//carry in: x
-#define ALU_F_SHIFT_LEFT	0x05//carry in: x
-#define ALU_F_SHIFT_RIGHT	0x02//carry in: x
+#define ALU_F_SING_EXT		0x05//carry in: x, extra
+#define ALU_F_SHIFT_LEFT	0x18//carry in: 0
+#define ALU_F_SHIFT_RIGHT	0x02//carry in: x, extra
 
 #define ALU_CSEL_UCIN			0
 #define ALU_CSEL_SRCIN			1
