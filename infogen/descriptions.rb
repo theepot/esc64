@@ -99,6 +99,7 @@ module Descriptions
 		def_jmps("jc",		0x3C,	0x4B),
 		
 		NotWide.new("cmp ra:reg, rb:reg", 0x4E, { "ra" => 1, "rb" => 2 }),
+		NotWide.new("scmp ra:reg, rb:reg", 0x4F, { "ra" => 1, "rb" => 2 }),
 		
 		NotWide.new("ld rd:reg, rs:reg", 0x51, { "rd" => 0, "rs" => 1 }),
 		NotWide.new("ldb rd:reg, rs:reg", 0x52, { "rd" => 0, "rs" => 1 }),

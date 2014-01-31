@@ -255,6 +255,14 @@ void ESC64::execute(Instr i) {
 		c_flag_is_defined = true;
 		}
 		break;
+	case op_scmp: {
+		uint32_t x = regs[i.op1] - regs[i.op2];
+		z_flag = (x & 0xFFFF) == 0;
+		c_flag = x <= 0xFFFF;
+		c_flag = ((regs[i.op1] >> 15) & 1) ^ ((regs[i.op2] >> 15) & 1) ^ (c_flag ? 1 : 0);
+		c_flag_is_defined = true;
+		}
+		break;
 	case op_ld: {
 		int read_data;
 		if(!safe_read_word(regs[i.op1], false, &read_data)) {

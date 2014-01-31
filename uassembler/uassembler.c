@@ -11,22 +11,22 @@
 
 void print_state(uassembler* uasm, FILE* f)
 {
-	fprintf(f, "uassembler state:\n\tcurrent address: %X\n\tprevious address: %X\n\tfree address: %X\n\tat op entry: %s\n",
-			uasm->addr_current, uasm->addr_previous, uasm->addr_free, uasm->current_at_op_entry ? "yes" : "no");
-	if(uasm->current_at_op_entry)
-	{
-		fprintf(f, "\top entry carry/zero flags: %X", uasm->op_entry_zero_carry_flags);
+	fprintf(f, "uassembler state:\n\tfree address: %X\n\tat addresses:\n",
+			uasm->addr_free);
+	int n;
+	for(n = 0; n < uasm->current_addresses.len; ++n) {
+		fprintf(f, "\t%d\n", uasm->current_addresses.addresses[n]);
 	}
 }
 
 void check_current_addr(uassembler* uasm)
 {
-	if(uasm->addr_current == -1)
-	{
-		fprintf(stderr, "error: current address is not defined");
-		print_state(uasm, stderr);
-		exit(1);
-	}
+//	if(uasm->addr_current == -1)
+//	{
+//		fprintf(stderr, "error: current address is not defined");
+//		print_state(uasm, stderr);
+//		exit(1);
+//	}
 }
 
 void assert_signal(uassembler* uasm, const char* field_name)
@@ -45,40 +45,43 @@ void assert_signal(uassembler* uasm, const char* field_name)
 
 }
 
+addresses4_t get_jmptable_addresses(uassembler* uasm, int opcode, int flags, int inspect_cpu)
+{
+	addresses4_t result;
+	result.len = 0;
+	int addr_addition = inspect_cpu ? (1 << (uasm->opcode_width + 2)) : 0;
+	if(flags & NOT_CARRY_NOT_ZERO)
+	{
+		result.addresses[result.len++] = (opcode << 2) + addr_addition;
+	}
+
+	if(flags & NOT_CARRY_ZERO)
+	{
+		result.addresses[result.len++] = ((opcode << 2) | 1) + addr_addition;
+	}
+
+	if(flags & CARRY_NOT_ZERO)
+	{
+		result.addresses[result.len++] = ((opcode << 2) | 2) + addr_addition;
+	}
+
+	if(flags & CARRY_ZERO)
+	{
+		result.addresses[result.len++] = ((opcode << 2) | 3) + addr_addition;
+	}
+
+	return result;
+}
+
 void set_field(uassembler* uasm, const char* field_name, int value)
 {
 	check_current_addr(uasm);
 	int field_index = bin_table_collumn_by_name(&(uasm->table), field_name);
-	if(uasm->current_at_op_entry)
-	{
-		if(uasm->op_entry_zero_carry_flags & NOT_CARRY_NOT_ZERO)
-		{
-			bin_table_set_cell_value(&(uasm->table), field_index,
-						uasm->addr_current, value);
-		}
-
-		if(uasm->op_entry_zero_carry_flags & NOT_CARRY_ZERO)
-		{
-			bin_table_set_cell_value(&(uasm->table), field_index,
-						uasm->addr_current | 1, value);
-		}
-
-		if(uasm->op_entry_zero_carry_flags & CARRY_NOT_ZERO)
-		{
-			bin_table_set_cell_value(&(uasm->table), field_index,
-						uasm->addr_current | 2, value);
-		}
-
-		if(uasm->op_entry_zero_carry_flags & CARRY_ZERO)
-		{
-			bin_table_set_cell_value(&(uasm->table), field_index,
-						uasm->addr_current | 3, value);
-		}
-	}
-	else
+	int n = 0;
+	for(n = 0; n < uasm->current_addresses.len; ++n)
 	{
 		bin_table_set_cell_value(&(uasm->table), field_index,
-					uasm->addr_current, value);
+				uasm->current_addresses.addresses[n], value);
 	}
 }
 
@@ -100,57 +103,31 @@ void set_default(uassembler* uasm)
 
 }
 
+void set_next_hardcoded(uassembler* uasm, int addr)
+{
+	set_field(uasm, uasm->nextsel_collumn_name, NEXT_SEL_UCODE);
+	set_field(uasm, uasm->next_addr_collumn_name, addr);
+}
+
 void set_next(uassembler* uasm, next_sel nxt)
 {
 	check_current_addr(uasm);
 	switch(nxt)
 	{
 		case next_sel_fetch:
-			set_field(uasm, uasm->nextsel_collumn_name, NEXT_SEL_UCODE);
-			set_field(uasm, uasm->next_addr_collumn_name, uasm->addr_fetch);
+			set_next_hardcoded(uasm, uasm->addr_fetch);
 		break;
 		case next_sel_next_free:
-			set_field(uasm, uasm->nextsel_collumn_name, NEXT_SEL_UCODE);
-			set_field(uasm, uasm->next_addr_collumn_name, uasm->addr_free);
+			set_next_hardcoded(uasm, uasm->addr_free);
 		break;
 		case next_sel_op_entry:
 			set_field(uasm, uasm->nextsel_collumn_name, NEXT_SEL_OPCODE);
 		break;
-		case next_sel_current:
-			set_field(uasm, uasm->nextsel_collumn_name, NEXT_SEL_UCODE);
-			{
-				int field_index = bin_table_collumn_by_name(&(uasm->table), uasm->next_addr_collumn_name);
-				if(uasm->current_at_op_entry)
-				{
-					if(uasm->op_entry_zero_carry_flags & NOT_CARRY_NOT_ZERO)
-					{
-						bin_table_set_cell_value(&(uasm->table), field_index,
-									uasm->addr_current, uasm->addr_current);
-					}
-
-					if(uasm->op_entry_zero_carry_flags & NOT_CARRY_ZERO)
-					{
-						bin_table_set_cell_value(&(uasm->table), field_index,
-									uasm->addr_current | 1, uasm->addr_current | 1);
-					}
-
-					if(uasm->op_entry_zero_carry_flags & CARRY_NOT_ZERO)
-					{
-						bin_table_set_cell_value(&(uasm->table), field_index,
-									uasm->addr_current | 2, uasm->addr_current | 2);
-					}
-
-					if(uasm->op_entry_zero_carry_flags & CARRY_ZERO)
-					{
-						bin_table_set_cell_value(&(uasm->table), field_index,
-									uasm->addr_current | 3, uasm->addr_current | 3);
-					}
-				}
-				else
-				{
-					set_field(uasm, uasm->next_addr_collumn_name, uasm->addr_current);
-				}
+		case next_sel_current: {
+			if(uasm->current_addresses.len > 0) {
+				set_next_hardcoded(uasm, uasm->current_addresses.addresses[0]);
 			}
+		}
 		break;
 		default:
 			fprintf(stderr, "error: unkown next_sel\n");
@@ -162,8 +139,8 @@ void set_next(uassembler* uasm, next_sel nxt)
 
 void goto_address(uassembler* uasm, int address)
 {
-	uasm->addr_previous = uasm->addr_current;
-	uasm->addr_current = address;
+	uasm->current_addresses.len = 1;
+	uasm->current_addresses.addresses[0] = address;
 
 	set_default(uasm);
 }
@@ -180,41 +157,41 @@ void goto_fetch(uassembler* uasm)
 	goto_address(uasm, uasm->addr_fetch);
 }
 
-void goto_next_free(uassembler* uasm)
+int goto_next_free(uassembler* uasm)
 {
 	uasm->current_at_op_entry = 0;
 	goto_address(uasm, uasm->addr_free);
+	int result = uasm->addr_free;
 	uasm->addr_free++;
+	return result;
 }
 
 void goto_op_entry(uassembler* uasm, int opcode, int carry_zero_flags)
 {
-	uasm->addr_previous = uasm->addr_current;
-
 	if(opcode >= (1 << uasm->opcode_width))
 	{
 		fprintf(stderr, "error: opcode %d does not fit in opcode field\n", opcode);
 		print_state(uasm, stderr);
 		exit(1);
 	}
-	uasm->op_entry_zero_carry_flags = carry_zero_flags;
-	uasm->current_at_op_entry = 1;
+	uasm->current_addresses = get_jmptable_addresses(uasm, opcode, carry_zero_flags, 0);
 
-	goto_address(uasm, opcode << 2);
+	set_default(uasm);
 }
 
-//TODO: is this used?
-void copy_fields_from_previous(uassembler* uasm)
+void goto_inspect_cpu_entry(uassembler* uasm, int opcode, int carry_zero_flags)
 {
-	check_current_addr(uasm);
-	if(uasm->addr_previous == -1)
+	if(opcode >= (1 << uasm->opcode_width))
 	{
-		fprintf(stderr, "error: previous address is not defined");
+		fprintf(stderr, "error: opcode %d does not fit in opcode field\n", opcode);
 		print_state(uasm, stderr);
 		exit(1);
 	}
-	bin_table_copy_row(&uasm->table, uasm->addr_current, uasm->addr_previous);
+	uasm->current_addresses = get_jmptable_addresses(uasm, opcode, carry_zero_flags, 1);
+
+	set_default(uasm);
 }
+
 
 void uassembler_init(uassembler* uasm, bin_table_collumn_description* field_descriptions, int number_of_fields,
 		int rom_addr_with, char* next_addr_collumn_name, char* nextsel_addr_collumn_name,
@@ -224,16 +201,15 @@ void uassembler_init(uassembler* uasm, bin_table_collumn_description* field_desc
 	uasm->next_addr_collumn_name = next_addr_collumn_name;
 	uasm->nextsel_collumn_name = nextsel_addr_collumn_name;
 	uasm->opcode_width = opcode_width;
-	if(rom_addr_with <= opcode_width + 2)
+	if(rom_addr_with <= opcode_width + 3)
 	{
 		fprintf(stderr, "error: uassembler initialized with a too small address width");
 		exit(1);
 	}
 	uasm->rom_addr_with = rom_addr_with;
 
-	uasm->addr_fetch = 1 << (opcode_width + 2);
-	uasm->addr_current = -1;
-	uasm->addr_previous = -1;
+	uasm->addr_fetch = 1 << (opcode_width + 3);
+	uasm->current_addresses.len = 0;
 	uasm->addr_reset = 0;
 	uasm->addr_free = uasm->addr_fetch + 1;
 	uasm->current_at_op_entry = 0;

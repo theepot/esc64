@@ -324,7 +324,7 @@ void ServiceImpl::parseOptions(int argc, char** argv)
 	desc.add_options()
 	    ("paused", "start the simulation paused");
 	desc.add_options()
-		("port", boost::program_options::value<int>()->default_value(9090), "the port number on wich the thrift client should listen");
+		("p", boost::program_options::value<int>()->default_value(9090), "the port number on wich the thrift client should listen");
 
 	boost::program_options::basic_command_line_parser<char> bcp = boost::program_options::basic_command_line_parser<char>(argc, argv);
 	bcp.options(desc);
@@ -335,7 +335,7 @@ void ServiceImpl::parseOptions(int argc, char** argv)
 	po::notify(vm);
 
 	prevSimState = simState = (vm.count("paused") ? PAUSED : RUNNING);
-	port = vm["port"].as<int>();
+	port = vm["p"].as<int>();
 }
 
 void ServiceImpl::setState(SimControlState state)

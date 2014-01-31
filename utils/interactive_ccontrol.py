@@ -48,7 +48,8 @@ def ia():
 	interactive_stepping()
 def ms():
 	c.client.microStep()
-
+def qt():
+	c.client.quit()
 
 
 
