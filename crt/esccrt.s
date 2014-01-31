@@ -78,6 +78,70 @@ __memcpy_abort:
 ;;end __memcpy
 
 
+;;;;; __shl16 ;;;;;
+;;	description:
+;;		shifts A left logicaly by B and stores the result in R
+;;
+;;	takes:
+;;		r0	A
+;;		r1	B
+;;
+;;	returns:
+;;		r0	R
+;;
+;;	clobbers:
+;;		nothing
+;;
+.global __shl16:
+	push	r1
+	push	r2	
+	
+	mov		r2, 0xF
+	and		r1, r1, r2
+	jz		__shl16_done
+__shl16_loop:
+	shl		r0, r0
+	dec		r1, r1
+	jnz		__shl16_loop
+__shl16_done:
+	pop		r2
+	pop		r1
+	ret
+;;end __shl16
+
+
+;;;;; __shr16 ;;;;;
+;;	description:
+;;		shifts A right logicaly by B and stores the result in R
+;;
+;;	takes:
+;;		r0	A
+;;		r1	B
+;;
+;;	returns:
+;;		r0	R
+;;
+;;	clobbers:
+;;		nothing
+;;
+.global __shr16:
+	push	r1
+	push	r2	
+	
+	mov		r2, 0xF
+	and		r1, r1, r2
+	jz		__shr16_done
+__shr16_loop:
+	shr		r0, r0
+	dec		r1, r1
+	jnz		__shr16_loop
+__shr16_done:
+	pop		r2
+	pop		r1
+	ret
+;;end __shr16
+
+
 ;;;;; __sext8to16 ;;;;;
 ;;	description:
 ;;		sign extends lower byte in r0 to a signed word

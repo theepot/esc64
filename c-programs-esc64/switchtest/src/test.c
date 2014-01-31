@@ -16,19 +16,19 @@ int main(int argc, char** argv)
 		switch(i)
 		{
 		case 2:
-			P(1, i);
+			P(2, i);
 			break;
 		case 3:
-			P(1, i);
+			P(3, i);
 			break;
 		case 5:
-			P(1, i);
+			P(5, i);
 			break;
 		case 6:
-			P(1, i);
+			P(6, i);
 			break;
 		default:
-			P(1, i);
+			P(0xCAFE, i);
 			break;
 		}
 	}

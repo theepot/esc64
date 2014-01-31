@@ -423,7 +423,9 @@ bool ESC64::safe_write_word(int addr, int data, bool select_dev) {
 void ESC64::validate_some_stuff(void) {
 	//program counter is alligned
 	if((regs[RGS_PC] & 1) != 0) {
-		assert(0);
+		state = UNDEFINED_EFFECT;
+		fprintf(stderr, "ESC64: ERROR: PC is unaligned\n");
+//		assert(0);
 	}
 
 	for(int i = 0; i < 8; ++i) {

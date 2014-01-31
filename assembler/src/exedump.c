@@ -9,7 +9,7 @@
 #include <esc64asm/decomp.h>
 
 static void PrintSection(ExeReader* exeReader);
-static void PrintData(const byte_t* data, int align2, size_t dataSize);
+static void PrintData(const byte_t* data, int align2, size_t dataSize, uword_t addr);
 static void PrintInstruction(uword_t instrWord);
 
 int main(int argc, char** argv)
@@ -44,7 +44,7 @@ static void PrintSection(ExeReader* exeReader)
 	byte_t data[size];
 	ExeReadData(exeReader, data);
 
-	PrintData(data, IsAligned(addr, 2), size);
+	PrintData(data, IsAligned(addr, 2), size, addr);
 
 //	size_t i;
 //	for(i = 0; i < size; ++i)
@@ -73,20 +73,20 @@ static void PrintInstruction(uword_t instrWord)
 	printf("\t%s\t%u, %u, %u", name, op0, op1, op2);
 }
 
-static void PrintData(const byte_t* data, int align2, size_t dataSize)
+static void PrintData(const byte_t* data, int align2, size_t dataSize, uword_t addr)
 {
 	size_t i = 0;
 
 	if(!align2)
 	{
-		printf("\t\t\t@0x0000:\t0x%02X\n", data[0]);
+		printf("\t\t\t@0x%04X:\t0x%02X\n", addr, data[0]);
 		i = 1;
 	}
 
 	while(i + 1 < dataSize)
 	{
 		uword_t word = letoh_word(*(uword_t*)(data + i));
-		printf("\t\t\t@0x%04X:\t0x%04X", i, word);
+		printf("\t\t\t@0x%04X:\t0x%04X", addr + i, word);
 		PrintInstruction(word);
 		putchar('\n');
 		i += 2;
@@ -94,7 +94,7 @@ static void PrintData(const byte_t* data, int align2, size_t dataSize)
 
 	while(i < dataSize)
 	{
-		printf("\t\t\t@0x%04X:\t0x%02X\n", dataSize - 1, data[i]);
+		printf("\t\t\t@0x%04X:\t0x%02X\n", addr + i, data[i]);
 		++i;
 	}
 }
