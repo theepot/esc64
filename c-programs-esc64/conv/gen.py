@@ -1,7 +1,6 @@
 #!/usr/bin/python2
 
 cglobals = open("cglobals.inl", "w")
-sglobals = open("sglobals.inc", "w")
 body = open("body.inl", "w")
 prints = open("printres.inl", "w")
 
@@ -34,21 +33,21 @@ def t(a, b, meta, val):
 	prints.write("printf(\"{0}=0x%04X\\n\", {1});\n".format(an, an))
 	prints.write("printf(\"{0}=0x%04X\\n\", {1});\n".format(bn, bn))
 
+n = 0
+
 for a in types:
 	for b in types:
-		t(a, b, "amax2b", a.max_)
-		t(a, b, "amin2b", a.min_)
-		t(a, b, "azero2b","0")
-		t(a, b, "aone2b", "1")
+		n += 1
+		t(a, b, "amax2b"+str(n), a.max_)
+		t(a, b, "amin2b"+str(n), a.min_)
+		t(a, b, "azero2b"+str(n),"0")
+		t(a, b, "aone2b"+str(n), "1")
 		if(a.signed):
-			t(a, b, "aMinusOne2b", "-1")
+			t(a, b, "aMinusOne2b"+str(n), "-1")
 		stmts.append("")
 
 for i in idents:
-	cglobals.write("GLOBAL {0} {1};\n".format(i[0].name, i[1]))
-	sglobals.write(".global {0}:\n.word 0\n".format(i[1]))
-
-print("")
+	cglobals.write("static {0} {1};\n".format(i[0].name, i[1]))
 
 for s in stmts:
 	body.write("{0}\n".format(s))

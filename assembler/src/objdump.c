@@ -5,6 +5,7 @@
 #include <esc64asm/objread.h>
 #include <esc64asm/opcodes.h>
 #include <esc64asm/align.h>
+#include <esc64asm/decomp.h>
 
 static void PrintHeader(const ObjHeader* header);
 static void PrintSection(int isAbs, const ObjSectionHeader* secHeader);
@@ -19,7 +20,6 @@ int main(int argc, char** argv)
 {
 	assert(argc == 2);
 
-	OpcodeTableInit();
 	ObjHeader header;
 	ObjectReaderInit(argv[1]);
 
@@ -200,7 +200,7 @@ static void PrintData(int align2, size_t dataSize)
 static void PrintInstruction(uword_t instrWord)
 {
 	uword_t opcode = (instrWord >> OPCODE_OFFSET) & OPCODE_MASK;
-	const char* name = GetOpcodeName(opcode);
+	const char* name = GetDecompInfo(opcode)->uName;
 
 	if(!name)
 	{
