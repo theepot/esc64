@@ -6,10 +6,9 @@
 #include <VirtualIO.hpp>
 #include <RAM.hpp>
 #include <string>
-#include <stdexcept>
 #include "VirtualIOExtension.hpp"
-#include <VirtualOStream.hpp>
-#include <iostream>
+#include <VirtualIOStream.hpp>
+
 
 extern "C"
 {
@@ -96,8 +95,8 @@ void VirtualIO_entry(void) {
 	}
 
 	viom->add_device(ram);
-	VirtualOStream* p = new VirtualOStream(0xAAAA >> 1, &(std::cout));
-	viom->add_device(p);
+	VirtualIOStream* vos = new VirtualIOStream(0xAAAA >> 1, fileno(stdin), fileno(stdout));
+	viom->add_device(vos);
 	viom->print_io_activity = false;
 	VirtualIOExtension::mainRAM = ram;
 

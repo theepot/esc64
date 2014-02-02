@@ -7,7 +7,7 @@ find_package(Memory REQUIRED PATHS ../Memory NO_DEFAULT_PATH)
 set(LIB_SOURCES
 	${SOURCE_DIR}/RAM.cpp
 	${SOURCE_DIR}/VirtualIO.cpp
-	${SOURCE_DIR}/VirtualOStream.cpp
+	${SOURCE_DIR}/VirtualIOStream.cpp
 	)
 
 include_directories(include)
