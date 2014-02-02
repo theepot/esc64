@@ -68,6 +68,10 @@ void VirtualIOManager::write(int addr, BitVector16 data, bool csh, bool csl, boo
 			}
 		}
 	}
+	
+	if(responding_device == -1) {
+		fprintf(stderr, "virtual-io: WARNING: no device listed to a write to address:%X select_dev:%d csh:%d csl:%d\n", addr, select_dev, csh ? 1 : 0, csl ? 1 : 0);
+	}
 
 }
 

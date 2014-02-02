@@ -73,14 +73,14 @@ void asm_prgm(void)
 	mov_literal(GP4, 1);\
 	mov_literal(GP1, '0');\
 	add(GP3, GP3, GP1);\
-	mov_literal(GP1, 0x8000);\
+	mov_literal(GP1, 0xAAAA);\
 	out(GP1, GP3);\
 	mov_literal_labeled(PC, l"_dontprintzero");\
 	lbl(l"_printzero");\
 	add(GP1, GP4, GP4);\
 	mov_literal_on_zero_labeled(PC, l"_dontprintzero");\
 	mov_literal(GP3, '0');\
-	mov_literal(GP1, 0x8000);\
+	mov_literal(GP1, 0xAAAA);\
 	out(GP1, GP3);\
 	lbl(l"_dontprintzero");\
 	} while(0)
@@ -94,7 +94,7 @@ void asm_prgm(void)
 	out(GP4, GP2);
 
 	restore_all();
-	mov(PC, LR);
+	pop(PC);
 	//-----------------
 
 	halt();

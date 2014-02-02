@@ -17,6 +17,7 @@ struct BitVector16 {
 	bool is_defined() const		{ return (b & 0xFFFF) == 0; }
 	
 	unsigned getValue() const		{ return a & 0xFFFF; }
+	void setValue(int n) 			{ a = n & 0xFFFF; b = 0; }
 	unsigned getHighByte() const	{ return (a >> 8) & 0xFF; }
 	unsigned getLowByte() const		{ return a & 0xFF; }
 	
