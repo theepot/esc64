@@ -84,24 +84,28 @@ __error:
 ;;	description
 ;;		wraps __memcpy so it can be called from C code
 ;;
-;;	implements C function
-;;		void __cmemcpy(void* dest, const void* src, unsigned n);
+;;	implements C function:
+;;		void* __cmemcpy(void* dest, const void* src, unsigned n);
 ;;
 .global __cmemcpy:
-	push	r0
 	push	r1
 	push	r2
 	push	r3
 
 	mov		r3, sp		;save sp
-	mov		r0, X
+	mov		r0, 8
 	add		sp, sp, r0	;sp = &n
-	pop		r2				;dirty trick to quickly load all arguments
-	pop		r1
-	pop		r0
+	pop		r0			;r0 = dest
+	pop		r1			;r1 = src
+	pop		r2			;r2 = n
 	mov		sp, r3		;restore sp
 	
-	jmp		__memcpy_cmemcpy_entry	;we can do a jump because __memcpy's return sequence is the same as ours would be
+	call	__memcpy
+	
+	pop		r3
+	pop		r2
+	pop		r1
+	ret					;return value already in place
 ;;end __cmemcpy
 
 
@@ -130,7 +134,7 @@ __error:
 	push	r1
 	push	r2
 	push	r3
-__memcpy_cmemcpy_entry:
+	
 	cmp		SRC, DST
 	jeq		__memcpy_abort
 	and		N, N, N
