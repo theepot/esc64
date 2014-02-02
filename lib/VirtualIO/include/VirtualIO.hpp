@@ -15,9 +15,22 @@ struct BitVector16 {
 	11 x
 	*/
 	bool is_defined() const		{ return (b & 0xFFFF) == 0; }
+	
 	unsigned getValue() const		{ return a & 0xFFFF; }
 	unsigned getHighByte() const	{ return (a >> 8) & 0xFF; }
 	unsigned getLowByte() const		{ return a & 0xFF; }
+	
+	void setValue(unsigned x)
+	{
+		a = x & 0xFFFF;
+		b = 0;
+	}
+	
+	void setUndefined()
+	{
+		a = 0;
+		b = ~(unsigned int)0;
+	}
 };
 
 class VirtualIO {
