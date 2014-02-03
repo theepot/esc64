@@ -12,12 +12,13 @@
 	push	r0
 	push	r0
 	call	main
+	and		r0, r0, r0
 	jnz		__main_returned_non_0
 	mov		r0, 4
 	add		sp, sp, r0
 	halt
 
-;;;;; error bits ;;;;;
+;;;;; error code ;;;;;
 #define ERROR_DIVIDE_BY_0		1
 #define ERROR_ASSERT_FAIL		2
 #define ERROR_MAIN_RET_NON_0	3
@@ -25,7 +26,7 @@
 __error_code:
 .word 0
 
-__main_exitcode:
+__error_param0:
 .word 0
 
 ;;;;; error traps ;;;;;
@@ -34,14 +35,18 @@ __divide_by_zero:
 	jmp		__error
 
 __main_returned_non_0:
-	mov		r1, __main_exitcode
+	mov		r1, __error_param0
 	st		r1, r0
 	mov		r0, ERROR_MAIN_RET_NON_0
 	jmp		__error
-	
-.global __assert_fail:		;global so it can be called by assert()
-	mov		r0, ERROR_ASSERT_FAIL
-	jmp		__error
+
+; jump here with r0=errorcode, r1=param0
+__exit_error_1:
+	mov		r2, __error_code
+	st		r2, r0
+	mov		r2, __error_param0
+	st		r2, r1
+	;falthru
 
 __error:
 	mov		r1, __error_code
@@ -63,21 +68,35 @@ __error:
 ;;;;; __exit ;;;;;
 ;;	description
 ;;		exits the program with specified exitcode
-;;		doesn't return
+;;		exitcode is stored at __error_param0
 ;;
 ;;	implements C function
 ;;		void __exit(int code);
 ;;
 .global __exit:
-	mov		r0, 8
+	mov		r0, 2
 	add		r0, sp, r0
-	ld		r0, r0			;r0 = exitcode
-	
-	mov		r1, __main_exitcode
-	st		r1, r0
-	
-	halt
+	ld		r1, r0			;r1 = code
+	mov		r0, ERROR_MAIN_RET_NON_0
+	jmp		__exit_error_1
 ;;end __exit
+
+
+;;;;; __assert_fail ;;;;;
+;;	description
+;;		exits the program with assertion failed error code
+;;		line number is stored at __error_param0
+;;
+;;	implements C function
+;;		void __assert_fail(unsigned line);
+;;
+.global __assert_fail:
+	mov		r0, 2
+	add		r0, sp, r0
+	ld		r1, r0			;r1 = line
+	mov		r0, ERROR_ASSERT_FAIL
+	jmp		__exit_error_1
+;;end __assert_fail
 
 
 ;;;; __cmemcpy ;;;;;
@@ -291,30 +310,30 @@ __sext8to16_return:
 	push	r3
 	push	r4
 
-	mov		r4, r0
+	mov		r4, r0					;save A in r4
 	xor		r2, r2, r2
 	mov		r3, r2
 	
 	scmp	r1, r3
-	jge		__sdiv16_bpos
-	not		r1, r1
+	jge		__sdiv16_bpos			;if B >= 0 then goto bpos
+	not		r1, r1					;else negate B
 	inc		r1, r1
-	inc		r2, r2
+	inc		r2, r2					;++n
 __sdiv16_bpos:
 	scmp	r0, r3
-	jge		__sdiv16_apos
-	not		r0, r0
+	jge		__sdiv16_apos			;if A >= 0 then goto apos
+	not		r0, r0					;else negate A
 	inc		r0, r0
-	inc		r2, r2
+	inc		r2, r2					;++n
 __sdiv16_apos:
 	call	__udiv16
-	scmp	r1, r3
-	jge		__sdiv16_skip_invert_rest
+	scmp	r4, r3
+	jge		__sdiv16_skip_invert_rest		;if original A >= 0 then dont invert rest
 	not		r1, r1
 	inc		r1, r1
 __sdiv16_skip_invert_rest:
 	shr		r2, r2
-	jnc		__sdiv16_skip_invert_result
+	jnc		__sdiv16_skip_invert_result		;if not n & 1 then dont invert result
 	not		r0, r0
 	inc		r0, r0
 __sdiv16_skip_invert_result:
@@ -372,7 +391,7 @@ __udiv16_skip_setbit:
 	or		QUOT, QUOT, MASK
 __udiv16_skip_sub:
 	shr		MASK, MASK
-	jnc		loop
+	jnc		__udiv16_loop
 	
 	mov		r0, QUOT
 	mov		r1, REST

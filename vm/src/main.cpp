@@ -260,7 +260,7 @@ int main(int argc, char **argv) {
 	if(vos == "-") {
 		vosfileno = fileno(stdout);
 	} else {
-		vosfileno = open(vos.c_str(), O_WRONLY | O_CREAT | O_SYNC | O_TRUNC, 0640);
+		vosfileno = open(vos.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0640);
 		if(vosfileno == -1) {
 			fprintf(stderr, "ERROR: could not open %s for writing: %s\n", vos.c_str(), strerror(errno));
 			return 1;
