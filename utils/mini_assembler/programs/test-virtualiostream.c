@@ -10,7 +10,6 @@ void asm_prgm(void)
 	lbl("check_again");
 	mov_literal(GP0, 0xAAAA + 2);
 	in(GP1, GP0);
-	and(GP1, GP1, GP6);
 	add(GP1, GP1, GP1);
 	mov_literal_on_zero_labeled(PC, "check_again");
 

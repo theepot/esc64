@@ -38,6 +38,18 @@ static void test_scmp(int a, int b)
 	scmp(GP0, GP1);
 }
 
+static int signify(int a)
+{
+	if(a > 0)
+	{
+		return a & 0xFFFF;
+	}
+	else
+	{
+		return (~(-a) + 1) & 0xFFFF;
+	}
+}
+
 void asm_prgm(void)
 {
 	test_sub(0x0003, 0x0001); //0x0002 carry
@@ -57,13 +69,14 @@ void asm_prgm(void)
 	test_scmp(0x1234, 0x5678); //
 	test_scmp(0x0000, 0x5678); //
 
-	//TODO: test negative numbers
-	/*test_scmp(0xFFFF, 0x0000); //
-	test_scmp(0x1234, 0x0000); //carry
-	test_scmp(0x5678, 0x5678); //zero, carry
-	test_scmp(0x5678, 0x1234); //carry
-	test_scmp(0x1234, 0x5678); //
-	test_scmp(0x0000, 0x5678); //*/
+	test_scmp(signify(-235),	signify(-235));		//zero, carry
+	test_scmp(signify(0),		signify(-25123));	//carry
+	test_scmp(signify(25023),	signify(-25103));	//carry
+	test_scmp(signify(-1234),	signify(-2503));	//carry
+	test_scmp(signify(0),		signify(-25123));	//carry
+	test_scmp(signify(-4561),	signify(0)); 		//
+	test_scmp(signify(-18886),	signify(1235));		//
+	test_scmp(signify(-456),	signify(-123));		//
 
 	test_sub32(0x89ABCDEF, 0x89ABCDEF); //0x00000000 carry, zero
 	test_sub32(0x89ABCDEF, 0x00000000); //0x89ABCDEF carry

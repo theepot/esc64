@@ -11,6 +11,14 @@
 #include <cassert>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
+
+extern "C" {
+#include <unistd.h>
+#include <errno.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+}
 
 using namespace ::apache::thrift;
 using namespace ::apache::thrift::protocol;
@@ -24,7 +32,8 @@ using namespace ::virtual_io;
 
 enum RunningState {
 	RUNNING,
-	PAUSED
+	PAUSED,
+	QUITING,
 };
 
 class ControlServiceHandler : virtual public ComputerControlServiceIf {
@@ -45,7 +54,6 @@ public:
 		runningState(runningState),
 		runningState_mutex(runningState_mutex),
 		cv(cv) {
-		do_quit = false;
 	}
 
 	RunningState getRunningState() {
@@ -146,7 +154,7 @@ public:
 	void getMemory(std::vector<int32_t> & _return, const int32_t offset, const int32_t size) {
 		if(offset < 0 || size < 0 || offset + size > (1 << 16))
 		{
-			fprintf(stderr, "esc64bm: WARNING: client requested out of range memory\n");
+			fprintf(stderr, "esc64vm: WARNING: client requested out of range memory\n");
 			return;
 		}
 
@@ -161,18 +169,20 @@ public:
 	}
 
 	int64_t getInstrCount() {
-		boost::lock_guard<boost::mutex> lock(*esc64_mutex);
-		return esc64->get_step_count();
+		if(getRunningState() == PAUSED) {
+			boost::lock_guard<boost::mutex> lock(*esc64_mutex);
+			return esc64->get_step_count();
+		}
+		return -1;
 	}
 
 	int64_t getClockCount() {
-		boost::lock_guard<boost::mutex> lock(*esc64_mutex);
 		return 0;
 	}
 
 	void quit(void) {
-		boost::lock_guard<boost::mutex> lock(*esc64_mutex);
-		do_quit = true;
+		boost::lock_guard<boost::mutex> lock(*runningState_mutex);
+		*runningState = QUITING;
 
 		cv->notify_all();
 	}
@@ -182,11 +192,14 @@ public:
 
 
 int main(int argc, char **argv) {
-	VirtualIOManager* viom = new VirtualIOManager();
-	viom->print_io_activity = false;
+	bool quit_after_halt = false;
+	VirtualIOManager viom;
+	viom.print_io_activity = false;
 	bool start_paused = false;
-	RAM* ram = new RAM(false, 0, (1 << 15) - 1);
-	VirtualIOStream* vios = new VirtualIOStream(0xAAAA >> 1, fileno(stdin), fileno(stdout));
+	RAM ram(false, 0, (1 << 15) - 1);
+
+	std::string vis = "-";
+	std::string vos = "-";
 
 	int port = 9090;
 	bool found_ram_argument = false;
@@ -199,7 +212,7 @@ int main(int argc, char **argv) {
 			} else {
 				FILE* f = fopen(argv[i + 1], "r");
 				if(f != NULL) {
-					ram->load_from_verilog_file(f);
+					ram.load_from_verilog_file(f);
 					fclose(f);
 				} else {
 					fprintf(stderr, "could not open file %s for reading\n", argv[i + 1]);
@@ -214,9 +227,47 @@ int main(int argc, char **argv) {
 			} else {
 				port = strtol(argv[i+1], NULL, 10);
 			}
+		} else if(std::string(argv[i]) == "--quit-after-halt") {
+			quit_after_halt = true;
+		} else if(std::string(argv[i]) == "--vis") {
+			if(i + 1 >= argc) {
+				fprintf(stderr, "--vis needs an argument\n");
+				return 1;
+			} else {
+				vis = argv[i+1];
+			}
+		} else if(std::string(argv[i]) == "--vos") {
+			if(i + 1 >= argc) {
+				fprintf(stderr, "--vos needs an argument\n");
+				return 1;
+			} else {
+				vos = argv[i+1];
+			}
 		}
-		//TODO: add --quit-after-halt
 	}
+
+	int visfileno, vosfileno;
+	if(vis == "-") {
+		visfileno = fileno(stdin);
+	} else {
+		visfileno = open(vis.c_str(), O_RDONLY);
+		if(visfileno == -1) {
+			fprintf(stderr, "ERROR: could not open %s for reading: %s\n", vis.c_str(), strerror(errno));
+			return 1;
+		}
+	}
+
+	if(vos == "-") {
+		vosfileno = fileno(stdout);
+	} else {
+		vosfileno = open(vos.c_str(), O_WRONLY | O_CREAT | O_SYNC | O_TRUNC, 0640);
+		if(vosfileno == -1) {
+			fprintf(stderr, "ERROR: could not open %s for writing: %s\n", vos.c_str(), strerror(errno));
+			return 1;
+		}
+	}
+
+	VirtualIOStream vios(0xAAAA >> 1, visfileno, vosfileno);
 
 	if(port <= 0 || port > 65535) {
 		fprintf(stderr, "ERROR: invalid thrift server port: %d\n", port);
@@ -227,17 +278,17 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "WARNING: no ram image defined\n");
 	}
 
-	viom->add_device(ram);
-	viom->add_device(vios);
-	ESC64* esc64 = new ESC64(viom);
-	esc64->reset();
+	viom.add_device(&ram);
+	viom.add_device(&vios);
+	ESC64 esc64(&viom);
+	esc64.reset();
 
 	boost::mutex esc64_mutex; //also protects ram and devices
 	RunningState runningState = start_paused ? PAUSED : RUNNING;
 	boost::mutex runningState_mutex;
 	boost::condition_variable cv;
 
-	shared_ptr<ControlServiceHandler> handler(new ControlServiceHandler(esc64, ram, &esc64_mutex, &runningState, &runningState_mutex, &cv));
+	shared_ptr<ControlServiceHandler> handler(new ControlServiceHandler(&esc64, &ram, &esc64_mutex, &runningState, &runningState_mutex, &cv));
 	shared_ptr<TProcessor> processor(new ComputerControlServiceProcessor(handler));
 	shared_ptr<TProtocolFactory> protocolFactory(new TBinaryProtocolFactory());
 	TNonblockingServer server(processor, protocolFactory, port);
@@ -248,7 +299,7 @@ int main(int argc, char **argv) {
 
 	for(;;) {
 
-		if(handler->do_quit) {
+		if(runningState == QUITING || (quit_after_halt && esc64.state == ESC64::HALT_INSTR)) {
 			server.stop();
 			cv.notify_all();
 			break;
@@ -259,16 +310,16 @@ int main(int argc, char **argv) {
 		rs = runningState;
 		runningState_mutex.unlock();
 
-		assert(!(rs == RUNNING && !esc64->state == ESC64::OK));
+		assert(!(rs == RUNNING && !esc64.state == ESC64::OK));
 
 		if(rs != RUNNING) {
 			cv.wait(lock);
 			continue;
 		}
 
-		assert(esc64->state == ESC64::OK);
-		esc64->step();
-		if(esc64->state != ESC64::OK) {
+		assert(esc64.state == ESC64::OK);
+		esc64.step();
+		if(esc64.state != ESC64::OK) {
 			runningState_mutex.lock();
 			runningState = PAUSED;
 			runningState_mutex.unlock();
@@ -276,6 +327,9 @@ int main(int argc, char **argv) {
 		cv.notify_all();
 	}
 
-  return 0;
+	close(visfileno);
+	close(vosfileno);
+
+	return 0;
 }
 
