@@ -126,8 +126,8 @@ io_outs_return:
 ;;		unsigned io_in(unsigned addr);
 ;;
 .global io_in:
-	dec		r0, sp
-	dec		r0, r0
+	inc		r0, sp
+	inc		r0, r0
 	ld		r0, r0
 	in		r0, r0
 	ret

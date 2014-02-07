@@ -1,5 +1,6 @@
 require 'set'
 require 'optparse'
+require 'htmlentities'
 
 module ESC64AsmDesc
 	DEBUG = false
@@ -31,8 +32,10 @@ module ESC64AsmDesc
 		attr_accessor :bindings
 		attr_accessor :default_operands
 		attr_accessor :pseudo
+		attr_accessor :affects_status
+		attr_accessor :descr
 	
-		def initialize uname, opcode, wide, pattern, bindings, default_operands, pseudo
+		def initialize uname, opcode, wide, pattern, bindings, default_operands, pseudo, affects_status, descr
 			@uname = uname
 			@opcode = opcode
 			@wide = wide
@@ -40,6 +43,8 @@ module ESC64AsmDesc
 			@bindings = bindings
 			@default_operands = default_operands
 			@pseudo = pseudo
+			@descr = descr
+			@affects_status = affects_status
 		end
 			
 		def inspect
@@ -104,7 +109,20 @@ module ESC64AsmDesc
 			end
 			return rev_bind
 		end
-								
+							
+		def html_descr
+			def yesno x; x ? "yes" : "no" end
+			return	"<tr>\n" +
+					"	<td class=\"mnemonic\">#{@pattern}</td>\n"+
+					"	<td>opcode: #{sprintf "0x%02X", @opcode}</td>\n" +
+					"	<td>wide: #{yesno @wide}</td>\n" +
+					"	<td>affects status: #{yesno @affects_status}</td>\n" +
+					"</tr>\n" +
+					"<tr>\n" +
+					"	<td colspan=\"4\">#{@descr}</td>\n"
+					"</tr>\n"
+		end
+		
 		def to_s; inspect end
 	end
 
@@ -125,18 +143,31 @@ module ESC64AsmDesc
 		
 		def inspect; "Alias(name=#{@name}, target=#{@target}" end
 		def to_s; inspect end
+		
+		def html_descr
+			return	"<tr>\n" +
+					"	<td>#{@name}</td>\n" +
+					"	<td>#{@target}</td>\n" +
+					"</tr>\n"
+		end
 	end
 
 	#base class for all directives
 	class Directive
 		attr_reader :handler
 		attr_reader :name
+		attr_reader :args
 		attr_reader :subtype
+		attr_reader :descr
 
-		def initialize name, subtype, handler
+		def initialize name, subtype, handler, descr
 			@handler = handler
 			@subtype = subtype
-			@name = name
+			m = /(\w+)(\s+(.*))?/.match name
+			@name = m[1].strip
+			a = m[3]
+			@args = a == nil ? "" : a.strip
+			@descr = descr
 			legal?
 		end
 		
@@ -158,6 +189,16 @@ module ESC64AsmDesc
 			"DIR_DESC_#{name.upcase}"
 		end
 		
+		def html_descr
+			return	"<tr>\n" +
+					"	<td class=\"mnemonic\">.#{@name} #{@args}</td>\n" +
+					"	<td>type: #{@subtype}</td>\n" +
+					"</tr>\n" +
+					"<tr>\n" +
+					"	<td colspan=\"2\">#{HTMLEntities.new.encode @descr}</td>\n" +
+					"</tr>\n"
+		end
+		
 		def to_s; inspect end
 	end
 
@@ -174,7 +215,9 @@ module ESC64AsmDesc
 			"Arg(name=#{@name}, type=#{@type})"
 		end
 		
-		def to_s; inspect end
+		def to_s
+			"#{name}:#{ARG_ID_TO_NAME[type]}"
+		end
 	end
 
 	class Pattern
@@ -215,7 +258,16 @@ module ESC64AsmDesc
 			"Pattern(mnem=#{@mnem}, args=#{@args})"
 		end
 		
-		def to_s; inspect end
+		def to_s
+			s = "#{mnem}"
+			if args.count > 0
+				s << " #{args[0]}"
+				for i in 1...(args.count)
+					s << ", #{args[i]}"
+				end
+			end
+			return s
+		end
 	end
 
 	class Interpreter
@@ -432,6 +484,52 @@ module ESC64AsmDesc
 				
 			end
 			
+		end
+		
+		def emit_html_doc path
+			if @instructions.count == 0
+				return
+			end
+			
+			File.open(path, "w") do |f|
+				f.write "<html>\n"
+				f.write "<head><link rel=\"stylesheet\" type=\"text/css\" href=\"mooiecss.css\"></head>\n"
+				f.write "<body>\n"
+				
+				#instructions
+				f.write "<h2>Instructions</h2>\n"
+				f.write "<table>\n"
+				f.write "\t#{@instructions[0].html_descr}"
+				for i in 1...(@instructions.count)
+					f.write "\t<tr></tr>\n"
+					f.write "\t#{@instructions[i].html_descr}"
+				end
+				f.write "</table>\n\n"
+				
+				#aliasses
+				f.write "<h2>Aliasses</h2>\n"
+				f.write "<table>\n"
+				f.write	"<tr class=\"tableheader\"><td>Name</td><td>Target</td></tr>\n"
+				f.write "\t#{@aliass[0].html_descr}"
+				for i in 1...(@aliass.count)
+					f.write "\t<tr></tr>\n"
+					f.write "\t#{@aliass[i].html_descr}"
+				end
+				f.write "</table>\n\n"
+				
+				#directives
+				f.write "<h2>Directives</h2>\n"
+				f.write "<table>\n"
+				f.write "\t#{@directives[0].html_descr}"
+				for i in 1...(@directives.count)
+					f.write "\t<tr></tr>\n"
+					f.write "\t#{@directives[i].html_descr}"
+				end
+				f.write "</table>\n\n"
+				
+				f.write "</body>\n"
+				f.write "</html>\n"
+			end
 		end
 		
 		def emit_c_decomp filename
@@ -735,6 +833,7 @@ module ESC64AsmDesc
 		decomp_c_path = nil
 		c_instr_info_path = nil
 		py_disasm_path = nil
+		html_doc_path = nil
 		verbose = false
 		
 		OptionParser.new do |opts|
@@ -752,6 +851,10 @@ module ESC64AsmDesc
 			
 			opts.on("-y PATH", "--emit-python-disasm PATH", "disassembly info for python") do |p|
 				py_disasm_path = p
+			end
+			
+			opts.on("-c PATH", "--emit-html-doc PATH", "documentation in HTML form") do |p|
+				html_doc_path = p
 			end
 			
 			opts.on("-v", "--verbose", "be verbose") do |v|
@@ -778,6 +881,10 @@ module ESC64AsmDesc
 		
 		if c_instr_info_path != nil
 			i.emit_c_instr_info c_instr_info_path
+		end
+		
+		if html_doc_path != nil
+			i.emit_html_doc html_doc_path
 		end
 	end
 end
