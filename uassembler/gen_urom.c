@@ -585,7 +585,7 @@ int main(int argc, char** argv)
 	set_next(next_sel_fetch);
 
 	//signed compare
-	goto_op_entry(op_cmp, ALWAYS);
+	goto_op_entry(op_scmp, ALWAYS);
 		breg_ld();
 		gpreg_oe(gpreg_oe_sel_op2);
 	set_next(next_sel_next_free);
