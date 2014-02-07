@@ -13,6 +13,10 @@
 extern "C"
 {
 #include <vpi_user.h>
+#include <unistd.h>
+#include <errno.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 }
 
 using namespace ::virtual_io;
@@ -71,6 +75,9 @@ void VirtualIO_entry(void) {
 	s_vpi_vlog_info vlog_info;
 	vpi_get_vlog_info(&vlog_info);
 
+	std::string vis = "-";
+	std::string vos = "-";
+
 	bool found_ram_argument = false;
 	for(int i = 1; i < vlog_info.argc; ++i) {
 		if(std::string(vlog_info.argv[i]) == "-r") {
@@ -86,17 +93,48 @@ void VirtualIO_entry(void) {
 					fprintf(stderr, "could not open file %s for reading\n", vlog_info.argv[i + 1]);
 				}
 			}
-			break;
+		} else if(std::string(vlog_info.argv[i]) == "--vis") {
+			if(i + 1 >= vlog_info.argc) {
+				fprintf(stderr, "--vis needs an argument\n");
+			} else {
+				vis = vlog_info.argv[i+1];
+			}
+		} else if(std::string(vlog_info.argv[i]) == "--vos") {
+			if(i + 1 >= vlog_info.argc) {
+				fprintf(stderr, "--vos needs an argument\n");
+			} else {
+				vos = vlog_info.argv[i+1];
+			}
 		}
 	}
+
+	int visfileno, vosfileno;
+	if(vis == "-") {
+		visfileno = fileno(stdin);
+	} else {
+		visfileno = open(vis.c_str(), O_RDONLY);
+		if(visfileno == -1) {
+			fprintf(stderr, "ERROR: could not open %s for reading: %s\n", vis.c_str(), strerror(errno));
+		}
+	}
+
+	if(vos == "-") {
+		vosfileno = fileno(stdout);
+	} else {
+		vosfileno = open(vos.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0640);
+		if(vosfileno == -1) {
+			fprintf(stderr, "ERROR: could not open %s for writing: %s\n", vos.c_str(), strerror(errno));
+		}
+	}
+
+	VirtualIOStream* vios = new VirtualIOStream(0xAAAA >> 1, visfileno, vosfileno);
 
 	if(!found_ram_argument) {
 		fprintf(stderr, "WARNING: no ram image defined\n");
 	}
 
 	viom->add_device(ram);
-	VirtualIOStream* vos = new VirtualIOStream(0xAAAA >> 1, fileno(stdin), fileno(stdout));
-	viom->add_device(vos);
+	viom->add_device(vios);
 	viom->print_io_activity = false;
 	VirtualIOExtension::mainRAM = ram;
 

@@ -111,6 +111,7 @@ ServiceImpl::ServiceImpl() {
 	ignore_at_fetch = true;
 	instr_counter = 0;
 	clock_counter = 0;
+	serviceThread = NULL;
 }
 
 void ServiceImpl::start()
