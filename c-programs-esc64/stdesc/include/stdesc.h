@@ -27,4 +27,12 @@ int toupper(int c);
 int puts(const char* s);
 int getchar(void);
 
+#define __VA_ALIGN(n)	((n) & 1 ? (n) + 1 : (n))
+#define va_start(v, a)	(void)(v = (unsigned)&a + __VA_ALIGN(sizeof a))
+#define va_arg(v, t)	(*(t*)__va_arg(&(v), __VA_ALIGN(sizeof (t))))
+#define va_end(v)		((void)(v))
+typedef unsigned va_list;
+void* __va_arg(va_list* v, unsigned n);
+
+
 #endif
