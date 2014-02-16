@@ -7,7 +7,7 @@ int rand(void)
 	last ^= (last << 13);
 	last ^= (last >> 9);
 	last ^= (last << 7);
-	return (int)last;
+	return (int)(last & 0x7FFF);
 }
 
 void srand(int n)

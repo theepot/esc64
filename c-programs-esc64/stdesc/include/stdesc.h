@@ -7,6 +7,8 @@
 #define memcpy(a,b,c)	__cmemcpy(a,b,c)
 #define exit(n)			__exit(n)
 
+#define RAND_MAX		32767
+
 typedef unsigned size_t;
 typedef int FILE;
 
@@ -25,7 +27,9 @@ void srand(int n);
 char* fgets(char* str, int num, FILE* stream);
 int toupper(int c);
 int puts(const char* s);
+int fputs(const char* s, FILE* stream);
 int getchar(void);
+int putchar(int c);
 
 #define __VA_ALIGN(n)	((n) & 1 ? (n) + 1 : (n))
 #define va_start(v, a)	(void)(v = (unsigned)&a + __VA_ALIGN(sizeof a))

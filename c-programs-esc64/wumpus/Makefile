@@ -23,7 +23,7 @@ COMMON_INC	:= $(COMMON)/include
 COMMON_SRC	:= $(COMMON)/src/esctest.c
 
 STDESC		:= ../stdesc
-STDESC_OBJS	:= $(STDESC)/atoi.o $(STDESC)/rand.o $(STDESC)/fgets.o $(STDESC)/toupper.o $(STDESC)/puts.o $(STDESC)/itoa.o $(STDESC)/isdigit.o $(STDESC)/getchar.o
+STDESC_OBJS	:= $(STDESC)/atoi.o $(STDESC)/rand.o $(STDESC)/fgets.o $(STDESC)/toupper.o $(STDESC)/puts.o $(STDESC)/itoa.o $(STDESC)/isdigit.o $(STDESC)/getchar.o $(STDESC)/fputs.o $(STDESC)/putchar.o
 CFLAGS		+= -I$(STDESC)/include
 
 ESCIO		:= ../escio

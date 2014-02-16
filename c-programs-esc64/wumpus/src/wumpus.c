@@ -1,9 +1,22 @@
+#ifdef TARGET_ESC64
 #include <stdesc.h>
+#else
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+static char* itoa(int n)
+{
+	static char buf[32];
+	sprintf(buf, "%d", n);
+	return buf;
+}
+#endif
 
 static int path[5];
 static int j, k, arrows, scratchloc;
-#define BUFSIZ	128
-static char inp[BUFSIZ]; /* common input buffer */
+#define INP_SIZE	128
+static char inp[INP_SIZE]; /* common input buffer */
 
 #define YOU 0
 #define WUMPUS 1
@@ -31,18 +44,75 @@ static int cave[20][3] =
 #define FNB() (rand() % 3)
 #define FNC() (rand() % 4)
 
+/*void debugdump()
+{
+	int i;
+	
+	//cave
+	puts("DEBUG cave=");
+	for(i = 0; i < 20; ++i)
+	{
+		putchar('{');
+		fputs(itoa(cave[i][0]), stdout);
+		putchar(',');
+		fputs(itoa(cave[i][1]), stdout);
+		putchar(',');
+		fputs(itoa(cave[i][2]), stdout);
+		putchar('}');
+	}
+	putchar('\n');
+	
+	//loc
+	fputs("loc[YOU]=", stdout);
+	puts(itoa(loc[YOU]));
+
+	fputs("loc[WUMPUS]=", stdout);
+	puts(itoa(loc[WUMPUS]));
+
+	fputs("loc[PIT1]=", stdout);
+	puts(itoa(loc[PIT1]));
+
+	fputs("loc[PIT2]=", stdout);
+	puts(itoa(loc[PIT2]));
+
+	fputs("loc[BATS1]=", stdout);
+	puts(itoa(loc[BATS1]));
+
+	fputs("loc[BATS2]=", stdout);
+	puts(itoa(loc[BATS2]));
+	
+	//save
+	fputs("save[YOU]=", stdout);
+	puts(itoa(save[YOU]));
+
+	fputs("save[WUMPUS]=", stdout);
+	puts(itoa(save[WUMPUS]));
+
+	fputs("save[PIT1]=", stdout);
+	puts(itoa(save[PIT1]));
+
+	fputs("save[PIT2]=", stdout);
+	puts(itoa(save[PIT2]));
+
+	fputs("save[BATS1]=", stdout);
+	puts(itoa(save[BATS1]));
+
+	fputs("save[BATS2]=", stdout);
+	puts(itoa(save[BATS2]));
+}*/
+
 int getnum(char *prompt)
 {
-	io_outs(SERIAL_IO_DEV, prompt);
-	io_outs(SERIAL_IO_DEV, "\n?");
+	puts(prompt);
+	putchar('?');
 	fgets(inp, sizeof(inp), stdin);
 	return(atoi(inp));
 }
 
 int getlet(char *prompt)
 {
-	io_outs(SERIAL_IO_DEV, prompt);
-	io_outs(SERIAL_IO_DEV, "\n?");
+	puts(prompt);
+	putchar('?');
 	fgets(inp, sizeof(inp), stdin);
 	return(toupper(inp[0]));
 }
@@ -96,17 +166,16 @@ void check_hazards()
 		else if (room == loc[BATS1] || room == loc[BATS2])
 			puts("Bats nearby!");
 	}
-	io_outs(SERIAL_IO_DEV, "You are in room ");
-	io_outs(SERIAL_IO_DEV, itoa(loc[YOU]+1));
-	io_out(SERIAL_IO_DEV, '\n');
+	fputs("You are in room ", stdout);
+	puts(itoa(loc[YOU]+1));
 	
-	io_outs(SERIAL_IO_DEV, "Tunnels lead to ");
-	io_outs(SERIAL_IO_DEV, itoa(cave[loc[YOU]][0]+1));
-	io_out(SERIAL_IO_DEV, ' ');
-	io_outs(SERIAL_IO_DEV, itoa(cave[loc[YOU]][1]+1));
-	io_out(SERIAL_IO_DEV, ' ');
-	io_outs(SERIAL_IO_DEV, itoa(cave[loc[YOU]][2]+1));
-	io_outs(SERIAL_IO_DEV, "\n\n");
+	fputs("Tunnels lead to ", stdout);
+	fputs(itoa(cave[loc[YOU]][0]+1), stdout);
+	putchar(' ');
+	fputs(itoa(cave[loc[YOU]][1]+1), stdout);
+	putchar(' ');
+	puts(itoa(cave[loc[YOU]][2]+1));
+	putchar('\n');
 }
 
 int move_or_shoot()
@@ -196,23 +265,9 @@ void move_wumpus()
 
 void move()
 {
-	static char hex[] = "0123456789ABCDEF";
-
 	finished = NOT;
 badmove:
 	scratchloc = getnum("Where to");
-	
-	//DEBUG
-	puts("move(): scratchloc=");
-	io_out(SERIAL_IO_DEV, hex[(scratchloc >> 12) & 0xF]);
-	io_out(SERIAL_IO_DEV, hex[(scratchloc >> 8) & 0xF]);	
-	io_out(SERIAL_IO_DEV, hex[(scratchloc >> 4) & 0xF]);
-	io_out(SERIAL_IO_DEV, hex[scratchloc & 0xF]);
-
-
-
-	puts(" end");
-	//end
 	
 	if (scratchloc < 1 || scratchloc > 20)
 		goto badmove;
@@ -251,6 +306,15 @@ int main(int argc, char** argv)
 {
 	int c;
 	srand(0xCAFE);
+	
+	//DEBUG
+	//fputs("DEBUG: loc @ ", stdout);
+	//fputs(itoa((unsigned)loc), stdout);
+	//fputs("\nDEBUG: save @ ", stdout);
+	//fputs(itoa((unsigned)save), stdout);
+	//putchar('\n');
+	//end
+	
 	c = getlet("Instructions (Y-N)");
 	if (c == 'Y')
 		print_instructions();
@@ -268,6 +332,7 @@ newgame:
 	scratchloc = loc[YOU];
 	puts("HUNT THE WUMPUS");
 nextmove:
+	//debugdump();
 	check_hazards();
 	if (move_or_shoot())
 	{
