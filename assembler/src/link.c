@@ -9,7 +9,6 @@
 #include <esc64asm/ioutils.h>
 #include <esc64asm/objread.h>
 #include <esc64asm/symtable.h>
-#include <esc64asm/freelist.h>
 #include <esc64asm/escerror.h>
 #include <esc64asm/align.h>
 
