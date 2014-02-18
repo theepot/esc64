@@ -5,7 +5,7 @@
 SRC			:= src
 PROGRAM		:= testprgm
 LST			:= $(PROGRAM).lst
-OBJECTS		:= strlen.o strncmp.o itoa.o atoi.o strchr.o isdigit.o rand.o fgets.o toupper.o puts.o getchar.o memset.o generic-printf.o sprintf.o
+OBJECTS		:= strlen.o strncmp.o itoa.o atoi.o strchr.o isdigit.o rand.o fgets.o toupper.o puts.o fputs.o getchar.o varargs.o putchar.o memset.o generic-printf.o sprintf.o
 PP			:= $(foreach F,$(OBJECTS),$(subst .o,.pp.s,$(F)))
 LCC_S		:= $(foreach F,$(OBJECTS),$(subst .o,.lcc.s,$(F)))
 

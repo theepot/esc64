@@ -7,6 +7,10 @@
 #include <esc64asm/align.h>
 #include <esc64asm/decomp.h>
 
+#define USAGE \
+	"usage: esc-objdump INPUT\n" \
+	"\tprints information about object file INPUT\n"
+
 static void PrintHeader(const ObjHeader* header);
 static void PrintSection(int isAbs, const ObjSectionHeader* secHeader);
 static void PrintSymbols(objsize_t offset);
@@ -14,11 +18,14 @@ static void PrintExpr(void);
 static void PrintData(int align2, size_t dataSize);
 static void PrintInstruction(uword_t instrWord);
 static const char* SectionTypeToString(byte_t type);
-static void PrintString(const char* str, size_t len);
 
 int main(int argc, char** argv)
 {
-	assert(argc == 2);
+	if(argc != 2)
+	{
+		fputs(USAGE, stderr);
+		return 1;
+	}
 
 	ObjHeader header;
 	ObjectReaderInit(argv[1]);
@@ -226,15 +233,6 @@ static const char* SectionTypeToString(byte_t type)
 		return "none";
 	default:
 		return "unknown!";
-	}
-}
-
-static void PrintString(const char* str, size_t len)
-{
-	const char* c;
-	for(c = str; c < str + len; ++c)
-	{
-		putchar(*c);
 	}
 }
 

@@ -8,13 +8,21 @@
 #include <esc64asm/align.h>
 #include <esc64asm/decomp.h>
 
+#define USAGE \
+	"usage: esc-exedump INPUT\n" \
+	"\tprints information about object file INPUT\n"
+
 static void PrintSection(ExeReader* exeReader);
 static void PrintData(const byte_t* data, int align2, size_t dataSize, uword_t addr);
 static void PrintInstruction(uword_t instrWord);
 
 int main(int argc, char** argv)
 {
-	assert(argc == 2);
+	if(argc != 2)
+	{
+		fputs(USAGE, stderr);
+		return 1;
+	}
 
 	ExeReader exeReader;
 	ExeReaderInit(&exeReader, argv[1]);
@@ -45,15 +53,6 @@ static void PrintSection(ExeReader* exeReader)
 	ExeReadData(exeReader, data);
 
 	PrintData(data, IsAligned(addr, 2), size, addr);
-
-//	size_t i;
-//	for(i = 0; i < size; ++i)
-//	{
-//		uword_t word = letoh_word(data[i]);
-//		printf("\t@0x%04X:\t0x%04X", addr + i, word);
-//		PrintInstruction(word);
-//		putchar('\n');
-//	}
 }
 
 static void PrintInstruction(uword_t instrWord)

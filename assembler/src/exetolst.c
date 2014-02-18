@@ -4,6 +4,10 @@
 #include <esc64asm/objread.h>
 #include <esc64asm/link.h>
 
+#define USAGE \
+	"usage: esc-exetolst OUTPUT INPUT\n" \
+	"\tconverts object file INPUT to an lst file OUTPUT\n"
+
 typedef struct ExeSection_
 {
 	byte_t type;
@@ -21,7 +25,12 @@ static void WriteData(FILE* lstFile, ExeSection* sec);
 
 int main(int argc, char** argv)
 {
-	assert(argc == 3);
+	if(argc != 3)
+	{
+		fputs(USAGE, stderr);
+		return 1;
+	}
+
 	const char* lstPath = argv[1];
 	const char* exePath = argv[2];
 

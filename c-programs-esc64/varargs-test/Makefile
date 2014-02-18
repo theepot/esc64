@@ -3,9 +3,9 @@
 .SECONDARY:
 
 SRC			:= src
-PROGRAM		:= wumpus
+PROGRAM		:= testprgm
 LST			:= $(PROGRAM).lst
-OBJECTS		:= wumpus.o
+OBJECTS		:= test.o
 PP			:= $(foreach F,$(OBJECTS),$(subst .o,.pp.s,$(F)))
 LCC_S		:= $(foreach F,$(OBJECTS),$(subst .o,.lcc.s,$(F)))
 
@@ -22,16 +22,41 @@ COMMON_OBJS	:= $(COMMON)/esctest.o $(COMMON)/vio.o
 COMMON_INC	:= $(COMMON)/include
 COMMON_SRC	:= $(COMMON)/src/esctest.c
 
+LINUX_SRC	:= $(COMMON_SRC) $(addprefix $(SRC)/,$(foreach F,$(OBJECTS),$(subst .o,.c,$(F))))
+LINUX_PRGM	:= linux_$(PROGRAM)
+
 STDESC		:= ../stdesc
-STDESC_OBJS	:= $(STDESC)/atoi.o $(STDESC)/rand.o $(STDESC)/fgets.o $(STDESC)/toupper.o $(STDESC)/puts.o $(STDESC)/itoa.o $(STDESC)/isdigit.o $(STDESC)/getchar.o $(STDESC)/fputs.o $(STDESC)/putchar.o
+STDESC_OBJS	:= $(STDESC)/varargs.o
 CFLAGS		+= -I$(STDESC)/include
 
 ESCIO		:= ../escio
 CFLAGS		+= -I$(ESCIO)/include
 ESCIO_OBJS	:= $(ESCIO)/escio.o
 
+LINUX_OUT	:= linux.log
+ESC_OUT		:= esc.log
+
 .PHONY: all
-all: $(LST)
+all: linux esc
+
+.PHONY: test
+test: $(ESC_OUT) $(LINUX_OUT)
+	diff $(ESC_OUT) $(LINUX_OUT)
+
+.PHONY: linux
+linux: $(LINUX_PRGM)
+
+$(LINUX_OUT): $(LINUX_PRGM)
+	./$(LINUX_PRGM) > $@
+
+$(ESC_OUT): $(LST)
+	esc64vm --quit-after-halt --vos $@ -r $<
+
+$(LINUX_PRGM): $(LINUX_SRC)
+	gcc -Wall -o linux_$(PROGRAM) $(LINUX_SRC) -I$(COMMON_INC) -I$(SRC)
+
+.PHONY: esc
+esc: $(LST)
 
 .PHONY: clean
 clean:
@@ -40,6 +65,8 @@ clean:
 	rm -f $(PP)
 	rm -f $(LCC_S)
 	rm -f $(OBJECTS)
+	rm -f $(LINUX_PRGM)
+	rm -f $(LINUX_OUT) $(ESC_OUT)
 
 $(LST): $(PROGRAM)
 	esc-exetolst $@ $^
