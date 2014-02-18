@@ -1,15 +1,16 @@
 .SUFFIXES:
 .SECONDARY:
 
-PROGRAM			:= wumpus
-OBJECTS			:= wumpus.o
+#comment PROGRAM to just create object files
+PROGRAM			:= program-name
+OBJECTS			:= objects-go-here.o
 CRT_PATH		:= ../../crt
 GPP_FLAGS		:= 
 CFLAGS			:= 
 STDESC			:= ../stdesc
 STDESC_OBJS		:= atoi.o rand.o fgets.o toupper.o puts.o itoa.o isdigit.o getchar.o fputs.o putchar.o
 ESCIO			:= ../escio
-LINK			:=
+LINK			:= objects-that-you-want-to-link.o
 
 include ../esc64-build.mk
 
