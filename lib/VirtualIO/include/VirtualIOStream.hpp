@@ -14,6 +14,7 @@ private:
 	static const int READ_SIZE = 0xFFFF;
 	char read_buffer[READ_SIZE];
 	std::queue<char> in_queue;
+	
 	bool fill_in_queue(void);
 	
 

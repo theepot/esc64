@@ -3,9 +3,9 @@
 .SECONDARY:
 
 SRC			:= src
-PROGRAM		:= testprgm
+PROGRAM		:= echo
 LST			:= $(PROGRAM).lst
-OBJECTS		:= strlen.o strncmp.o itoa.o atoi.o strchr.o isdigit.o rand.o fgets.o toupper.o puts.o getchar.o memset.o generic-printf.o sprintf.o
+OBJECTS		:= echo.o
 PP			:= $(foreach F,$(OBJECTS),$(subst .o,.pp.s,$(F)))
 LCC_S		:= $(foreach F,$(OBJECTS),$(subst .o,.lcc.s,$(F)))
 
@@ -15,18 +15,23 @@ CRT_INCLUDE	:= $(CRT_PATH)
 ESC_TEST_O	:= ../common/esctest.o
 
 GPP_FLAGS	:= -I$(CRT_PATH) -I.
-CFLAGS		:= -Iinclude -I$(CRT_INCLUDE)
+CFLAGS		:= -I$(CRT_INCLUDE)
 
 COMMON		:= ../common
 COMMON_OBJS	:= $(COMMON)/esctest.o $(COMMON)/vio.o
 COMMON_INC	:= $(COMMON)/include
 COMMON_SRC	:= $(COMMON)/src/esctest.c
 
+STDESC		:= ../stdesc
+STDESC_OBJS	:= $(STDESC)/puts.o $(STDESC)/getchar.o $(STDESC)/itoa.o $(STDESC)/memset.o
+CFLAGS		+= -I$(STDESC)/include
+
 ESCIO		:= ../escio
 CFLAGS		+= -I$(ESCIO)/include
+ESCIO_OBJS	:= $(ESCIO)/escio.o
 
 .PHONY: all
-all: $(OBJECTS)
+all: $(LST)
 
 .PHONY: clean
 clean:
@@ -35,6 +40,12 @@ clean:
 	rm -f $(PP)
 	rm -f $(LCC_S)
 	rm -f $(OBJECTS)
+
+$(LST): $(PROGRAM)
+	esc-exetolst $@ $^
+
+$(PROGRAM): $(OBJECTS)
+	esc-ln $@ $^ $(CRT_O) $(STDESC_OBJS) $(ESCIO_OBJS) $(COMMON_OBJS) > esc-ln-stdout.log
 
 %.lcc.s: src/%.c
 	lcc -S -c -Wf-target=esc64 $(CFLAGS) -I$(COMMON_INC) -I$(SRC) -DTARGET_ESC64 -o $@ $^

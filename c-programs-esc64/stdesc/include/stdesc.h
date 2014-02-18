@@ -26,5 +26,8 @@ char* fgets(char* str, int num, FILE* stream);
 int toupper(int c);
 int puts(const char* s);
 int getchar(void);
+void* memset(void* p, int v, size_t n);
+int vsprintf(char* buf, const char* fmt, va_list va);
+int sprintf(char* buf, const char* fmt, ...);
 
 #endif

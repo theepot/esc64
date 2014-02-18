@@ -18,6 +18,7 @@ extern "C" {
 #include <errno.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <termios.h>
 }
 
 using namespace ::apache::thrift;
@@ -297,6 +298,13 @@ int main(int argc, char **argv) {
 
 	boost::unique_lock<boost::mutex> lock(esc64_mutex);
 
+	//disable line-buffering on stdin
+	struct termios old_tio, new_tio;
+	assert(!tcgetattr(STDIN_FILENO, &old_tio));
+	new_tio = old_tio;
+	new_tio.c_lflag &= (~ICANON & ~ECHO);
+	assert(!tcsetattr(STDIN_FILENO, TCSANOW, &new_tio));
+
 	for(;;) {
 
 		if(runningState == QUITING || (quit_after_halt && esc64.state == ESC64::HALT_INSTR)) {
@@ -326,6 +334,9 @@ int main(int argc, char **argv) {
 		}
 		cv.notify_all();
 	}
+
+	//restore old settings
+	tcsetattr(STDIN_FILENO, TCSANOW, &old_tio);
 
 	close(visfileno);
 	close(vosfileno);
