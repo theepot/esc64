@@ -1,63 +1,15 @@
 .SUFFIXES:
-
 .SECONDARY:
 
-SRC			:= src
-PROGRAM		:= testprgm
-LST			:= $(PROGRAM).lst
-OBJECTS		:= test.o
-PP			:= $(foreach F,$(OBJECTS),$(subst .o,.pp.s,$(F)))
-LCC_S		:= $(foreach F,$(OBJECTS),$(subst .o,.lcc.s,$(F)))
+#comment PROGRAM to just create object files
+PROGRAM			:= testprgm
+OBJECTS			:= test.o
+CRT_PATH		:= ../../crt
+GPP_FLAGS		:= 
+CFLAGS			:= 
+STDESC			:= ../stdesc
+STDESC_OBJS		:= generic-printf.o sprintf.o itoa.o puts.o varargs.o printf.o putchar.o
+ESCIO			:= ../escio
+LINK			:= 
 
-CRT_PATH	:= ../../crt
-CRT_O		:= $(CRT_PATH)/esccrt.o
-CRT_INCLUDE	:= $(CRT_PATH)
-ESC_TEST_O	:= ../common/esctest.o
-
-GPP_FLAGS	:= -I$(CRT_PATH) -I.
-CFLAGS		:= -I$(CRT_INCLUDE)
-
-COMMON		:= ../common
-COMMON_OBJS	:= $(COMMON)/esctest.o $(COMMON)/vio.o
-COMMON_INC	:= $(COMMON)/include
-COMMON_SRC	:= $(COMMON)/src/esctest.c
-
-STDESC		:= ../stdesc
-STDESC_OBJS	:= $(STDESC)/generic-printf.o $(STDESC)/sprintf.o $(STDESC)/itoa.o $(STDESC)/puts.o $(STDESC)/varargs.o $(STDESC)/printf.o $(STDESC)/putchar.o
-CFLAGS		+= -I$(STDESC)/include
-
-ESCIO		:= ../escio
-CFLAGS		+= -I$(ESCIO)/include
-ESCIO_OBJS	:= $(ESCIO)/escio.o
-
-.PHONY: all
-all: $(LST)
-
-.PHONY: clean
-clean:
-	rm -f $(PROGRAM)
-	rm -f $(LST)
-	rm -f $(PP)
-	rm -f $(LCC_S)
-	rm -f $(OBJECTS)
-
-$(LST): $(PROGRAM)
-	esc-exetolst $@ $^
-
-$(PROGRAM): $(OBJECTS)
-	esc-ln $@ $^ $(CRT_O) $(STDESC_OBJS) $(ESCIO_OBJS) $(COMMON_OBJS) > esc-ln-stdout.log
-
-%.lcc.s: src/%.c
-	lcc -S -c -Wf-target=esc64 $(CFLAGS) -I$(COMMON_INC) -I$(SRC) -DTARGET_ESC64 -o $@ $^
-
-GPP_CMD=gpp -n +c ";" "\n" -o $@ $^ $(GPP_FLAGS)
-
-%.pp.s: %.lcc.s
-	$(GPP_CMD)
-
-%.pp.s: $(SRC)/%.s
-	$(GPP_CMD)
-
-%.o: %.pp.s
-	esc-as $@ $^ > esc-as-stdout.log
-
+include ../esc64-build.mk

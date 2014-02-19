@@ -22,6 +22,7 @@ LINK			+= $(ESCIO)/build/escio.o
 #misc
 GPP_FLAGS		+= -Isrc
 CFLAGS			+= -DTARGET_ESC64
+CLEANFILES		+= 	$(PROGRAM) $(LST) $(PP) $(LCC_S) $(OBJ_PATHS)
 ifeq ($(strip $(PROGRAM)),)
 ALL_DEP			:= $(OBJ_PATHS)
 else
@@ -38,11 +39,7 @@ all: $(ALL_DEP)
 
 .PHONY: clean
 clean:
-	rm -f $(PROGRAM)
-	rm -f $(LST)
-	rm -f $(PP)
-	rm -f $(LCC_S)
-	rm -f $(OBJ_PATHS)
+	rm -f $(CLEANFILES)
 	rmdir build 2> /dev/null; true
 
 $(LST): $(PROGRAM)

@@ -31,7 +31,7 @@ CFLAGS		+= -I$(STDESC)/include
 
 ESCIO		:= ../escio
 CFLAGS		+= -I$(ESCIO)/include
-ESCIO_OBJS	:= $(ESCIO)/escio.o
+ESCIO_OBJS	:= $(ESCIO)/build/escio.o
 
 LINUX_OUT	:= linux.log
 ESC_OUT		:= esc.log
