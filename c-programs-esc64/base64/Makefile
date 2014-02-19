@@ -1,12 +1,13 @@
 .SUFFIXES:
 .SECONDARY:
 
-OBJECTS			:= escio.o
+#PROGRAM			:= 
+OBJECTS			:= base64_dec.o base64_enc.o
 CRT_PATH		:= ../../crt
 GPP_FLAGS		:= 
-CFLAGS			:= 
+CFLAGS			:= -Iinclude
 STDESC			:= ../stdesc
-STDESC_OBJS		:= atoi.o rand.o fgets.o toupper.o puts.o itoa.o isdigit.o getchar.o fputs.o putchar.o
+STDESC_OBJS		:= 
 ESCIO			:= ../escio
 LINK			:= 
 
