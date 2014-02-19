@@ -9,6 +9,12 @@
 
 #define RAND_MAX		32767
 
+#define __VA_ALIGN(n)	((n) & 1 ? (n) + 1 : (n))
+#define va_start(v, a)	(void)(v = (unsigned)&a + __VA_ALIGN(sizeof a))
+#define va_arg(v, t)	(*(t*)__va_arg(&(v), __VA_ALIGN(sizeof (t))))
+#define va_end(v)		((void)(v))
+typedef unsigned va_list;
+
 typedef unsigned size_t;
 typedef int FILE;
 
@@ -33,12 +39,9 @@ void* memset(void* p, int v, size_t n);
 int vsprintf(char* buf, const char* fmt, va_list va);
 int sprintf(char* buf, const char* fmt, ...);
 int putchar(int c);
-
-#define __VA_ALIGN(n)	((n) & 1 ? (n) + 1 : (n))
-#define va_start(v, a)	(void)(v = (unsigned)&a + __VA_ALIGN(sizeof a))
-#define va_arg(v, t)	(*(t*)__va_arg(&(v), __VA_ALIGN(sizeof (t))))
-#define va_end(v)		((void)(v))
-typedef unsigned va_list;
+int vfprintf(FILE* stream, const char* fmt, va_list va);
+int fprintf(FILE* stream, const char* fmt, ...);
+int printf(char* buf, const char* fmt, ...);
 void* __va_arg(va_list* v, unsigned n);
 
 #endif

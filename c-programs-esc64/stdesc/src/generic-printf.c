@@ -96,7 +96,7 @@ int generic_printf(struct printf_state* state, const char* fmt, va_list va)
 				n += PRINTC('%');
 				break;
 			default:
-				assert(0 && "generic_printf(): unsupported specifier");
+				exit(1);
 				break;
 			}
 		}
