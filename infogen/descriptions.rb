@@ -69,14 +69,14 @@ module Descriptions
 		Func.new("adc",		0x02,	"rd = ra + rb + carry"),
 		Func.new("sub",		0x05,	"rd = ra - rb"),
 		Func.new("sbc",		0x06,	"rd = ra - rb + 1 - carry"),
-		Step.new("inc",		0x09,	"rd = ra + 1"),
-		Step.new("dec",		0x0A,	"rd = ra - 1"),
+		Step.new("inc",		0x09,	"rd = rs + 1"),
+		Step.new("dec",		0x0A,	"rd = rs - 1"),
 		Func.new("or",		0x0B,	"rd = ra OR rb"),
 		Func.new("xor",		0x0D,	"rd = ra XOR rb"),
 		Func.new("and",		0x0F,	"rd = ra AND rb"),
-		NotWide.new("not rd:reg, rs:reg", 0x11, { "rd" => 0, "rs" => 1 }, true, "ra = NOT rb"),
-		Shift.new("shl",	0x12,	"rd = ra logically shifted left once"),
-		Shift.new("shr",	0x21,	"rd = ra logically shifted right once"),
+		NotWide.new("not rd:reg, rs:reg", 0x11, { "rd" => 0, "rs" => 1 }, true, "rd = NOT rs"),
+		Shift.new("shl",	0x12,	"rd = rs logically shifted left once"),
+		Shift.new("shr",	0x21,	"rd = rs logically shifted right once"),
 		
 		def_movs("", 		0x30,	0x3F,	"always"),
 		def_movs("ncnz",	0x31,	0x40,	"NOT carry AND NOT zero"),
@@ -100,25 +100,25 @@ module Descriptions
 		def_jmps("jncoz",	0x3B,	0x4A,	"NOT carry OR zero"),
 		def_jmps("jc",		0x3C,	0x4B,	"carry"),
 		
-		NotWide.new("cmp ra:reg, rb:reg", 0x4E, { "ra" => 1, "rb" => 2 }, true,		"subtracts rb from ra as unsigned words and sets the status bits accordingly"),
-		NotWide.new("scmp ra:reg, rb:reg", 0x4F, { "ra" => 1, "rb" => 2 }, true,	"subtracts rb from ra as signed words and sets the status bits accordingly"),
+		NotWide.new("cmp ra:reg, rb:reg", 0x4E, { "ra" => 1, "rb" => 2 }, true,		"Subtracts rb from ra as unsigned words and sets the status bits accordingly"),
+		NotWide.new("scmp ra:reg, rb:reg", 0x4F, { "ra" => 1, "rb" => 2 }, true,	"Subtracts rb from ra as signed words and sets the status bits accordingly"),
 		
-		NotWide.new("sxt rd:reg, rs:reg", 0x50, { "rd" => 0, "rs" => 1 }, false,	"the lower byte in rs is sign extended to a word into rd"),
+		NotWide.new("sxt rd:reg, rs:reg", 0x50, { "rd" => 0, "rs" => 1 }, false,	"The lower byte in rs is sign extended to a word into rd"),
 		
 		NotWide.new("ld rd:reg, rs:reg", 0x51, { "rd" => 0, "rs" => 1 }, false,		"rd is loaded with the word at the address specified by rs"),
 		NotWide.new("ldb rd:reg, rs:reg", 0x52, { "rd" => 0, "rs" => 1 }, false,	"rd is loaded with the byte at the address specified by rs"),
 		
 		NotWide.new("st rd:reg, rs:reg", 0x54, { "rd" => 1, "rs" => 2 }, false,		"rs is stored at the address specified by rd"),
-		NotWide.new("stb rd:reg, rs:reg", 0x55, { "rd" => 1, "rs" => 2 }, false,	"the lower byte in rs is stored at the address specified by rd"),
+		NotWide.new("stb rd:reg, rs:reg", 0x55, { "rd" => 1, "rs" => 2 }, false,	"The lower byte in rs is stored at the address specified by rd"),
 		
-		NotWide.new("call r:reg", 0x57, { "r" => 1 }, false,						"jumps to address r. the current address+2 is pushed on the stack"),
+		NotWide.new("call r:reg", 0x57, { "r" => 1 }, false,						"Jumps to address r. the current address+2 is pushed on the stack"),
 		Instruction.new("call_imm", 0x58, true, "call addr:imm", { }, [ 0, 0, 0 ], false, false, "jumps to address imm. the current address+2 is pushed on the stack"),
 		NotWide.new("in rd:reg, rs:reg", 0x59, { "rd" => 0, "rs" => 1 }, false,		"rd is loaded with the value retreived from an io-device at address rs"),
 		NotWide.new("out rd:reg, rs:reg", 0x5A, { "rd" => 1, "rs" => 2 }, false,	"rs is written to an io-device at address rd"),
-		NotWide.new("push r:reg", 0x5B, { "r" => 1 }, false,						"pushes r on the stack"),
-		NotWide.new("pop r:reg", 0x5C, { "r" => 0 }, false,							"pops a word from the stack into r"),
-		Instruction.new("ret", 0x5C, false, "ret", {}, [ 7, 0, 0 ], true, false,	"pops a word from the stack into the program counter"),
-		NotWide.new("halt", 0x7F, {}, false, "halts execution of the processor")
+		NotWide.new("push r:reg", 0x5B, { "r" => 1 }, false,						"Pushes r on the stack"),
+		NotWide.new("pop r:reg", 0x5C, { "r" => 0 }, false,							"Pops a word from the stack into r"),
+		Instruction.new("ret", 0x5C, false, "ret", {}, [ 7, 0, 0 ], true, false,	"Pops a word from the stack into the program counter"),
+		NotWide.new("halt", 0x7F, {}, false, "Halts execution of the processor")
 	]
 	
 	aliass =
@@ -140,21 +140,21 @@ module Descriptions
 	
 	directives =
 	[
-		Directive.new("data",		:section,		"ParseDataSection",	"starts a new data section"),
-		Directive.new("bss",		:section,		"ParseBSSSection",	"starts a new BSS section"),
-		Directive.new("org A",		:section_opt,	"ParseOrg",			"originates this section at address A"),
-		Directive.new("align A",	:section_opt,	"ParseAlign",		"makes sure this section is aligned to A bytes"),
-		Directive.new("pad P",		:other,			"ParsePad",			"inserts padding until the section is aligned to P from the start of the section"),
-		Directive.new("resw N",		:other,			"ParseResW",		"reserves N words of space"),
-		Directive.new("resb N",		:other,			"ParseResB",		"reserves N bytes of space"),
-		Directive.new("global L",	:other,			"ParseGlobal",		"defines label L as a global label. not that this is the DEFINITION of the label\n" +
-																		"this means that this is correct:\n" +
+		Directive.new("data",		:section,		"ParseDataSection",	"Starts a new data section"),
+		Directive.new("bss",		:section,		"ParseBSSSection",	"Starts a new BSS section"),
+		Directive.new("org A",		:section_opt,	"ParseOrg",			"Originates this section at address A"),
+		Directive.new("align A",	:section_opt,	"ParseAlign",		"Makes sure this section is aligned to A bytes"),
+		Directive.new("pad P",		:other,			"ParsePad",			"Inserts padding until the section is aligned to P from the start of the section"),
+		Directive.new("resw N",		:other,			"ParseResW",		"Reserves N words of space"),
+		Directive.new("resb N",		:other,			"ParseResB",		"Reserves N bytes of space"),
+		Directive.new("global L",	:other,			"ParseGlobal",		"Defines label L as a global label. not that this is the DEFINITION of the label\n" +
+																		"This means that this is correct:\n" +
 																		"\t.global label:\n" +
-																		"and this is not:\n" +
+																		"And this is not:\n" +
 																		"\t.global label\n" +
 																		"\tlabel:"),
-		Directive.new("word W",		:other,			"ParseWord",		"inserts a word of value W"),
-		Directive.new("byte B",		:other,			"ParseByte",		"inserts a byte of value B")
+		Directive.new("word W",		:other,			"ParseWord",		"Inserts a word of value W"),
+		Directive.new("byte B",		:other,			"ParseByte",		"Inserts a byte of value B")
 	]
 	
 	ESC64AsmDesc.export instructions, aliass, directives
