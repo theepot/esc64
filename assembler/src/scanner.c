@@ -580,7 +580,7 @@ static int GetRegisterRef(void)
 	struct SpecialReg_ { const char* name; int val; };
 	static struct SpecialReg_ SPECIAL_REGS[] = { { "pc", REG_PC }, { "sp", REG_SP } };
 	static const size_t SPECIAL_REGS_SIZE = sizeof SPECIAL_REGS / sizeof (struct SpecialReg_);
-
+	
 	struct SpecialReg_* i;
 	for(i = SPECIAL_REGS; i < SPECIAL_REGS + SPECIAL_REGS_SIZE; ++i)
 	{
@@ -592,7 +592,11 @@ static int GetRegisterRef(void)
 		}
 	}
 
-	return GetRegisterNumeric();
+	//return GetRegisterNumeric();
+	//FIXME quickfix because SP is still r5 and not r6
+	int regnums[] = { REG_R0, REG_R1, REG_R2, REG_R3, REG_R4, REG_R6, REG_R5, REG_R7 };
+	int r = GetRegisterNumeric();
+	return r < 0 ? r : regnums[r];
 }
 
 static int GetRegisterNumeric(void)
