@@ -13,6 +13,7 @@ all: ${VVP} ${NATIVE_EXT_VPI} ${UCODE_HERE}
 clean:
 	rm -f ${VVP}
 	${MAKE} -C ${NATIVE_EXT_DIR} clean
+	rm -f ${UCODE_HERE}
 
 ${VVP}: ${V_SOURCE} ${V_DEPENDENCIES}
 	iverilog -DALL_STRUCT -Imodules -IICs -o$@ $<
