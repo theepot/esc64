@@ -58,7 +58,43 @@ try:
 	make("utils/EEPROM_programmer/pc")
 	make("utils/mini_assembler")
 	make("utils/split_verilog_mem")
+	
+	make("c-programs-esc64/common")
+	make("c-programs-esc64/escio")
+	make("c-programs-esc64/stdesc")
+
+	make("c-programs-esc64/base64")
+	make("c-programs-esc64/base64test")
+	make("c-programs-esc64/con2reg")
+	make("c-programs-esc64/conv-test")
+	make("c-programs-esc64/div-test")
+	make("c-programs-esc64/echo")
+	make("c-programs-esc64/errortest")
+	make("c-programs-esc64/genstatictest")
+	make("c-programs-esc64/iotest")
+	make("c-programs-esc64/memtest")
+	make("c-programs-esc64/mul-test")
+	make("c-programs-esc64/prime-test")
+	make("c-programs-esc64/puts-test")
+	make("c-programs-esc64/shift-test")
+	make("c-programs-esc64/sprintftest")
+	make("c-programs-esc64/switch-test")
+	make("c-programs-esc64/varargs-test")
+	make("c-programs-esc64/wumpus")
+
+	print("========================")
+	print("BUILD SUCCESSFUL")
+	print("========================")
+
 except Exception as e:
+	print("========================")
+	print("BUILD FAILED:")
 	print(e)
+	print("========================")
+
 
 chdir(old_dir)
+
+
+
+
