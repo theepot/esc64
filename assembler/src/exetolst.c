@@ -126,7 +126,7 @@ static void Pad(FILE* lstFile, size_t padding)
 	size_t i;
 	for(i = 0; i < padding; ++i)
 	{
-		fprintf(lstFile, "00000000\n");
+		fprintf(lstFile, "xxxxxxxx\n");
 	}
 }
 
