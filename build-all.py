@@ -13,10 +13,10 @@ def cmake(path):
 
 	if not os.path.isfile("Makefile"):
 		if subprocess.call(["cmake", "."]) != 0:
-			raise Exception("cmake failed in `%s'".format(path))
+			raise Exception("cmake failed in `{0}'".format(path))
 			
 	if subprocess.call(["make", "all"]) != 0:
-		raise Exception("make failed in `%s'".format(path))
+		raise Exception("make failed in `{0}'".format(path))
 
 
 def make(path):
@@ -24,7 +24,7 @@ def make(path):
 	chdir(here + "/" + path)
 		
 	if subprocess.call(["make", "all"]) != 0:
-		raise Exception("make failed in `%s'".format(path))
+		raise Exception("make failed in `{0}'".format(path))
 
 
 try:
@@ -59,6 +59,6 @@ try:
 	make("utils/mini_assembler")
 	make("utils/split_verilog_mem")
 except Exception as e:
-	print("===== %s =====".format(e.strerror))
+	print(e)
 
 chdir(old_dir)
