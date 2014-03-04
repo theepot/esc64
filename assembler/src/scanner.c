@@ -592,11 +592,7 @@ static int GetRegisterRef(void)
 		}
 	}
 
-	//return GetRegisterNumeric();
-	//FIXME quickfix because SP is still r5 and not r6
-	int regnums[] = { REG_R0, REG_R1, REG_R2, REG_R3, REG_R4, REG_R6, REG_R5, REG_R7 };
-	int r = GetRegisterNumeric();
-	return r < 0 ? r : regnums[r];
+	return GetRegisterNumeric();
 }
 
 static int GetRegisterNumeric(void)
@@ -638,7 +634,11 @@ static int GetRegisterNumeric(void)
 	}
 
 	token_.id = TOKEN_ID_REG;
-	token_.intValue = num;
+	
+	//FIXME quickfix
+	int regnums[] = { REG_R0, REG_R1, REG_R2, REG_R3, REG_R4, REG_R6, REG_R5, REG_R7 };
+	//token_.intValue = num;
+	token_.intValue = regnums[num];
 
 	return 0;
 }
