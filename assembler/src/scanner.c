@@ -645,12 +645,7 @@ static int GetRegisterNumeric(void)
 	}
 
 	token_.id = TOKEN_ID_REG;
-	
-	//FIXME quickfix
-	int regnums[] = { REG_R0, REG_R1, REG_R2, REG_R3, REG_R4, REG_R6, REG_R5, REG_R7 };
-	//token_.intValue = num;
-	token_.intValue = regnums[num];
-
+	token_.intValue = num;
 	//FIXME debug
 	printf("GetRegisterNumeric(): num=%d, actualreg=%d\n", num, token_.intValue);
 	//end
