@@ -588,11 +588,19 @@ static int GetRegisterRef(void)
 		{
 			token_.id = TOKEN_ID_REG;
 			token_.intValue = i->val;
+			//FIXME debug
+			printf("GetRegisterRef(): reg=%d\n", token_.intValue);
+			//end
 			return 0;
 		}
 	}
 
-	return GetRegisterNumeric();
+	//return GetRegisterNumeric();
+	//FIXME debug
+	int r = GetRegisterNumeric();
+	if(r)	{ printf("GetRegisterRef(): GetRegisterNumeric() returned %d\n", r); }
+	return r;
+	//end
 }
 
 static int GetRegisterNumeric(void)
@@ -623,6 +631,9 @@ static int GetRegisterNumeric(void)
 		int c = str[i];
 		if(!isdigit(c))
 		{
+			//FIXME debug
+			printf("GetRegisterNumeric(): return 0 in loop. this should break things...");
+			//end
 			return 0;
 		}
 		num = num * 10 + c - '0';
@@ -640,6 +651,9 @@ static int GetRegisterNumeric(void)
 	//token_.intValue = num;
 	token_.intValue = regnums[num];
 
+	//FIXME debug
+	printf("GetRegisterNumeric(): num=%d, actualreg=%d\n", num, token_.intValue);
+	//end
 	return 0;
 }
 

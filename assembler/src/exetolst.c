@@ -20,7 +20,7 @@ static void PrintByteBin(FILE* stream, byte_t val);
 static void Translate(FILE* lstFile, ExeReader* exeReader);
 static size_t Load(ExeSection* sections, size_t sectionCount, ExeReader* exeReader);
 static int CmpExeSec(const void* a_, const void* b_);
-static void Pad(FILE* lstFile, size_t padding);
+static void Pad(FILE* lstFile, size_t padding, const char* str);
 static void WriteData(FILE* lstFile, ExeSection* sec);
 
 int main(int argc, char** argv)
@@ -70,13 +70,13 @@ static void Translate(FILE* lstFile, ExeReader* exeReader)
 		uword_t padding = sec->addr - curAddr;
 		if(padding > 0)
 		{
-			Pad(lstFile, padding);
+			Pad(lstFile, padding, "xxxxxxxx\n");
 		}
 
 		switch(sec->type)
 		{
 		case SECTION_TYPE_BSS:
-			Pad(lstFile, sec->size);
+			Pad(lstFile, sec->size, "00000000\n");
 			break;
 		case SECTION_TYPE_DATA:
 			WriteData(lstFile, sec);
@@ -121,12 +121,12 @@ static int CmpExeSec(const void* a_, const void* b_)
 	return a->addr - b->addr;
 }
 
-static void Pad(FILE* lstFile, size_t padding)
+static void Pad(FILE* lstFile, size_t padding, const char* str)
 {
 	size_t i;
 	for(i = 0; i < padding; ++i)
 	{
-		fprintf(lstFile, "xxxxxxxx\n");
+		fputs(str, lstFile);
 	}
 }
 

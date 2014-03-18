@@ -783,12 +783,12 @@ static int ParseExpression(int needConst, uword_t unlinkedAddr, word_t* result)
 	for(;;) //while valid tokens are available
 	{
 #ifdef ESC_DEBUG
-		putchar('\n');
+		/*putchar('\n');
 		SyOutStackDump();
 		SyOpStackDump();
 		printf("ParseExpression(): got: ");
 		PrintToken(stdout, token);
-		putchar('\n');
+		putchar('\n');*/
 #endif
 
 		switch(tokenClass)

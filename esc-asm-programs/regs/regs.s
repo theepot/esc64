@@ -1,0 +1,14 @@
+.data
+.org 0
+
+	mov		r0, 0xAB00
+	mov		r1, 0xAB00
+	mov		r2, 0xAB00
+	mov		r3, 0xAB00
+	mov		r4, 0xAB00
+	mov		r5, 0xAB00
+	mov		r6, 0xAB00
+	mov		r7, 0xAB00
+	
+	mov		sp, 0xAB00
+	mov		pc, 0xAB00
