@@ -3,6 +3,7 @@
 #include <ESC64.hpp>
 #include <cassert>
 #include <cstdio>
+#include <time.h>
 
 using namespace ::virtual_io;
 
@@ -20,6 +21,7 @@ void ESC64::step(void) {
 		return;
 	Instr i;
 	if(fetch(&i)) {
+		delay();
 		execute(i);
 		if(i.opcode != op_halt) {
 			step_count++;
@@ -36,6 +38,7 @@ void ESC64::reset(void) {
 	c_flag_is_defined = true;
 	z_flag = false;
 	step_count = 0;
+	time_started = time_now();
 }
 
 bool ESC64::fetch(ESC64::Instr* out_instr) {
@@ -68,6 +71,25 @@ bool ESC64::fetch(ESC64::Instr* out_instr) {
 
 	*out_instr = result;
 	return true;
+}
+
+int64_t ESC64::time_now()
+{
+	struct timespec t;
+	clock_gettime(CLOCK_MONOTONIC, &t);
+	return t.tv_sec * 1000000 + t.tv_nsec / 1000;
+}
+
+void ESC64::delay()
+{
+	int64_t timeNow = time_now();
+	int64_t timeElapsed = timeNow - time_started;
+	int64_t sync = TICKS_PER_INST * step_count * TIME_PER_TICK;
+	int64_t delta = sync - timeElapsed;
+	if(delta > 0)
+	{
+		boost::this_thread::sleep(boost::posix_time::millisec(delta / 1000));
+	}
 }
 
 // (op[^ \t]+).+$

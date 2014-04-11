@@ -30,7 +30,7 @@ int fprintf(FILE* stream, const char* fmt, ...)
 	return n;
 }
 
-int printf(char* buf, const char* fmt, ...)
+int printf(const char* fmt, ...)
 {
 	int n;
 	va_list va;

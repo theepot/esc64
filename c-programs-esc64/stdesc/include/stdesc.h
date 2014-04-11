@@ -41,7 +41,7 @@ int sprintf(char* buf, const char* fmt, ...);
 int putchar(int c);
 int vfprintf(FILE* stream, const char* fmt, va_list va);
 int fprintf(FILE* stream, const char* fmt, ...);
-int printf(char* buf, const char* fmt, ...);
+int printf(const char* fmt, ...);
 void* __va_arg(va_list* v, unsigned n);
 
 #endif

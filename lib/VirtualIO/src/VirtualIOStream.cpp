@@ -36,8 +36,10 @@ bool VirtualIOStream::write(int addr, BitVector16 data, bool csh, bool csl, bool
 		std::cerr << "VirtualIOStream@" << addr << ": write: ERROR: data " << data << " contains invalid bits. Not writing to file." << std::endl << std::endl;
 		return false;
 	}
-	char c = data.getValue();
-	int wr = ::write(f_out, &c, 1);
+	int c = data.getValue();
+	///*FIXME debug*/fprintf(stderr, "VirtualIOStream::write(): c = `%c'(%X)\n", c, c);
+	char ch = (char)c;
+	int wr = ::write(f_out, &ch, 1);
 	
 	if(wr != 1)
 	{
