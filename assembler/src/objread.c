@@ -26,7 +26,7 @@ void ObjectReaderInit(const char* path)
 	objStream_ = fopen(path, "rb");
 	if(!objStream_)
 	{
-		EscError("%s", strerror(errno));
+		EscError("%s: %s", strerror(errno), path);
 	}
 
 	secNext_ = OBJ_RECORD_ILLEGAL_OFFSET;

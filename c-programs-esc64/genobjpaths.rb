@@ -6,8 +6,8 @@ crtprefix = ARGV[0]
 
 crtmap =
 {
-	"__mul16"	=> "esccrt-mul16.o",
-	"__sdiv16"	=> "esccrt-sdiv16.o"
+#	"__mul16"	=> "esccrt-mul16.o",
+#	"__sdiv16"	=> "esccrt-sdiv16.o"
 }
 
 objpaths = Set.new

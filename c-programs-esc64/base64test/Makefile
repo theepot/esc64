@@ -13,5 +13,11 @@ STDESC_OBJS		:= puts.o
 ESCIO			:= ../escio
 LINK			:= $(BASE64)/build/base64_enc.o $(BASE64)/build/base64_dec.o
 
-include ../esc64-build.mk
+.PHONY: all
+all: esc64_lst
+
+.PHONY: clean
+clean: esc64_clean
+
+include ../esc64-build-v2.mk
 

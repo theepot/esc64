@@ -15,7 +15,8 @@ clean:
 	rm -f $(OBJECTS)
 
 %.pp.s: %.s
-	gpp -n +c ";" "\n" -o $@ $^
+	#gpp -n +c ";" "\n" -o $@ $^
+	m4 $^ > $@
 
 %.o: %.pp.s
 	esc-as $@ $^ > esc-as-stdout.log

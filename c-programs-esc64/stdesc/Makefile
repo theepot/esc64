@@ -1,7 +1,6 @@
 .SUFFIXES:
 .SECONDARY:
 
-PROGRAM			:= delaytest
 OBJECTS			:= strlen.o strncmp.o itoa.o atoi.o strchr.o isdigit.o rand.o fgets.o toupper.o puts.o fputs.o getchar.o varargs.o putchar.o memset.o generic-printf.o sprintf.o printf.o
 CRT_PATH		:= ../../crt
 GPP_FLAGS		:= 

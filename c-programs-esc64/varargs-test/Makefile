@@ -26,7 +26,7 @@ LINUX_SRC	:= $(COMMON_SRC) $(addprefix $(SRC)/,$(foreach F,$(OBJECTS),$(subst .o
 LINUX_PRGM	:= linux_$(PROGRAM)
 
 STDESC		:= ../stdesc
-STDESC_OBJS	:= $(STDESC)/varargs.o
+STDESC_OBJS	:= $(STDESC)/build/varargs.o
 CFLAGS		+= -I$(STDESC)/include
 
 ESCIO		:= ../escio
@@ -77,7 +77,8 @@ $(PROGRAM): $(OBJECTS)
 %.lcc.s: src/%.c
 	lcc -S -c -Wf-target=esc64 $(CFLAGS) -I$(COMMON_INC) -I$(SRC) -DTARGET_ESC64 -o $@ $^
 
-GPP_CMD=gpp -n +c ";" "\n" -o $@ $^ $(GPP_FLAGS)
+#GPP_CMD=gpp -n +c ";" "\n" -o $@ $^ $(GPP_FLAGS)
+GPP_CMD=m4 $^ $(GPP_FLAGS) > $@
 
 %.pp.s: %.lcc.s
 	$(GPP_CMD)

@@ -1,7 +1,6 @@
 .SUFFIXES:
 .SECONDARY:
 
-#PROGRAM			:= 
 OBJECTS			:= base64_dec.o base64_enc.o
 CRT_PATH		:= ../../crt
 GPP_FLAGS		:= 
@@ -11,5 +10,11 @@ STDESC_OBJS		:=
 ESCIO			:= ../escio
 LINK			:= 
 
-include ../esc64-build.mk
+.PHONY: all
+all: esc64_objs
+
+.PHONY: clean
+clean: esc64_clean
+
+include ../esc64-build-v2.mk
 

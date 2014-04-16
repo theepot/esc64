@@ -11,5 +11,11 @@ STDESC_OBJS		:= atoi.o rand.o fgets.o toupper.o puts.o itoa.o isdigit.o getchar.
 ESCIO			:= ../escio
 LINK			:=
 
-include ../esc64-build.mk
+.PHONY: all
+all: esc64_lst
+
+.PHONY: clean
+clean: esc64_clean
+
+include ../esc64-build-v2.mk
 

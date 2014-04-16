@@ -37,7 +37,8 @@ $(PROGRAM): $(OBJECTS)
 %.lcc.s: src/%.c
 	lcc -S -c $(CFLAGS) -Wf-target=esc64 -o $@ $^
 
-GPP_CMD=gpp -n +c ";" "\n" -o $@ $^ -I$(INCLUDES)
+#GPP_CMD=gpp -n +c ";" "\n" -o $@ $^ -I$(INCLUDES)
+GPP_CMD=m4 $^ -I$(INCLUDES) > $@
 
 %.pp.s: %.lcc.s
 	$(GPP_CMD)

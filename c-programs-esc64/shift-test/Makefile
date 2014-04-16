@@ -68,7 +68,8 @@ $(PROGRAM): $(OBJECTS)
 %.lcc.s: src/%.c
 	lcc -S -c -Wf-target=esc64 -I$(COMMON_INC) -I$(SRC) -DTARGET_ESC64 -o $@ $^
 
-GPP_CMD=gpp -n +c ";" "\n" -o $@ $^ $(GPP_FLAGS)
+#GPP_CMD=gpp -n +c ";" "\n" -o $@ $^ $(GPP_FLAGS)
+GPP_CMD=m4 $^ $(GPP_FLAGS) > $@
 
 %.pp.s: %.lcc.s
 	$(GPP_CMD)

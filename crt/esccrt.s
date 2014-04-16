@@ -2,7 +2,7 @@
 ;; ESC64 C runtime procedures ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-#include "esccrt.inc"
+include(`esccrt2.inc')
 
 ;;;;; entry point ;;;;;
 .data
@@ -19,9 +19,9 @@
 	halt
 
 ;;;;; error code ;;;;;
-#define ERROR_DIVIDE_BY_0		1
-#define ERROR_ASSERT_FAIL		2
-#define ERROR_MAIN_RET_NON_0	3
+define(`ERROR_DIVIDE_BY_0',		`1')
+define(`ERROR_ASSERT_FAIL',		`2')
+define(`ERROR_MAIN_RET_NON_0',	`3')
 
 __error_code:
 .word 0
@@ -145,10 +145,10 @@ __error:
 ;;		nothing
 ;;
 .global __memcpy:
-#define DST		r0
-#define SRC		r1
-#define N		r2
-#define TMP		r3
+define(`DST',	`r0')
+define(`SRC',	`r1')
+define(`N',		`r2')
+define(`TMP',	`r3')
 
 	push	r0
 	push	r1
@@ -176,10 +176,10 @@ __memcpy_abort:
 	pop		r0
 	ret
 	
-#undef DST
-#undef SRC
-#undef N
-#undef TMP
+undefine(`DST')
+undefine(`SRC')
+undefine(`N')
+undefine(`TMP')
 ;;end __memcpy
 
 
@@ -362,12 +362,12 @@ __sdiv16_skip_invert_result:
 ;;		nothing
 ;;
 .global __udiv16:
-#define NUM		r0
-#define DENOM	r1
-#define QUOT	r2
-#define REST	r3
-#define MASK	r4
-#define TMP		__bp
+define(`NUM',	`r0')
+define(`DENOM',	`r1')
+define(`QUOT',	`r2')
+define(`REST',	`r3')
+define(`MASK',	`r4')
+define(`TMP',	`__bp')
 
 	and		DENOM, DENOM, DENOM		;check for A / 0
 	jz		__divide_by_zero
@@ -402,12 +402,12 @@ __udiv16_skip_sub:
 	pop		r2
 	ret
 		
-#undef NUM
-#undef DENOM
-#undef QUOT
-#undef REST
-#undef MASK
-#undef TMP
+undefine(`NUM')
+undefine(`DENOM')
+undefine(`QUOT')
+undefine(`REST')
+undefine(`MASK')
+undefine(`TMP')
 ;;end __udiv16
 
 
