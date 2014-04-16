@@ -19,4 +19,7 @@ define(`sto8',`mov		__tmpreg, $2
 	add		__tmpreg, $1, __tmpreg
 	stb		__tmpreg, $3')
 
+define(`mvo16',`mov		__tmpreg, $3
+	add		$1, $2, __tmpreg')
+
 ')dnl

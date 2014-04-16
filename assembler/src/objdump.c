@@ -7,49 +7,131 @@
 #include <esc64asm/align.h>
 #include <esc64asm/decomp.h>
 
-#define USAGE \
-	"usage: esc-objdump INPUT\n" \
-	"\tprints information about object file INPUT\n"
+typedef enum ObjDumpAction_
+{
+	OBJDUMP_ALL = 0,
+	OBJDUMP_UNLINKED
+} ObjDumpAction;
 
+#define USAGE \
+	("usage: esc-objdump INPUT\n" \
+	"  prints information about object file INPUT\n" \
+	"  options:\n" \
+	"    -a  print all information about an object file (default)\n" \
+	"    -u  print all unlinked symbols\n")
+
+static void ObjDumpAll(void);
+static void ObjDumpUnlinked(void);
 static void PrintHeader(const ObjHeader* header);
 static void PrintSection(int isAbs, const ObjSectionHeader* secHeader);
+static void PrintUnlinked(ObjSectionHeader* secHeader);
 static void PrintSymbols(objsize_t offset);
 static void PrintExpr(void);
 static void PrintData(int align2, size_t dataSize);
 static void PrintInstruction(uword_t instrWord);
 static const char* SectionTypeToString(byte_t type);
 
+static ObjHeader header_;
+
 int main(int argc, char** argv)
 {
-	if(argc != 2)
+	const char* input = NULL;
+	ObjDumpAction action = OBJDUMP_ALL;
+
+	if(argc < 2)
 	{
 		fputs(USAGE, stderr);
 		return 1;
 	}
 
-	ObjHeader header;
-	ObjectReaderInit(argv[1]);
+	char** opt;
+	for(opt = argv + 1; opt < argv + argc; ++opt)
+	{
+		if((*opt)[0] == '-')
+		{
+			switch((*opt)[1])
+			{
+			case 'a':
+				action = OBJDUMP_ALL;
+				break;
+			case 'u':
+				action = OBJDUMP_UNLINKED;
+				break;
 
-	ObjReadHeader(&header);
-	PrintHeader(&header);
+			default:
+				fputs(USAGE, stderr);
+				return 1;
+			}
+		}
+		else
+		{
+			if(input)
+			{
+				fputs(USAGE, stderr);
+				return 1;
+			}
+			input = *opt;
+		}
+	}
+
+	if(!input)
+	{
+		fputs(USAGE, stderr);
+		return 1;
+	}
+
+	ObjectReaderInit(input);
+	ObjReadHeader(&header_);
+
+	switch(action)
+	{
+	case OBJDUMP_ALL:
+		ObjDumpAll();
+		break;
+	case OBJDUMP_UNLINKED:
+		ObjDumpUnlinked();
+		break;
+	}
+
+	return 0;
+}
+
+static void ObjDumpAll(void)
+{
+	PrintHeader(&header_);
 
 	ObjSectionHeader secHeader;
 
 	puts("abs sections:");
-	ObjectReaderStart(betoh_objsize(header.absSectionOffset));
+	ObjectReaderStart(betoh_objsize(header_.absSectionOffset));
 	while(!ObjReaderNextSection(&secHeader))
 	{
 		PrintSection(1, &secHeader);
 	}
 
 	puts("reloc sections:");
-	ObjectReaderStart(betoh_objsize(header.relocSectionOffset));
+	ObjectReaderStart(betoh_objsize(header_.relocSectionOffset));
 	while(!ObjReaderNextSection(&secHeader))
 	{
 		PrintSection(0, &secHeader);
 	}
+}
 
-	return 0;
+static void ObjDumpUnlinked(void)
+{
+	ObjSectionHeader secHeader;
+
+	ObjectReaderStart(betoh_objsize(header_.absSectionOffset));
+	while(!ObjReaderNextSection(&secHeader))
+	{
+		PrintUnlinked(&secHeader);
+	}
+
+	ObjectReaderStart(betoh_objsize(header_.relocSectionOffset));
+	while(!ObjReaderNextSection(&secHeader))
+	{
+		PrintUnlinked(&secHeader);
+	}
 }
 
 static void PrintHeader(const ObjHeader* header)
@@ -93,12 +175,10 @@ static void PrintSection(int isAbs, const ObjSectionHeader* secHeader)
 
 	objsize_t localOffset = betoh_objsize(secHeader->localSymbolRecordOffset);
 	printf("\t\tlocal symbols: (offset=0x%04X)\n", localOffset);
-//	PrintSymbols(OBJ_SECTION_LOCAL_SYM_RECORD_OFFSET);
 	PrintSymbols(localOffset);
 
 	objsize_t globalOffset = betoh_objsize(secHeader->globalSymbolRecordOffset);
 	printf("\t\tglobal symbols: (offset=0x%04X)\n", globalOffset);
-//	PrintSymbols(OBJ_SECTION_GLOBAL_SYM_RECORD_OFFSET);
 	PrintSymbols(globalOffset);
 
 	switch(type)
@@ -121,28 +201,32 @@ static void PrintSection(int isAbs, const ObjSectionHeader* secHeader)
 	}
 }
 
-static void PrintExpr()
+static void PrintUnlinked(ObjSectionHeader* secHeader)
 {
-//	//ObjExprIterator it;
-//	ObjExpReader reader;
-//	ObjExpReaderInit(&reader);
-//
-//	if(/*ObjExprIteratorInit(&it)*/ ObjExpReaderInit(&reader))
-//	{
-//		puts("\t\tnone");
-//		return;
-//	}
-//
-////	while(!ObjExprIteratorNext(&it))
-////	{
-////		char buf[it.curExpr.nameLen + 1];
-////		ObjExprIteratorReadName(&it, buf);
-////		buf[it.curExpr.nameLen] = 0;
-////		const Expression* expr = ObjExprIteratorGetExpr(&it);
-////		printf("\t\t`%s' = 0x%X(%u)\n", expr->name, expr->address, expr->address);
-////	}
-//	puts("\t\tExpression dump temporarily broken. Sorry :(");
+	XObjExpReader reader;
+	if(secHeader->type != SECTION_TYPE_DATA || XObjExpReaderInit(&reader))	{ return; }
+	while(!XObjExpReaderNextExp(&reader))
+	{
+		while(!XObjExpReaderNextToken(&reader))
+		{
+			if(reader.tok.type == EXPR_T_SYMBOL)
+			{
+				char buf[reader.tok.strLen];
+				reader.tok.strVal = buf;
+				XObjExpReaderGetStr(&reader);
+				char* p;
+				for(p = buf; p < buf + reader.tok.strLen; ++p)
+				{
+					putchar(*p);
+				}
+				putchar('\n');
+			}
+		}
+	}
+}
 
+static void PrintExpr(void)
+{
 	XObjExpReader reader;
 
 	if(XObjExpReaderInit(&reader))
@@ -162,12 +246,8 @@ static void PrintExpr()
 				char buf[reader.tok.strLen];
 				reader.tok.strVal = buf;
 				XObjExpReaderGetStr(&reader);
-				DumpExpToken(stdout, &reader.tok);
 			}
-			else
-			{
-				DumpExpToken(stdout, &reader.tok);
-			}
+			DumpExpToken(stdout, &reader.tok);
 		}
 		putchar('\n');
 	}

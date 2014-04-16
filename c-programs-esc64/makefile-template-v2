@@ -2,12 +2,12 @@
 .SECONDARY:
 
 PROGRAM			:= delaytest
-OBJECTS			:= main.o delay.o
+OBJECTS			:= example.o
 CRT_PATH		:= ../../crt
 GPP_FLAGS		:= 
 CFLAGS			:= 
 STDESC			:= ../stdesc
-STDESC_OBJS		:= printf.o putchar.o generic-printf.o varargs.o puts.o
+STDESC_OBJS		:= rand.o fgets.o isdigit.o itoa.o varargs.o putchar.o memset.o toupper.o generic-printf.o fputs.o puts.o getchar.o strlen.o atoi.o strncmp.o sprintf.o printf.o strchr.o
 ESCIO			:= ../escio
 LINK			:=
 

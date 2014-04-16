@@ -1,52 +1,21 @@
 .SUFFIXES:
-
 .SECONDARY:
 
-SRC			:= src
-PROGRAM		:= testprgm
-LST			:= $(PROGRAM).lst
-OBJECTS		:= strlen.o strncmp.o itoa.o atoi.o strchr.o isdigit.o rand.o fgets.o toupper.o puts.o fputs.o getchar.o varargs.o putchar.o memset.o generic-printf.o sprintf.o printf.o
-PP			:= $(foreach F,$(OBJECTS),$(subst .o,.pp.s,$(F)))
-LCC_S		:= $(foreach F,$(OBJECTS),$(subst .o,.lcc.s,$(F)))
-
-CRT_PATH	:= ../../crt
-CRT_O		:= $(CRT_PATH)/esccrt.o
-CRT_INCLUDE	:= $(CRT_PATH)
-ESC_TEST_O	:= ../common/esctest.o
-
-GPP_FLAGS	:= -I$(CRT_PATH) -I.
-CFLAGS		:= -Iinclude -I$(CRT_INCLUDE)
-
-COMMON		:= ../common
-COMMON_OBJS	:= $(COMMON)/esctest.o $(COMMON)/vio.o
-COMMON_INC	:= $(COMMON)/include
-COMMON_SRC	:= $(COMMON)/src/esctest.c
-
-ESCIO		:= ../escio
-CFLAGS		+= -I$(ESCIO)/include
+PROGRAM			:= delaytest
+OBJECTS			:= strlen.o strncmp.o itoa.o atoi.o strchr.o isdigit.o rand.o fgets.o toupper.o puts.o fputs.o getchar.o varargs.o putchar.o memset.o generic-printf.o sprintf.o printf.o
+CRT_PATH		:= ../../crt
+GPP_FLAGS		:= 
+CFLAGS			:= -Isrc
+STDESC			:= ../stdesc
+STDESC_OBJS		:= 
+ESCIO			:= ../escio
+LINK			:=
 
 .PHONY: all
-all: $(OBJECTS)
+all: esc64_objs
 
 .PHONY: clean
-clean:
-	rm -f $(PROGRAM)
-	rm -f $(LST)
-	rm -f $(PP)
-	rm -f $(LCC_S)
-	rm -f $(OBJECTS)
+clean: esc64_clean
 
-%.lcc.s: src/%.c
-	lcc -S -c -Wf-target=esc64 $(CFLAGS) -I$(COMMON_INC) -I$(SRC) -DTARGET_ESC64 -o $@ $^
-
-GPP_CMD=gpp -n +c ";" "\n" -o $@ $^ $(GPP_FLAGS)
-
-%.pp.s: %.lcc.s
-	$(GPP_CMD)
-
-%.pp.s: $(SRC)/%.s
-	$(GPP_CMD)
-
-%.o: %.pp.s
-	esc-as $@ $^ > esc-as-stdout.log
+include ../esc64-build-v2.mk
 

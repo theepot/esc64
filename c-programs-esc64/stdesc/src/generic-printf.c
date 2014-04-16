@@ -28,7 +28,10 @@ static int printi(struct printf_state* state, int num, int is_signed, int radix,
 	x = (unsigned)(neg ? -num : num);
 	n = 0;
 	
-	for(p = buf + sizeof buf - 1; x; --p, x /= radix)
+	for(
+		p = buf + sizeof buf - 1;
+		x;
+		--p, x /= radix)
 	{
 		*p = numtable[x % radix];
 	}
