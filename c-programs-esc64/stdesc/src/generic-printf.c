@@ -24,6 +24,8 @@ static int printi(struct printf_state* state, int num, int is_signed, int radix,
 	unsigned x;
 	int neg;
 	
+	if(num == 0)	{ return PRINTC('0'); }
+	
 	neg = num < 0 && is_signed;
 	x = (unsigned)(neg ? -num : num);
 	n = 0;
@@ -36,10 +38,7 @@ static int printi(struct printf_state* state, int num, int is_signed, int radix,
 		*p = numtable[x % radix];
 	}
 	
-	if(neg)
-	{
-		n += PRINTC('-');
-	}
+	if(neg)	{ n += PRINTC('-'); }
 	
 	while(++p < buf + sizeof buf)
 	{

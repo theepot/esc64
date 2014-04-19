@@ -7,7 +7,7 @@ CRT_PATH		:= ../../crt
 GPP_FLAGS		:= 
 CFLAGS			:= 
 STDESC			:= ../stdesc
-STDESC_OBJS		:= printf.o putchar.o generic-printf.o varargs.o puts.o
+STDESC_OBJS		:= printf.o putchar.o generic-printf.o varargs.o puts.o delay.o
 ESCIO			:= ../escio
 LINK			:=
 

@@ -43,5 +43,9 @@ int vfprintf(FILE* stream, const char* fmt, va_list va);
 int fprintf(FILE* stream, const char* fmt, ...);
 int printf(const char* fmt, ...);
 void* __va_arg(va_list* v, unsigned n);
+/**
+ * @brief	delays program execution by n * (2 * m + 2) + 13 instruction cycles (excluding instructions needed to call this function)
+ */
+void delay(unsigned n, unsigned m);
 
 #endif
