@@ -52,8 +52,13 @@
 //some game constants
 #define SHOT_MAX_SPEED	UNITS_X
 #define GRAVITY			3
-#define SHOT_DELAY		40
 #define SHOT_DAMAGE		34
+
+#ifdef TARGET_ESC64
+#define SHOT_DELAY		10
+#else
+#define SHOT_DELAY		40
+#endif
 
 //line draw types
 #define LINE_HOR	0
@@ -86,7 +91,7 @@ typedef struct Shot_
 extern Vector angle2vec[91];
 
 //macro's
-#define CLEAR_MSG	(fillrect(MSG_X, MSG_Y, MSG_WIDTH, MSG_HEIGHT, " "))
+#define CLEAR_MSG	(fillrect(MSG_X, MSG_Y, MSG_WIDTH, MSG_HEIGHT, ' '))
 
 #ifdef TARGET_ESC64
 #define delayms(ms)	delay((ms), 24)
@@ -112,6 +117,6 @@ void place_player(Player* player, int16_t x);
 void draw_terrain(void);
 int16_t player_hit(Player* player, int16_t x, int16_t y);
 void explosion(int16_t x, int16_t y);
-void fillrect(int16_t x, int16_t y, int16_t w, int16_t h, const char* str);
+void fillrect(int16_t x, int16_t y, int16_t w, int16_t h, int16_t ch);
 
 #endif

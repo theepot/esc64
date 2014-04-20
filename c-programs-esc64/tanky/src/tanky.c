@@ -217,7 +217,7 @@ void draw_stats(Player* player)
 	x = player->stats.x;
 	y = player->stats.y;
 	
-	fillrect(x, y, STATS_WIDTH, STATS_HEIGHT, " ");
+	fillrect(x, y, STATS_WIDTH, STATS_HEIGHT, ' ');
 	printf(
 		"\x1B[%d;%dHplayer %c"
 		"\x1B[%d;%dHhull:  %d%%"
@@ -453,10 +453,19 @@ void explosion(int16_t x, int16_t y)
 	TERM_DRAWCH(x, y, 'X');
 }
 
-void fillrect(int16_t x, int16_t y, int16_t w, int16_t h, const char* str)
+void fillrect(int16_t x, int16_t y, int16_t w, int16_t h, int16_t ch)
 {
-	int i;
-	for(i = 0; i < h; ++i)	{ draw_line(x, y + i, w, str, LINE_HOR); }
+	int16_t i;
+	h += y;
+	
+	for(; y < h; ++y)
+	{
+		printf("\x1B[%d;%dH", y, x);
+		for(i = 0; i < w; ++i)
+		{
+			putchar(ch);
+		}
+	}
 }
 
 
