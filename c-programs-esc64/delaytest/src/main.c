@@ -10,7 +10,7 @@ int main(int argc, char** argv)
 {
 	int i;
 	
-	/*puts("test in assembly, will count from 0 to 9 with 1 second pauses");
+	puts("test in assembly, will count from 0 to 9 with 1 second pauses");
 	delay_test();
 		
 	puts("\n\ntest in C, will count from 1 to 10 with 1 second pauses");
@@ -18,7 +18,7 @@ int main(int argc, char** argv)
 	{
 		printf("i = %d\n", i);
 		delay1sec();
-	}*/
+	}
 	
 	puts("\n\ncount from 0 to 100 with 100ms pauses");
 	for(i = 0; i < 100; ++i)
