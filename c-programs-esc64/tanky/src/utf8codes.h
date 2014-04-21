@@ -1,6 +1,8 @@
 #ifndef UTF8CODES_INCLUDED
 #define UTF8CODES_INCLUDED
 
+#define UTF8_MAX_LEN			4
+
 #define UTF8_LOWER_HALF_BLOCK	"\xE2\x96\x84"
 #define UTF8_UPPER_HALF_BLOCK	"\xE2\x96\x80"
 #define UTF8_FULL_BLOCK			"\xE2\x96\x88"

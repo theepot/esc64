@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #else
 #include <stdesc.h>
+#include <escio.h>
 #endif
 
 #include <tanky.h>
@@ -111,12 +112,6 @@ void draw_static(void)
 	{
 		printf("\x1B[%d;%dH%s", p->y, p->x, UTF8_MENU_CROSS);
 	}
-	
-	//menu stuff
-	/*TERM_DRAWSTR(INFO_X, INFO_Y + STATS_NAME, "player 1");
-	TERM_DRAWSTR(INFO_X, INFO_Y + STATS_HULL, "hull:");
-	TERM_DRAWSTR(INFO_X, INFO_Y + STATS_POWER, "power:");
-	TERM_DRAWSTR(INFO_X, INFO_Y + STATS_ANGLE, "angle:");*/
 }
 
 void gen_terrain(void)
@@ -292,21 +287,37 @@ void shoot(void)
 #endif
 		
 		//delay
+#if SHOT_DELAY > 0
 		delayms(SHOT_DELAY);
+#endif
 	}
 }
 
 void draw_line(int16_t x, int16_t y, int16_t len, const char* str, uint16_t type)
 {
-	int16_t* d, limit;
-	d = type == LINE_HOR ? &x : &y;
-	limit = *d + len;
+#define VSTR "\x1B[1B\x1B[1D"
+
+	char vstr[UTF8_MAX_LEN + sizeof VSTR];
+	const char* p;
+	uint16_t i;
 	
-	while(*d < limit)
+	if(type == LINE_VERT)
 	{
-		TERM_DRAWSTR(x, y, str);
-		++(*d);
+		sprintf(vstr, "%s" VSTR, str);
+		p = vstr;
 	}
+	else
+	{
+		p = str;
+	}
+	
+	TERM_SETCURSOR(x, y);
+	for(i = 0; i < len; ++i)
+	{
+		printstr(p);
+	}
+
+#undef VSTR
 }
 
 void init_shot(void)
@@ -456,15 +467,19 @@ void explosion(int16_t x, int16_t y)
 void fillrect(int16_t x, int16_t y, int16_t w, int16_t h, int16_t ch)
 {
 	int16_t i;
+	char nextline[sizeof "\x1B[000B\x1B[1D"];
 	h += y;
+	sprintf(nextline, "\x1B[%dB\x1B[1D", w);
 	
+	TERM_SETCURSOR(x, y);
 	for(; y < h; ++y)
 	{
 		printf("\x1B[%d;%dH", y, x);
 		for(i = 0; i < w; ++i)
 		{
-			putchar(ch);
+			printch(ch);
 		}
+		printstr(nextline);
 	}
 }
 

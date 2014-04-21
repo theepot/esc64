@@ -94,9 +94,13 @@ extern Vector angle2vec[91];
 #define CLEAR_MSG	(fillrect(MSG_X, MSG_Y, MSG_WIDTH, MSG_HEIGHT, ' '))
 
 #ifdef TARGET_ESC64
-#define delayms(ms)	delay((ms), 24)
+#define delayms(ms)		delay((ms), 24)
+#define printch(ch)		io_out(SERIAL_IO_DEV, (ch))
+#define printstr(str)	io_outs(SERIAL_IO_DEV, (str))
 #else
-#define delayms(ms)	usleep((ms) * 1000)
+#define delayms(ms)		usleep((ms) * 1000)
+#define printch(ch)		putchar(ch)
+#define printstr(str)	fputs((str), stdout)
 #endif
 
 //routines
