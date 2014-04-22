@@ -77,10 +77,10 @@ int main(int argc, char** argv)
 
 #ifndef TARGET_ESC64
 	//restore old settings line-buffering settings
-	tcsetattr(STDIN_FILENO, TCSANOW, &old_tio);
+	//tcsetattr(STDIN_FILENO, TCSANOW, &old_tio);
 #endif
 	
-	return 0;
+	//return 0;
 }
 
 void draw_static(void)
@@ -110,7 +110,8 @@ void draw_static(void)
 	//corners
 	for(p = corners; p < corners + (sizeof corners / sizeof corners[0]); ++p)
 	{
-		printf("\x1B[%d;%dH%s", p->y, p->x, UTF8_MENU_CROSS);
+		term_setpos(p->x, p->y);
+		printstr(UTF8_MENU_CROSS);
 	}
 }
 
@@ -206,6 +207,7 @@ void init_player(Player* player)
 	place_player(player, player->pos.x); //TODO random position
 }
 
+//TODO draw only parts of stats that have changed
 void draw_stats(Player* player)
 {
 	int16_t x, y;
@@ -222,7 +224,6 @@ void draw_stats(Player* player)
 		y + STATS_HULL, x, player->hull,
 		y + STATS_POWER, x, player->power,
 		y + STATS_ANGLE, x, player->angle);
-		
 }
 
 int16_t player_input(void)
@@ -311,7 +312,8 @@ void draw_line(int16_t x, int16_t y, int16_t len, const char* str, uint16_t type
 		p = str;
 	}
 	
-	TERM_SETCURSOR(x, y);
+	term_setpos(x, y);
+	
 	for(i = 0; i < len; ++i)
 	{
 		printstr(p);
@@ -414,12 +416,14 @@ int16_t shot_collision(void)
 
 void draw_player(const Player* player)
 {
-	printf(
-		"\x1B[%d;%dH"
+	char str[] =
 		UTF8_TRIANGLE_SE UTF8_LOWER_HALF_BLOCK UTF8_TRIANGLE_SW
-		"\x1B[%d;%dH"
-		UTF8_FULL_BLOCK "%c" UTF8_FULL_BLOCK,
-		player->pos.y, player->pos.x, player->pos.y + 1, player->pos.x, player->id);
+		"\x1B[3D\x1B[1B"
+		UTF8_FULL_BLOCK "?" UTF8_FULL_BLOCK;
+	
+	term_setpos(player->pos.x, player->pos.y);
+	str[sizeof str - 1 - sizeof UTF8_FULL_BLOCK] = player->id;
+	printstr(str);
 }
 
 void place_player(Player* player, int16_t x)
@@ -455,7 +459,9 @@ int16_t player_hit(Player* player, int16_t x, int16_t y)
 	draw_player(player);
 	player->hull -= SHOT_DAMAGE;
 	draw_stats(player);
-	printf("\x1B[%d;%dHhit player %c!", MSG_Y + 1, MSG_X, player->id);
+	term_setpos(MSG_X, MSG_Y + 1);
+	printstr("hit player ");
+	printch(player->id);
 	return 1;
 }
 
@@ -471,10 +477,10 @@ void fillrect(int16_t x, int16_t y, int16_t w, int16_t h, int16_t ch)
 	h += y;
 	sprintf(nextline, "\x1B[%dB\x1B[1D", w);
 	
-	TERM_SETCURSOR(x, y);
+	term_setpos(x, y);
 	for(; y < h; ++y)
 	{
-		printf("\x1B[%d;%dH", y, x);
+		term_setpos(x, y);
 		for(i = 0; i < w; ++i)
 		{
 			printch(ch);
@@ -483,6 +489,13 @@ void fillrect(int16_t x, int16_t y, int16_t w, int16_t h, int16_t ch)
 	}
 }
 
+#ifndef TARGET_ESC64
+void term_setpos(int16_t x, int16_t y)
+{
+	assert(x >= 0 && x <= 99 && y >= 0 && y <= 99);
+	printf("\x1B[%d;%dH", y, x);
+}
+#endif
 
 
 

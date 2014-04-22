@@ -2,7 +2,7 @@
 .SECONDARY:
 
 PROGRAM			:= tanky
-OBJECTS			:= angle2vec.o tanky.o
+OBJECTS			:= angle2vec.o tanky.o termsetpos.o
 CRT_PATH		:= ../../crt
 GPP_FLAGS		:= 
 CFLAGS			:= -Isrc

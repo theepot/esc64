@@ -3,13 +3,6 @@
 
 #include <stdint.h>
 
-//terminal control macro's
-#define TERM_CURSOR_INVIS		(printf("\x1B[?25l"))
-#define TERM_CURSOR_VIS			(printf("\x1B[?25h"))
-#define TERM_SETCURSOR(x, y)	(printf("\x1B[%d;%dH", (y), (x)))
-#define TERM_DRAWCH(x, y, ch)	(printf("\x1B[%d;%dH%c", (y), (x), (ch)))
-#define TERM_DRAWSTR(x, y, s)	(printf("\x1B[%d;%dH%s", (y), (x), (s)))
-
 //graphic positions
 #define SCREEN_X		1
 #define SCREEN_Y		1
@@ -91,17 +84,21 @@ typedef struct Shot_
 extern Vector angle2vec[91];
 
 //macro's
-#define CLEAR_MSG	(fillrect(MSG_X, MSG_Y, MSG_WIDTH, MSG_HEIGHT, ' '))
-
 #ifdef TARGET_ESC64
-#define delayms(ms)		delay((ms), 24)
-#define printch(ch)		io_out(SERIAL_IO_DEV, (ch))
-#define printstr(str)	io_outs(SERIAL_IO_DEV, (str))
+#define delayms(ms)				delay((ms), 24)
+#define printch(ch)				io_out(SERIAL_IO_DEV, (ch))
+#define printstr(str)			io_outs(SERIAL_IO_DEV, (str))
 #else
-#define delayms(ms)		usleep((ms) * 1000)
-#define printch(ch)		putchar(ch)
-#define printstr(str)	fputs((str), stdout)
+#define delayms(ms)				usleep((ms) * 1000)
+#define printch(ch)				putchar(ch)
+#define printstr(str)			fputs((str), stdout)
 #endif
+
+#define CLEAR_MSG				(fillrect(MSG_X, MSG_Y, MSG_WIDTH, MSG_HEIGHT, ' '))
+#define TERM_CURSOR_INVIS		(printf("\x1B[?25l"))
+#define TERM_CURSOR_VIS			(printf("\x1B[?25h"))
+#define TERM_DRAWCH(x, y, ch)	do { term_setpos(x, y); printch(ch); } while(0)
+#define TERM_DRAWSTR(x, y, s)	do { term_setpos(x, y); printstr(s); } while(0)
 
 //routines
 void draw_static(void);
@@ -122,5 +119,6 @@ void draw_terrain(void);
 int16_t player_hit(Player* player, int16_t x, int16_t y);
 void explosion(int16_t x, int16_t y);
 void fillrect(int16_t x, int16_t y, int16_t w, int16_t h, int16_t ch);
+void term_setpos(int16_t x, int16_t y);
 
 #endif
